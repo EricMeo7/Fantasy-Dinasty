@@ -1,0 +1,8 @@
+﻿bin/
+obj/
+.git/
+.github/
+client/
+mobile/
+Dockerfile
+.dockerignore

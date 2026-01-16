@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { Lock, ArrowRight, Loader2, Sparkles, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Lock, Loader2, Sparkles, ShieldCheck, AlertTriangle } from 'lucide-react';
 
 const ResetPassword = () => {
     const [searchParams] = useSearchParams();

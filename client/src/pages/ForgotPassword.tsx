@@ -104,7 +104,7 @@ const ForgotPassword = () => {
                                     className="w-full rounded-2xl bg-blue-600 hover:bg-blue-550 border-t border-white/10 py-5 font-black text-white italic uppercase tracking-tighter text-xl shadow-[0_20px_40px_rgba(37,99,235,0.3)] transform transition-all active:scale-95 disabled:opacity-30 disabled:scale-100 flex items-center justify-center gap-3"
                                 >
                                     {status === 'loading' ? <Loader2 className="animate-spin" size={24} /> : 'Send Instructions'}
-                                    {!status === 'loading' && <ArrowRight size={22} />}
+                                    {status !== 'loading' && <ArrowRight size={22} />}
                                 </button>
                             </form>
 
