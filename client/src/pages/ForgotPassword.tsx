@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CONFIG } from '../config';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../services/firebase';
 import { Mail, ArrowRight, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
 
 const ForgotPassword = () => {
@@ -13,21 +14,20 @@ const ForgotPassword = () => {
         setStatus('loading');
 
         try {
-            const response = await fetch(`${CONFIG.API_BASE_URL}/auth/forgot-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email }),
+            // Determine the URL dynamically:
+            // In Production (Render/Pages), window.location.origin will be correct (e.g. https://fantasy-dinasty.pages.dev)
+            // In Dev, it will be http://localhost:5173
+            const redirectUrl = `${window.location.origin}/reset-password`;
+
+            await sendPasswordResetEmail(auth, email, {
+                url: redirectUrl,
+                handleCodeInApp: true,
             });
 
-            if (response.ok) {
-                setStatus('success');
-            } else {
-                setStatus('success'); // Always show success for security
-            }
-        } catch (error) {
-            console.error(error);
+            setStatus('success');
+        } catch (error: any) {
+            console.error("Firebase Password Reset Error:", error);
+            // Always show success to prevent email enumeration, unless it's a critical config error
             setStatus('success');
         }
     };
