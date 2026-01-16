@@ -33,12 +33,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
-    options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = true;
+    options.Password.RequireUppercase = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
+.AddErrorDescriber<LocalizedIdentityErrorDescriber>()
 .AddDefaultTokenProviders();
 
 // JWT Authentication
@@ -118,7 +119,17 @@ builder.Services.AddScoped<MatchupService>();
 builder.Services.AddScoped<ScheduleService>();
 builder.Services.AddSingleton<LiveDraftService>();
 builder.Services.AddScoped<OfficialInjuryService>();
-builder.Services.AddSingleton<IEmailService, ConsoleMockEmailService>(); // Mock per sviluppo
+builder.Services.AddScoped<OfficialInjuryService>();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSingleton<IEmailService, ConsoleMockEmailService>();
+}
+else
+{
+    // In Produzione usiamo il NoOp per evitare leak di token nei log, finché non si configura SMTP
+    builder.Services.AddSingleton<IEmailService, ProductionNoOpEmailService>();
+}
 
 // --- 1. MEMORY CACHE ---
 builder.Services.AddMemoryCache();
@@ -251,6 +262,9 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
 
+// Localization
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
 // Swagger e SignalR
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -274,6 +288,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowReactApp");
+
+// Localization Middleware
+var supportedCultures = new[] { "it-IT", "en-US" };
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("it-IT")
+    .AddSupportedCultures(supportedCultures)
+    .AddSupportedUICultures(supportedCultures);
+
+app.UseRequestLocalization(localizationOptions);
 
 app.UseAuthentication();
 app.UseAuthorization(); // Questo attiva i controlli [Authorize]

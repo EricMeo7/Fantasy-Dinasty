@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, X, DollarSign, Calculator } from 'lucide-react';
 import api from '../services/api';
 import { type PlayerFull } from './PlayerStatsModal';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 
 interface Props {
   player: PlayerFull | null;
@@ -57,7 +57,7 @@ export default function ReleaseModal({ player, isOpen, onClose, onConfirm }: Pro
           <div>
             <h2 className="text-xl font-bold text-white">{t('modals.release_player')}</h2>
             <p className="text-red-300 text-sm mt-1">
-              Stai per rilasciare <span className="font-bold text-white">{player.firstName} {player.lastName}</span>.
+              {t('modals.release.warning')} <span className="font-bold text-white">{player.firstName} {player.lastName}</span>.
             </p>
           </div>
           <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X size={20} /></button>
@@ -65,12 +65,12 @@ export default function ReleaseModal({ player, isOpen, onClose, onConfirm }: Pro
 
         <div className="p-6">
           <p className="text-slate-400 text-sm mb-4">
-            Questa azione è <strong>irreversibile</strong>. Il contratto è garantito e verrà applicato il seguente <strong>Dead Money</strong> (penalità) sul tuo Salary Cap:
+            <Trans i18nKey="modals.release.irreversible_desc" components={{ strong: <strong /> }} />
           </p>
 
           {loading ? (
             <div className="py-8 text-center text-slate-500 flex flex-col items-center gap-2">
-              <Calculator className="animate-bounce" /> Calcolo impatto salariale...
+              <Calculator className="animate-bounce" /> {t('modals.release.calculating')}
             </div>
           ) : (
             <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden mb-6">
@@ -86,7 +86,7 @@ export default function ReleaseModal({ player, isOpen, onClose, onConfirm }: Pro
                 </div>
               ))}
               <div className="bg-red-900/10 p-3 flex justify-between items-center">
-                <span className="text-sm font-bold text-red-200 uppercase">Totale Perso</span>
+                <span className="text-sm font-bold text-red-200 uppercase">{t('modals.release.total_lost')}</span>
                 <span className="font-mono font-bold text-red-500 text-lg">- {totalHit.toFixed(1)} M</span>
               </div>
             </div>
@@ -103,7 +103,7 @@ export default function ReleaseModal({ player, isOpen, onClose, onConfirm }: Pro
               onClick={onConfirm}
               className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg shadow-red-900/20 transition flex items-center justify-center gap-2"
             >
-              <DollarSign size={18} /> Conferma Taglio
+              <DollarSign size={18} /> {t('modals.release.confirm_btn')}
             </button>
           </div>
         </div>

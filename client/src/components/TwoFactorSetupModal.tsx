@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, ShieldCheck, Lock, CheckCircle2, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
+    const { t } = useTranslation();
     const [step, setStep] = useState<'idle' | 'setup' | 'success'>('idle');
     const [qrCode, setQrCode] = useState<string>('');
     const [manualKey, setManualKey] = useState<string>('');
@@ -26,7 +28,7 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
             setManualKey(data.sharedKey);
             setStep('setup');
         } catch (err: any) {
-            setError(err.response?.data?.message || "Failed to start setup.");
+            setError(err.response?.data?.message || t('modals.2fa.error_start'));
         } finally {
             setLoading(false);
         }
@@ -40,7 +42,7 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
             await api.post('/twofactor/enable', { code: verifyCode });
             setStep('success');
         } catch (err: any) {
-            setError(err.response?.data?.message || "Code verification failed.");
+            setError(err.response?.data?.message || t('modals.2fa.error_verify'));
         } finally {
             setLoading(false);
         }
@@ -54,7 +56,7 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
                 <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 border-b border-slate-700 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <ShieldCheck className="text-blue-500" />
-                        Setup Two-Factor Auth
+                        {t('modals.2fa.title')}
                     </h2>
                     <button onClick={onClose} className="text-slate-500 hover:text-white transition"><X /></button>
                 </div>
@@ -66,9 +68,9 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
                                 <Lock size={48} className="text-blue-500" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-white mb-2">Secure Your Dynasty</h3>
+                                <h3 className="text-lg font-bold text-white mb-2">{t('modals.2fa.secure_title')}</h3>
                                 <p className="text-slate-400 text-sm leading-relaxed">
-                                    Enable 2-Step Verification to protect your account from unauthorized access. You'll need an Authenticator app (Google Auth, Authy, etc.).
+                                    {t('modals.2fa.secure_desc')}
                                 </p>
                             </div>
                             <button
@@ -77,7 +79,7 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
                                 className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition flex items-center justify-center gap-2"
                             >
                                 {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
-                                Start Setup
+                                {t('modals.2fa.start')}
                             </button>
                         </div>
                     )}
@@ -88,13 +90,13 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
                                 <img src={qrCode} alt="2FA QR Code" className="w-40 h-40" />
                             </div>
                             <div className="text-center">
-                                <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">Manual Entry Key</p>
+                                <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mb-1">{t('modals.2fa.manual_key')}</p>
                                 <code className="bg-slate-950 px-3 py-1 rounded text-blue-400 font-mono text-sm border border-slate-800 selection:bg-blue-500/30">{manualKey}</code>
                             </div>
 
                             <form onSubmit={confirmSetup} className="space-y-4 pt-4 border-t border-slate-800">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-400 uppercase">Enter 6-digit Code</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase">{t('modals.2fa.enter_code')}</label>
                                     <input
                                         type="text"
                                         value={verifyCode}
@@ -116,7 +118,7 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
                                     disabled={verifyCode.length !== 6 || loading}
                                     className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2"
                                 >
-                                    {loading ? <Loader2 className="animate-spin" /> : "Verify & Enable"}
+                                    {loading ? <Loader2 className="animate-spin" /> : t('modals.2fa.verify')}
                                 </button>
                             </form>
                         </div>
@@ -128,16 +130,16 @@ export default function TwoFactorSetupModal({ isOpen, onClose }: Props) {
                                 <CheckCircle2 size={48} className="text-emerald-500" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-bold text-white mb-2">2FA Enabled!</h3>
+                                <h3 className="text-xl font-bold text-white mb-2">{t('modals.2fa.success_title')}</h3>
                                 <p className="text-slate-400 text-sm">
-                                    Your account is now protected. You will be asked for a code next time you login.
+                                    {t('modals.2fa.success_desc')}
                                 </p>
                             </div>
                             <button
                                 onClick={onClose}
                                 className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition"
                             >
-                                Close
+                                {t('common.close')}
                             </button>
                         </div>
                     )}

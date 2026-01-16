@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function PlayoffConfigModal({ isOpen, onClose, onConfirm }: Props) {
-    const { } = useTranslation();
+    const { t } = useTranslation();
     const [selectedTeams, setSelectedTeams] = useState<number>(4);
     const [mode, setMode] = useState<number>(0);
 
@@ -34,8 +34,8 @@ export default function PlayoffConfigModal({ isOpen, onClose, onConfirm }: Props
                             <Trophy size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white uppercase tracking-wide">Schedule Config</h2>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Setup Setup</p>
+                            <h2 className="text-xl font-black text-white uppercase tracking-wide">{t('modals.playoff_config.title')}</h2>
+                            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{t('modals.playoff_config.subtitle')}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition">
@@ -48,7 +48,7 @@ export default function PlayoffConfigModal({ isOpen, onClose, onConfirm }: Props
 
                     {/* SECTION 1: PLAYOFF TEAMS */}
                     <div className="space-y-4">
-                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">1. Playoff Format</h3>
+                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">{t('modals.playoff_config.format_title')}</h3>
                         <div className="grid grid-cols-2 gap-6">
                             {/* Option 4 Teams */}
                             <button
@@ -62,8 +62,8 @@ export default function PlayoffConfigModal({ isOpen, onClose, onConfirm }: Props
                                     <Users size={28} />
                                 </div>
                                 <div className="text-center">
-                                    <div className={`text-2xl font-black ${selectedTeams === 4 ? 'text-white' : 'text-slate-400'}`}>4 Teams</div>
-                                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-1">2 Rounds (Semi + Final)</div>
+                                    <div className={`text-2xl font-black ${selectedTeams === 4 ? 'text-white' : 'text-slate-400'}`}>{t('modals.playoff_config.teams_4')}</div>
+                                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-1">{t('modals.playoff_config.rounds_2')}</div>
                                 </div>
                                 {selectedTeams === 4 && <div className="absolute top-3 right-3 text-purple-500"><BadgeCheck size={18} fill="currentColor" className="text-purple-500" /></div>}
                             </button>
@@ -80,8 +80,8 @@ export default function PlayoffConfigModal({ isOpen, onClose, onConfirm }: Props
                                     <Users size={28} />
                                 </div>
                                 <div className="text-center">
-                                    <div className={`text-2xl font-black ${selectedTeams === 8 ? 'text-white' : 'text-slate-400'}`}>8 Teams</div>
-                                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-1">3 Rounds (QF + Semi + Final)</div>
+                                    <div className={`text-2xl font-black ${selectedTeams === 8 ? 'text-white' : 'text-slate-400'}`}>{t('modals.playoff_config.teams_8')}</div>
+                                    <div className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-1">{t('modals.playoff_config.rounds_3')}</div>
                                 </div>
                                 {selectedTeams === 8 && <div className="absolute top-3 right-3 text-purple-500"><BadgeCheck size={18} fill="currentColor" className="text-purple-500" /></div>}
                             </button>
@@ -90,19 +90,19 @@ export default function PlayoffConfigModal({ isOpen, onClose, onConfirm }: Props
 
                     {/* SECTION 2: SCHEDULE MODE */}
                     <div className="space-y-4">
-                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">2. Schedule Pacing</h3>
+                        <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-2">{t('modals.playoff_config.pacing_title')}</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {[
-                                { id: 0, label: "Weekly", sub: "Mon-Sun (7d)", desc: "Standard fantasy week" },
-                                { id: 1, label: "Split Week", sub: "Mon-Thu / Fri-Sun", desc: "Twice a week action" },
-                                { id: 2, label: "Daily", sub: "Every Day", desc: "Hardcore daily matchups" }
+                                { id: 0, label: t('modals.playoff_config.weekly'), sub: t('modals.playoff_config.weekly_sub'), desc: t('modals.playoff_config.weekly_desc') },
+                                { id: 1, label: t('modals.playoff_config.split'), sub: t('modals.playoff_config.split_sub'), desc: t('modals.playoff_config.split_desc') },
+                                { id: 2, label: t('modals.playoff_config.daily'), sub: t('modals.playoff_config.daily_sub'), desc: t('modals.playoff_config.daily_desc') }
                             ].map((m) => (
                                 <button
                                     key={m.id}
                                     onClick={() => setMode(m.id)}
                                     className={`relative p-4 rounded-xl border transition-all text-left group hover:bg-slate-900 ${mode === m.id
-                                            ? 'bg-indigo-600/10 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
-                                            : 'bg-slate-950 border-slate-800 hover:border-slate-600'
+                                        ? 'bg-indigo-600/10 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.3)]'
+                                        : 'bg-slate-950 border-slate-800 hover:border-slate-600'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start mb-2">
@@ -120,13 +120,13 @@ export default function PlayoffConfigModal({ isOpen, onClose, onConfirm }: Props
                 {/* Footer */}
                 <div className="p-6 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3">
                     <button onClick={onClose} className="px-6 py-3 rounded-xl hover:bg-slate-800 text-slate-400 font-bold transition">
-                        Cancel
+                        {t('common.cancel')}
                     </button>
                     <button
                         onClick={handleConfirm}
                         className="px-8 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold transition shadow-lg shadow-purple-600/20 active:scale-95"
                     >
-                        Confirm Selection
+                        {t('modals.playoff_config.confirm')}
                     </button>
                 </div>
             </div>

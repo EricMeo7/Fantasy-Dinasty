@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.Extensions.Localization;
 
 
 namespace FantasyBasket.API.Controllers;
@@ -25,10 +26,12 @@ public class GenerateScheduleDto
 public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public AdminController(ApplicationDbContext context)
+    public AdminController(ApplicationDbContext context, IStringLocalizer<SharedResource> localizer)
     {
         _context = context;
+        _localizer = localizer;
     }
 
     [HttpPost("force-update-scores")]
@@ -143,11 +146,11 @@ public class AdminController : ControllerBase
             try
             {
                 var logs = await injuryService.UpdateInjuriesFromOfficialReportAsync(deep);
-                return Ok(new { message = "Official Injury Report imported", details = logs });
+                return Ok(new { message = _localizer["OfficialInjuryReportImported"].Value, details = logs });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error importing injury report", error = ex.Message });
+                return StatusCode(500, new { message = _localizer["ErrorImportingInjuryReport"].Value, error = ex.Message });
             }
         }
 
@@ -204,6 +207,6 @@ public class AdminController : ControllerBase
         [FromServices] INbaDataService nbaDataService)
     {
         await nbaDataService.ImportSeasonScheduleAsync();
-        return Ok(new { message = "NBA Schedule Updated (Game Times Populated)" });
+        return Ok(new { message = _localizer["NbaScheduleUpdated"].Value });
     }
 }

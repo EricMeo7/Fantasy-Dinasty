@@ -78,9 +78,9 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
         if (selectedOffers.length === 0) return;
 
         const confirm = await showConfirm({
-            title: "Inizia Negoziazione?",
-            message: "Stai per inviare questa proposta formale. Una volta firmata da tutte le parti, sarà soggetta a revisione del cap. Confermi?",
-            confirmText: "Invia Proposta",
+            title: t('trades.start_negotiation'),
+            message: t('trades.negotiation_confirm_msg'),
+            confirmText: t('trades.propose'),
             type: 'confirm'
         });
 
@@ -145,7 +145,7 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
                                             : 'bg-slate-950 border-slate-800 text-slate-700'
                                         }`}>
                                         {impact > 0 ? <TrendingUp size={12} /> : impact < 0 ? <TrendingDown size={12} /> : null}
-                                        {impact === 0 ? 'NEUTRAL' : `${impact > 0 ? '+' : ''}${impact.toFixed(1)} M`}
+                                        {impact === 0 ? t('trades.neutral') : `${impact > 0 ? '+' : ''}${impact.toFixed(1)} M`}
                                     </div>
                                 </div>
 
@@ -182,7 +182,7 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
                                                                 className="appearance-none bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 rounded-xl text-[9px] font-black px-4 py-2 text-blue-400 hover:text-white outline-none transition-all cursor-pointer w-28 uppercase tracking-widest text-center"
                                                                 defaultValue=""
                                                             >
-                                                                <option value="" disabled>SELECT DEST</option>
+                                                                <option value="" disabled>{t('trades.select_dest')}</option>
                                                                 {
                                                                     teams.map((t) => {
                                                                         const tid = t.userId || String(t.id);
@@ -197,15 +197,15 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
 
                                                 <div className="grid grid-cols-3 gap-2 bg-slate-950/80 p-3 rounded-xl border border-white/5 shadow-inner">
                                                     <div className="text-center bg-slate-900/50 py-1 rounded-lg border border-white/5">
-                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">Season 1</div>
+                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">{t('trades.season_label')} 1</div>
                                                         <div className="text-[11px] font-black font-mono text-emerald-500">{p.salaryYear1.toFixed(1)}M</div>
                                                     </div>
                                                     <div className="text-center py-1">
-                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">Season 2</div>
+                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">{t('trades.season_label')} 2</div>
                                                         <div className="text-[11px] font-black font-mono text-slate-400">{p.salaryYear2 > 0 ? p.salaryYear2.toFixed(1) + 'M' : '-'}</div>
                                                     </div>
                                                     <div className="text-center py-1">
-                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">Season 3</div>
+                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">{t('trades.season_label')} 3</div>
                                                         <div className="text-[11px] font-black font-mono text-slate-400">{p.salaryYear3 > 0 ? p.salaryYear3.toFixed(1) + 'M' : '-'}</div>
                                                     </div>
                                                 </div>
@@ -227,8 +227,8 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
                             <Send size={24} className="-rotate-12" />
                         </div>
                         <div>
-                            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Draft Hub</h3>
-                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">Components ({selectedOffers.length})</p>
+                            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('trades.draft_hub')}</h3>
+                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">{t('trades.components')} ({selectedOffers.length})</p>
                         </div>
                     </div>
 
@@ -236,7 +236,7 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
                         {selectedOffers.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-10 text-center bg-slate-950/50 rounded-[2.5rem] border-2 border-dashed border-slate-800 h-64">
                                 <ArrowLeftRight size={48} className="text-slate-800 mb-6" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] leading-relaxed text-slate-700 px-4">Assign players to explore transaction dynamics</p>
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] leading-relaxed text-slate-700 px-4">{t('trades.assign_players_placeholder')}</p>
                             </div>
                         ) : (
                             selectedOffers.map((off) => {
@@ -256,12 +256,12 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
 
                                         <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-white/5">
                                             <div className="flex flex-col flex-1">
-                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Exporter</span>
+                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">{t('trades.exporter')}</span>
                                                 <span className="text-[10px] font-black text-blue-400 uppercase truncate">{fromTeam?.teamName}</span>
                                             </div>
                                             <ArrowRight size={16} className="text-slate-700" />
                                             <div className="flex flex-col flex-1 text-right">
-                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Importer</span>
+                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">{t('trades.importer')}</span>
                                                 <span className="text-[10px] font-black text-white uppercase truncate">{toTeam?.teamName}</span>
                                             </div>
                                         </div>
@@ -280,7 +280,7 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
                             {
                                 isPending ? <Loader2 className="animate-spin" size={24} /> : <Sparkles size={24} />}
                             {
-                                isPending ? "Processing..." : "Initialize Deal"}
+                                isPending ? t('common.loading') : t('trades.initialize_deal')}
                         </button>
                     </div>
                 </div>
@@ -289,10 +289,10 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
                 <div className="bg-slate-900/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl">
                     <div className="flex items-center gap-4 text-amber-500 mb-6">
                         <div className="p-2 bg-amber-500/10 rounded-lg"><AlertCircle size={20} /></div>
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">Fair-Trade Protocols</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('trades.fair_trade_protocols')}</h4>
                     </div>
                     <p className="text-[11px] text-slate-500 leading-relaxed font-bold uppercase tracking-widest italic">
-                        Syndicate servers will execute a Triple-Year CAP audit. All involved entities must maintain fiscal integrity (+0.0) across the 3G-Lease period.
+                        {t('trades.protocol_description')}
                     </p>
                 </div>
             </div>

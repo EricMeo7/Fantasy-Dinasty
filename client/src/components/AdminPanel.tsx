@@ -127,15 +127,15 @@ export default function AdminPanel() {
                   <Settings2 size={24} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Core Architecture</h2>
-                  <p className="text-[10px] text-slate-500 mt-1.5 font-black uppercase tracking-[0.2em]">System status and ruleset management</p>
+                  <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">{t('admin.core_architecture')}</h2>
+                  <p className="text-[10px] text-slate-500 mt-1.5 font-black uppercase tracking-[0.2em]">{t('admin.core_desc')}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-3 bg-slate-950 px-5 py-2.5 rounded-2xl border border-slate-800 shadow-inner">
                 <Activity size={14} className={`animate-pulse ${currentStatus === 2 ? 'text-emerald-500' : 'text-blue-500'}`} />
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Status: <span className={currentStatus === 2 ? 'text-emerald-400' : 'text-blue-400'}>
+                  {t('admin.status_label')} <span className={currentStatus === 2 ? 'text-emerald-400' : 'text-blue-400'}>
                     {currentStatus === 1 ? 'DRAFT_MODE' : currentStatus === 2 ? 'IN_SEASON' : 'OFF_SEASON'}
                   </span>
                 </span>
@@ -152,11 +152,11 @@ export default function AdminPanel() {
                   <Sliders size={28} />
                 </div>
                 <div className="mb-8">
-                  <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">Global Settings</h4>
-                  <p className="text-xs text-slate-600 font-bold uppercase tracking-widest mt-2">Scoring, Roster Slots, Economics</p>
+                  <h4 className="text-xl font-black text-white italic uppercase tracking-tighter leading-none">{t('admin.global_settings')}</h4>
+                  <p className="text-xs text-slate-600 font-bold uppercase tracking-widest mt-2">{t('admin.settings_desc')}</p>
                 </div>
                 <div className="mt-auto flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                  <span> Configure Ruleset</span>
+                  <span> {t('admin.configure_ruleset')}</span>
                   <ChevronRight size={18} />
                 </div>
               </button>
@@ -176,8 +176,8 @@ export default function AdminPanel() {
                       <Play size={22} fill={currentStatus === 1 ? "white" : "none"} />
                     </div>
                     <div className="text-left">
-                      <span className="text-sm font-black uppercase italic tracking-tight block">Auction Mode</span>
-                      <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Initialize Draft Hub</span>
+                      <span className="text-sm font-black uppercase italic tracking-tight block">{t('admin.auction_mode')}</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{t('admin.init_draft_hub')}</span>
                     </div>
                   </div>
                   {currentStatus === 1 && <Sparkles size={16} className="text-white animate-pulse" />}
@@ -196,8 +196,8 @@ export default function AdminPanel() {
                       <Lock size={22} />
                     </div>
                     <div className="text-left">
-                      <span className="text-sm font-black uppercase italic tracking-tight block">Launch Season</span>
-                      <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Activate Market Protocol</span>
+                      <span className="text-sm font-black uppercase italic tracking-tight block">{t('admin.launch_season')}</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{t('admin.activate_market')}</span>
                     </div>
                   </div>
                   {currentStatus === 2 && <Sparkles size={16} className="text-white animate-pulse" />}
@@ -215,14 +215,14 @@ export default function AdminPanel() {
                 <Calendar size={24} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Game Operations</h2>
-                <p className="text-[10px] text-slate-500 mt-1.5 font-black uppercase tracking-[0.2em]">Schedule Generation & Live Analytics Sync</p>
+                <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">{t('admin.game_ops')}</h2>
+                <p className="text-[10px] text-slate-500 mt-1.5 font-black uppercase tracking-[0.2em]">{t('admin.game_ops_desc')}</p>
               </div>
             </div>
 
             <div className="bg-slate-950/80 p-6 rounded-[2rem] border border-white/5">
               <h5 className="text-[9px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2 mb-4">
-                <Calendar size={12} className="text-purple-500" /> Season Engine
+                <Calendar size={12} className="text-purple-500" /> {t('admin.season_engine')}
               </h5>
               <div className="space-y-4">
                 <button
@@ -232,12 +232,12 @@ export default function AdminPanel() {
                 >
                   <div className="flex items-center gap-4">
                     <Sparkles size={20} />
-                    <span className="text-xs font-black uppercase tracking-widest">Build Calendar</span>
+                    <span className="text-xs font-black uppercase tracking-widest">{t('admin.build_calendar')}</span>
                   </div>
                   <ChevronRight size={16} />
                 </button>
               </div>
-              <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mt-4 text-center">Generate Round-Robin Matrix</p>
+              <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mt-4 text-center">{t('admin.generate_matrix')}</p>
             </div>
           </div>
         </div>
@@ -252,8 +252,8 @@ export default function AdminPanel() {
                 <ShieldAlert size={24} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">Danger Zone</h2>
-                <p className="text-[10px] text-red-400 mt-1.5 font-black uppercase tracking-[0.2em]">Destructive Protocols</p>
+                <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase leading-none">{t('admin.danger_zone')}</h2>
+                <p className="text-[10px] text-red-400 mt-1.5 font-black uppercase tracking-[0.2em]">{t('admin.destructive_protocols')}</p>
               </div>
             </div>
 
@@ -261,7 +261,7 @@ export default function AdminPanel() {
               <div className="flex gap-3 mb-4">
                 <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
                 <p className="text-[10px] font-bold text-red-300/70 leading-relaxed uppercase tracking-widest italic">
-                  Emergency resets should only be initialized if system parity is compromised or for league relaunch.
+                  {t('admin.emergency_desc')}
                 </p>
               </div>
             </div>
@@ -280,13 +280,13 @@ export default function AdminPanel() {
                     loading ? "animate-spin" : ""} size={32} />
                 </div>
                 <div className="text-center relative z-10">
-                  <div className="font-black text-xl italic uppercase tracking-tighter">Reset Market</div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-red-100 mt-1">Clear active auctions</div>
+                  <div className="font-black text-xl italic uppercase tracking-tighter">{t('admin.reset_market_title')}</div>
+                  <div className="text-[9px] font-black uppercase tracking-widest text-red-100 mt-1">{t('admin.clear_auctions')}</div>
                 </div>
               </button>
 
               <button className="w-full mt-6 py-4 rounded-2xl border border-red-500/20 text-red-500 hover:bg-red-500/10 transition-all text-[9px] font-black uppercase tracking-[0.3em]">
-                Emergency Protocol Hub
+                {t('admin.emergency_hub')}
               </button>
             </div>
           </div>
@@ -298,8 +298,8 @@ export default function AdminPanel() {
       {/* 2. SEZIONE ASSEGNAZIONE MANUALE (Tool Potente) */}
       <div className="mt-12">
         <div className="mb-6 px-4">
-          <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">Manual Override Tool</h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2">Force player assignments and bypass standard league economics</p>
+          <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter">{t('admin.manual_override_tool')}</h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-2">{t('admin.manual_override_desc')}</p>
         </div>
         <AdminAssignmentPanel />
       </div>

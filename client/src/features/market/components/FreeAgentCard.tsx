@@ -49,7 +49,7 @@ export const FreeAgentCard = ({ player, onOpenDetails, onOpenBid, onAuctionExpir
                     </div>
                     {player.injuryStatus && (
                         <div className="px-3 py-1.5 bg-red-600/90 backdrop-blur-xl border border-red-500/20 rounded-full text-[10px] font-black tracking-widest text-white shadow-lg">
-                            {player.injuryStatus === 'Out' ? 'OUT' : player.injuryStatus}
+                            {player.injuryStatus === 'Out' ? t('common.out') : player.injuryStatus}
                         </div>
                     )}
                 </div>
@@ -107,10 +107,10 @@ export const FreeAgentCard = ({ player, onOpenDetails, onOpenBid, onAuctionExpir
                     </div>
                 ) : (
                     <div className="mt-auto grid grid-cols-3 gap-2 mb-6">
-                        <StatItem label="FPT" value={player.avgFantasyPoints} color="emerald" />
-                        <StatItem label="PTS" value={player.avgPoints} color="blue" />
+                        <StatItem label={t('market.fpt')} value={player.avgFantasyPoints} color="emerald" />
+                        <StatItem label={t('market.pts')} value={player.avgPoints} color="blue" />
                         <div className={`p-2 rounded-xl border flex flex-col items-center justify-center text-amber-400 bg-amber-400/5 border-amber-400/10`}>
-                            <div className="text-[8px] font-black uppercase tracking-widest opacity-60">BASE</div>
+                            <div className="text-[8px] font-black uppercase tracking-widest opacity-60">{t('market.base')}</div>
                             <div className="text-sm font-black italic">{player.minBid}M</div>
                         </div>
                     </div>
@@ -120,7 +120,7 @@ export const FreeAgentCard = ({ player, onOpenDetails, onOpenBid, onAuctionExpir
                     <button
                         onClick={() => onOpenDetails(player)}
                         className="p-4 rounded-2xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-750 transition-all border border-slate-700 shadow-lg"
-                        title="Visualizza Report Scout"
+                        title={t('market.view_scout_report')}
                     >
                         <Activity size={20} />
                     </button>

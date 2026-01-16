@@ -1,4 +1,5 @@
 import { Crown, ShieldCheck, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Standing {
     teamId: number;
@@ -20,16 +21,18 @@ interface Props {
     color?: string;
 }
 
-export const StandingsTable = ({ standings, title = "Classifica Lega", icon, color = "text-yellow-500" }: Props) => {
+export const StandingsTable = ({ standings, title, icon, color = "text-yellow-500" }: Props) => {
+    const { t } = useTranslation();
+    const displayTitle = title || t('league.standings_title');
     return (
         <div className={`bg-slate-900/50 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-md flex flex-col h-full`}>
             <div className="px-8 py-6 border-b border-slate-800 bg-slate-800/20 flex justify-between items-center shrink-0">
                 <h3 className="font-black text-white uppercase tracking-widest italic flex items-center gap-3">
                     {icon || <Crown size={20} className={color} />}
-                    {title}
+                    {displayTitle}
                 </h3>
                 <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                    Regular Season
+                    {t('league.regular_season')}
                 </div>
             </div>
 
@@ -37,11 +40,11 @@ export const StandingsTable = ({ standings, title = "Classifica Lega", icon, col
                 <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 z-10">
                         <tr className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] bg-slate-950/80 backdrop-blur-sm">
-                            <th className="px-8 py-5">Rank</th>
-                            <th className="px-8 py-5">Team & GM</th>
-                            <th className="px-8 py-5 text-center">Record</th>
-                            <th className="px-8 py-5 text-center">Fantasy Points</th>
-                            <th className="px-8 py-5 text-center text-slate-700">PCT</th>
+                            <th className="px-8 py-5">{t('league.rank')}</th>
+                            <th className="px-8 py-5">{t('league.team_gm')}</th>
+                            <th className="px-8 py-5 text-center">{t('league.record')}</th>
+                            <th className="px-8 py-5 text-center">{t('league.fantasy_points')}</th>
+                            <th className="px-8 py-5 text-center text-slate-700">{t('league.pct')}</th>
                             <th className="px-8 py-5"></th>
                         </tr>
                     </thead>
@@ -64,7 +67,7 @@ export const StandingsTable = ({ standings, title = "Classifica Lega", icon, col
                                         <div className="flex flex-col">
                                             <div className="font-black text-white uppercase italic tracking-tight flex items-center gap-2 group-hover:text-blue-400 transition-colors">
                                                 {team.fantasyTeamName}
-                                                {team.isMe && <span className="bg-blue-500 text-[8px] px-1.5 py-0.5 rounded font-black italic text-white ml-1 shadow-lg shadow-blue-500/20">YOU</span>}
+                                                {team.isMe && <span className="bg-blue-500 text-[8px] px-1.5 py-0.5 rounded font-black italic text-white ml-1 shadow-lg shadow-blue-500/20">{t('league.you')}</span>}
                                                 {team.isAdmin && <ShieldCheck size={14} className="text-blue-500" />}
                                             </div>
                                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">{team.generalManagerName}</div>
@@ -97,7 +100,7 @@ export const StandingsTable = ({ standings, title = "Classifica Lega", icon, col
 
             {standings.length === 0 && (
                 <div className="py-20 text-center">
-                    <p className="text-slate-600 italic font-medium">Nessuna squadra iscritta a questa lega.</p>
+                    <p className="text-slate-600 italic font-medium">{t('league.no_teams')}</p>
                 </div>
             )}
         </div>

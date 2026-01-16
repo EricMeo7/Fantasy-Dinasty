@@ -1,5 +1,6 @@
 import { Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface MatchupDto {
     id: number;
@@ -20,11 +21,12 @@ interface Props {
 
 export const MatchupCard = ({ match }: Props) => {
     const navigate = useNavigate();
+    const { t } = useTranslation();
     if (match.isBye) {
         return (
             <div className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 flex flex-col items-center justify-center h-full min-h-[100px] hover:border-slate-600 transition">
                 <div className="text-slate-500 font-bold mb-1">{match.homeTeam}</div>
-                <div className="text-xs text-slate-600 uppercase font-black tracking-widest bg-slate-900/50 px-3 py-1 rounded-full">Riposo</div>
+                <div className="text-xs text-slate-600 uppercase font-black tracking-widest bg-slate-900/50 px-3 py-1 rounded-full">{t('matchup.bye')}</div>
             </div>
         );
     }
@@ -57,7 +59,7 @@ export const MatchupCard = ({ match }: Props) => {
                 {/* VS / Status */}
                 <div className="flex flex-col items-center justify-center">
                     <span className="text-[10px] uppercase font-black text-slate-500 tracking-widest mb-1">
-                        {match.isPlayed ? 'FINAL' : 'VS'}
+                        {match.isPlayed ? t('matchup.final') : t('matchup.vs')}
                     </span>
                     {match.isPlayed && (
                         homeWinner ? <Trophy size={14} className="text-yellow-500 -ml-8" /> :

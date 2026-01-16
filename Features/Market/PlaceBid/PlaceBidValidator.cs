@@ -1,15 +1,17 @@
 using FluentValidation;
 
+using Microsoft.Extensions.Localization;
+
 namespace FantasyBasket.API.Features.Market.PlaceBid;
 
 public class PlaceBidValidator : AbstractValidator<PlaceBidCommand>
 {
-    public PlaceBidValidator()
+    public PlaceBidValidator(IStringLocalizer<SharedResource> localizer)
     {
-        RuleFor(x => x.PlayerId).GreaterThan(0).WithMessage("ID Giocatore non valido.");
-        RuleFor(x => x.TotalAmount).GreaterThan(0).WithMessage("L'offerta deve essere maggiore di 0.");
-        RuleFor(x => x.Years).InclusiveBetween(1, 3).WithMessage("Il contratto deve durare tra 1 e 3 anni.");
-        RuleFor(x => x.LeagueId).GreaterThan(0).WithMessage("League ID richiesto.");
-        RuleFor(x => x.UserId).NotEmpty().WithMessage("User ID richiesto.");
+        RuleFor(x => x.PlayerId).GreaterThan(0).WithMessage(localizer["BidInvalidPlayer"]);
+        RuleFor(x => x.TotalAmount).GreaterThan(0).WithMessage(localizer["BidAmountZero"]);
+        RuleFor(x => x.Years).InclusiveBetween(1, 3).WithMessage(localizer["BidDuration"]);
+        RuleFor(x => x.LeagueId).GreaterThan(0).WithMessage(localizer["LeagueIdRequired"]);
+        RuleFor(x => x.UserId).NotEmpty().WithMessage(localizer["UserIdRequired"]);
     }
 }

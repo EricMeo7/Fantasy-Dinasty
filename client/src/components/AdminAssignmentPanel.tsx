@@ -103,14 +103,14 @@ export const AdminAssignmentPanel = () => {
                         <div className="space-y-8">
                             {/* 1. CERCA GIOCATORE */}
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-4">1. Global Player Search</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-4">{t('admin.global_search')}</label>
                                 <div className="relative group">
                                     <input
                                         type="text"
                                         value={searchQuery}
                                         onChange={e => setSearchQuery(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                                        placeholder="Enter player last name (min 3 chars)..."
+                                        placeholder={t('admin.search_placeholder')}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 pl-14 text-white font-black italic tracking-tight focus:border-emerald-500/50 outline-none transition-all placeholder-slate-800 shadow-inner"
                                     />
                                     <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700 transition-colors group-focus-within:text-emerald-500">
@@ -121,7 +121,7 @@ export const AdminAssignmentPanel = () => {
                                         disabled={isSearching}
                                         className="absolute right-3 top-2.5 bottom-2.5 px-6 bg-emerald-600 hover:bg-emerald-550 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all active:scale-95 disabled:opacity-30"
                                     >
-                                        {isSearching ? <Loader2 size={16} className="animate-spin" /> : 'Execute'}
+                                        {isSearching ? <Loader2 size={16} className="animate-spin" /> : t('admin.execute_btn')}
                                     </button>
                                 </div>
 
@@ -170,7 +170,7 @@ export const AdminAssignmentPanel = () => {
                                                 </div>
                                                 <div>
                                                     <div className="text-xl font-black text-white italic tracking-tighter uppercase">{selectedPlayer.firstName} {selectedPlayer.lastName}</div>
-                                                    <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Selected for Assignment</div>
+                                                    <div className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">{t('admin.selected_for_assignment')}</div>
                                                 </div>
                                             </div>
                                             <button
@@ -186,7 +186,7 @@ export const AdminAssignmentPanel = () => {
 
                             {/* 2. SELEZIONA TEAM */}
                             < div className="space-y-3" >
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-4">2. Destination Squad Entity</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-4">{t('admin.destination_squad')}</label>
                                 <div className="relative">
                                     <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700 pointer-events-none">
                                         <User size={22} />
@@ -196,7 +196,7 @@ export const AdminAssignmentPanel = () => {
                                         onChange={e => setTargetUserId(e.target.value)}
                                         className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 pl-14 text-white font-black italic tracking-tight focus:border-emerald-500/50 outline-none transition-all appearance-none cursor-pointer shadow-inner"
                                     >
-                                        <option value="">Select target GM...</option>
+                                        <option value="">{t('admin.select_gm_placeholder')}</option>
                                         {
                                             members.map((m: any) => (
                                                 <option key={m.userId} value={m.userId}>{m.teamName.toUpperCase()} ({m.ownerName})</option>
@@ -213,10 +213,10 @@ export const AdminAssignmentPanel = () => {
                         <div className="space-y-8 h-full flex flex-col">
                             {/* 3. CONTRATTO */}
                             <div className="space-y-6 flex-1">
-                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-4">3. Contract Parameters</label>
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-4">{t('admin.contract_params')}</label>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div className="bg-slate-950/80 p-6 rounded-[2rem] border border-white/5 shadow-inner">
-                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Yearly Salary (M)</label>
+                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('admin.yearly_salary')}</label>
                                         <div className="mt-3 flex items-center gap-4">
                                             <input
                                                 type="number"
@@ -225,12 +225,12 @@ export const AdminAssignmentPanel = () => {
                                                 onChange={e => setSalary(Number(e.target.value))}
                                                 className="bg-transparent text-3xl font-black text-emerald-500 italic w-24 outline-none"
                                             />
-                                            <div className="bg-slate-900 px-3 py-1 rounded-lg text-[10px] font-black text-slate-500">$ MILLION</div>
+                                            <div className="bg-slate-900 px-3 py-1 rounded-lg text-[10px] font-black text-slate-500">{t('admin.million_currency')}</div>
                                         </div>
                                     </div>
 
                                     <div className="bg-slate-950/80 p-6 rounded-[2rem] border border-white/5 shadow-inner">
-                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Lease Duration</label>
+                                        <label className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('admin.lease_duration')}</label>
                                         <div className="mt-2 flex gap-2">
                                             {
                                                 [1, 2, 3].map(yr => (
@@ -239,7 +239,7 @@ export const AdminAssignmentPanel = () => {
                                                         onClick={() => setYears(yr)}
                                                         className={`flex-1 py-3 rounded-xl font-black text-xs transition-all ${years === yr ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-900 text-slate-600 hover:text-slate-300'}`}
                                                     >
-                                                        {yr} {yr === 1 ? 'YR' : 'YRS'}
+                                                        {yr} {yr === 1 ? t('admin.yr') : t('admin.yrs')}
                                                     </button>
                                                 ))
                                             }
@@ -251,7 +251,7 @@ export const AdminAssignmentPanel = () => {
                                     <div className="p-3 bg-blue-600 text-white rounded-xl shadow-lg"><Sparkles size={20} /></div>
                                     <div>
                                         <p className="text-[10px] font-black text-blue-100/90 leading-tight uppercase tracking-widest italic">
-                                            Assignment protocol will directly inject the player into the target roster, generating the necessary contract ledger entries.
+                                            {t('admin.assignment_protocol_desc')}
                                         </p>
                                     </div>
                                 </div>
@@ -264,7 +264,7 @@ export const AdminAssignmentPanel = () => {
                             >
                                 {
                                     assignPlayer.isPending ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />}
-                                Initialize Assignment
+                                {t('admin.init_assignment_btn')}
                             </button>
                         </div>
                     </div >

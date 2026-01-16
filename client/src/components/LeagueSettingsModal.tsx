@@ -49,7 +49,7 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
     const handleSave = async () => {
         const confirmed = await showConfirm({
             title: t('modals.save_settings'),
-            message: t('common.are_you_sure_save_settings'), // Adding this key in next step or assuming generic confirm message
+            message: t('common.are_you_sure_save_settings'),
             type: "confirm"
         });
 
@@ -81,7 +81,7 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                             <Sliders size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-white uppercase tracking-wide">{t('navbar.league')} Config</h2>
+                            <h2 className="text-xl font-black text-white uppercase tracking-wide">{t('navbar.league')} {t('modals.league_settings.config')}</h2>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{t('modals.modify_rules')}</p>
                         </div>
                     </div>
@@ -101,37 +101,37 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                             {/* 1. SCORING SYSTEM */}
                             <section>
                                 <h3 className="flex items-center gap-2 text-emerald-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
-                                    <Target size={18} /> Sistema di Punteggio ( Punti Fantasy )
+                                    <Target size={18} /> {t('modals.league_settings.scoring_system')}
                                 </h3>
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                    <WeightInput label="Punti" field="pointWeight" val={settings.pointWeight} onChange={handleChange} />
-                                    <WeightInput label="Rimbalzi" field="reboundWeight" val={settings.reboundWeight} onChange={handleChange} />
-                                    <WeightInput label="Assist" field="assistWeight" val={settings.assistWeight} onChange={handleChange} />
-                                    <WeightInput label="Recuperi" field="stealWeight" val={settings.stealWeight} onChange={handleChange} />
-                                    <WeightInput label="Stoppate" field="blockWeight" val={settings.blockWeight} onChange={handleChange} />
-                                    <WeightInput label="Palle Perse" field="turnoverWeight" val={settings.turnoverWeight} onChange={handleChange} isNegative />
+                                    <WeightInput label={t('modals.league_settings.points')} field="pointWeight" val={settings.pointWeight} onChange={handleChange} />
+                                    <WeightInput label={t('modals.league_settings.rebounds')} field="reboundWeight" val={settings.reboundWeight} onChange={handleChange} />
+                                    <WeightInput label={t('modals.league_settings.assists')} field="assistWeight" val={settings.assistWeight} onChange={handleChange} />
+                                    <WeightInput label={t('modals.league_settings.steals')} field="stealWeight" val={settings.stealWeight} onChange={handleChange} />
+                                    <WeightInput label={t('modals.league_settings.blocks')} field="blockWeight" val={settings.blockWeight} onChange={handleChange} />
+                                    <WeightInput label={t('modals.league_settings.turnovers')} field="turnoverWeight" val={settings.turnoverWeight} onChange={handleChange} isNegative />
                                 </div>
-                                <p className="text-[10px] text-slate-500 mt-2 italic">* I valori indicano quanti Punti Fantasy vale ogni singola statistica reale.</p>
+                                <p className="text-[10px] text-slate-500 mt-2 italic">{t('modals.league_settings.scoring_desc')}</p>
                             </section>
 
                             {/* 2. ECONOMIA & CAP */}
                             <section>
                                 <h3 className="flex items-center gap-2 text-yellow-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
-                                    <DollarSign size={18} /> Economia
+                                    <DollarSign size={18} /> {t('modals.league_settings.economy')}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-400 uppercase">Salary Cap (M$)</label>
+                                        <label className="text-xs font-bold text-slate-400 uppercase">{t('modals.league_settings.salary_cap')}</label>
                                         <input type="number" value={settings.salaryCap} onChange={e => handleChange('salaryCap', e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white font-mono focus:border-yellow-500 focus:outline-none transition" />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-400 uppercase">Salary Floor (M$)</label>
+                                        <label className="text-xs font-bold text-slate-400 uppercase">{t('modals.league_settings.salary_floor')}</label>
                                         <input type="number" value={settings.salaryFloor} onChange={e => handleChange('salaryFloor', e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white font-mono focus:border-yellow-500 focus:outline-none transition" />
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-xs font-bold text-slate-400 uppercase">Offerta Minima ($)</label>
+                                        <label className="text-xs font-bold text-slate-400 uppercase">{t('modals.league_settings.min_bid')}</label>
                                         <input type="number" value={settings.minBidAmount} onChange={e => handleChange('minBidAmount', e.target.value)}
                                             className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white font-mono focus:border-yellow-500 focus:outline-none transition" />
                                     </div>
@@ -144,16 +144,16 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                                     <Users size={18} /> {t('modals.roster_config')}
                                 </h3>
                                 <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
-                                    <SlotInput label="PG" field="rosterSlotsPG" val={settings.rosterSlotsPG} onChange={handleChange} />
-                                    <SlotInput label="SG" field="rosterSlotsSG" val={settings.rosterSlotsSG} onChange={handleChange} />
-                                    <SlotInput label="SF" field="rosterSlotsSF" val={settings.rosterSlotsSF} onChange={handleChange} />
-                                    <SlotInput label="PF" field="rosterSlotsPF" val={settings.rosterSlotsPF} onChange={handleChange} />
-                                    <SlotInput label="C" field="rosterSlotsC" val={settings.rosterSlotsC} onChange={handleChange} />
-                                    <SlotInput label="Guard (G)" field="rosterSlotsG" val={settings.rosterSlotsG} onChange={handleChange} />
-                                    <SlotInput label="Forward (F)" field="rosterSlotsF" val={settings.rosterSlotsF} onChange={handleChange} />
-                                    <SlotInput label="Utility" field="rosterSlotsUtil" val={settings.rosterSlotsUtil} onChange={handleChange} />
-                                    <SlotInput label="Bench" field="rosterSlotsBench" val={settings.rosterSlotsBench} onChange={handleChange} color="text-slate-500" />
-                                    <SlotInput label="IR (Injured)" field="rosterSlotsIR" val={settings.rosterSlotsIR} onChange={handleChange} color="text-red-500" />
+                                    <SlotInput label={t('modals.league_settings.pg')} field="rosterSlotsPG" val={settings.rosterSlotsPG} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.sg')} field="rosterSlotsSG" val={settings.rosterSlotsSG} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.sf')} field="rosterSlotsSF" val={settings.rosterSlotsSF} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.pf')} field="rosterSlotsPF" val={settings.rosterSlotsPF} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.c')} field="rosterSlotsC" val={settings.rosterSlotsC} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.g')} field="rosterSlotsG" val={settings.rosterSlotsG} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.f')} field="rosterSlotsF" val={settings.rosterSlotsF} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.util')} field="rosterSlotsUtil" val={settings.rosterSlotsUtil} onChange={handleChange} />
+                                    <SlotInput label={t('modals.league_settings.bench')} field="rosterSlotsBench" val={settings.rosterSlotsBench} onChange={handleChange} color="text-slate-500" />
+                                    <SlotInput label={t('modals.league_settings.ir')} field="rosterSlotsIR" val={settings.rosterSlotsIR} onChange={handleChange} color="text-red-500" />
                                 </div>
                             </section>
                         </>

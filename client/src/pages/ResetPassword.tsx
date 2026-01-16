@@ -28,11 +28,11 @@ const ResetPassword = () => {
 
         // VERIFY CODE ON MOUNT
         verifyPasswordResetCode(auth, oobCode)
-            .then((email) => {
+            .then((email: string) => {
                 setVerifiedEmail(email);
                 setIsVerifying(false);
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 console.error("Verification failed:", error);
                 setStatus('error');
                 setErrorMsg('This link has expired or has already been used.');

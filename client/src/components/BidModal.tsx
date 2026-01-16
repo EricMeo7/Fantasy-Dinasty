@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Gavel, DollarSign, Calendar, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { type BidRequest } from '../services/api';
 import { usePlaceBid } from '../features/market/api/usePlaceBid';
 
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) {
+    const { t } = useTranslation();
     const [amount, setAmount] = useState<number>(1);
     const [years, setYears] = useState<number>(1);
     // Remove manual loading state, use hook's isPending
@@ -107,7 +109,7 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
 
         // Client Side Validation
         if (amount < minBidForSelectedYears) {
-            setError(`L'offerta è troppo bassa. Il minimo per ${years} anni è ${minBidForSelectedYears}M.`);
+            setError(t('modals.bid.too_low_msg', { years, min: minBidForSelectedYears }));
             return;
         }
 
@@ -119,7 +121,7 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
 
         try {
             await placeBid(payload);
-            setSuccessMsg(`Offerta piazzata con successo!`);
+            setSuccessMsg(t('modals.bid.success'));
             // Chiudiamo dopo breve delay per far leggere il messaggio
             setTimeout(() => {
                 onSuccess(); // Ricarica i dati nella pagina padre
@@ -127,9 +129,9 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
             }, 1000);
         } catch (err: any) {
             // Gestione errori dal backend
-            let msg = err.response?.data?.message || err.response?.data || "Errore durante l'offerta.";
+            let msg = err.response?.data?.message || err.response?.data || t('modals.bid.error_fetch');
             if (msg.includes("BID_TOO_LOW")) {
-                msg = `Offerta troppo bassa. Il minimo calcolato è ${minBidForSelectedYears}M.`;
+                msg = t('modals.bid.too_low_msg', { years, min: minBidForSelectedYears });
             }
             setError(msg);
         }
@@ -144,14 +146,14 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
                     <div className="flex justify-between items-start mb-2">
                         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                             <Gavel className={player.hasActiveAuction ? "text-red-500" : "text-emerald-400"} />
-                            {player.hasActiveAuction ? "Rilancia Asta" : "Nuova Asta"}
+                            {player.hasActiveAuction ? t('modals.bid.raise_auction') : t('modals.bid.new_auction')}
                         </h2>
                         <button onClick={onClose} className="text-slate-500 hover:text-white transition"><X /></button>
                     </div>
                     <div className="text-slate-400">
-                        Per <span className="text-white font-bold">{player.firstName} {player.lastName}</span>
+                        {t('modals.bid.for_player')} <span className="text-white font-bold">{player.firstName} {player.lastName}</span>
                         {player.minBid > 1 && !player.hasActiveAuction && (
-                            <span className="ml-2 text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">Base: {player.minBid}M</span>
+                            <span className="ml-2 text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">{t('modals.bid.base')}: {player.minBid}M</span>
                         )}
                     </div>
 
@@ -159,16 +161,16 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
                     {player.hasActiveAuction && (
                         <div className="mt-4 bg-slate-950/50 border border-slate-700 rounded-lg p-3 flex justify-between items-center animate-in slide-in-from-top-2">
                             <div>
-                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Offerta da battere</div>
+                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('modals.bid.offer_to_beat')}</div>
                                 <div className="text-white font-mono font-bold text-lg flex items-baseline gap-1">
-                                    {player.currentOffer} M <span className="text-slate-500 text-sm font-normal">x {player.currentYears} anni</span>
+                                    {player.currentOffer} M <span className="text-slate-500 text-sm font-normal">x {player.currentYears} {t('modals.bid.years')}</span>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Attuale Vincente</div>
+                                <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">{t('modals.bid.current_winner')}</div>
                                 <div className="flex items-center justify-end gap-1 text-emerald-400 font-bold text-sm bg-emerald-900/20 px-2 py-1 rounded">
                                     <User size={12} />
-                                    {player.highBidderName || "Sconosciuto"}
+                                    {player.highBidderName || t('modals.bid.unknown')}
                                 </div>
                             </div>
                         </div>
@@ -182,7 +184,7 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
                         {/* Input Totale Offerta */}
                         <div>
                             <div className="flex justify-between items-center mb-2">
-                                <label className="block text-xs font-bold uppercase text-slate-500">La tua Offerta Totale (Mln $)</label>
+                                <label className="block text-xs font-bold uppercase text-slate-500">{t('modals.bid.your_offer')}</label>
                                 <span className="text-xs text-emerald-400 font-bold">Min: {minBidForSelectedYears}M</span>
                             </div>
                             <div className="relative">
@@ -203,7 +205,7 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
 
                         {/* Selezione Anni */}
                         <div>
-                            <label className="block text-xs font-bold uppercase text-slate-500 mb-2">Durata Contratto</label>
+                            <label className="block text-xs font-bold uppercase text-slate-500 mb-2">{t('modals.bid.contract_duration')}</label>
                             <div className="grid grid-cols-3 gap-3">
                                 {[1, 2, 3].map((y) => (
                                     <button
@@ -215,7 +217,7 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
                                             : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700 hover:text-white'
                                             }`}
                                     >
-                                        <span className="text-lg">{y} Anni</span>
+                                        <span className="text-lg">{y} {t('modals.bid.years')}</span>
                                     </button>
                                 ))}
                             </div>
@@ -224,12 +226,12 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
                         {/* Anteprima Struttura Salariale */}
                         <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
                             <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-400 mb-3">
-                                <Calendar size={14} /> Struttura Stipendio (Stimata)
+                                <Calendar size={14} /> {t('modals.bid.salary_structure')}
                             </div>
                             <div className="grid grid-cols-3 gap-2 text-center">
                                 {salaryStructure.map((sal, index) => (
                                     <div key={index} className={`rounded p-2 transition-all ${index === 0 ? 'bg-emerald-900/20 border border-emerald-500/30 shadow-sm' : 'bg-slate-800 border border-slate-700/50'}`}>
-                                        <div className="text-[10px] text-slate-500 uppercase font-bold">Anno {index + 1}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold">{t('modals.bid.year')} {index + 1}</div>
                                         <div className={`font-mono font-bold text-lg ${index === 0 ? 'text-emerald-400' : 'text-slate-300'}`}>
                                             {sal.toFixed(1)}
                                         </div>
@@ -244,7 +246,7 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
                             </div>
 
                             <div className="mt-3 pt-3 border-t border-slate-700/50 text-xs text-center text-slate-400">
-                                Valore comparativo Anno 1: <span className="text-white font-bold bg-slate-700 px-1.5 py-0.5 rounded ml-1">{year1Cost.toFixed(1)} M</span>
+                                {t('modals.bid.comparative_value')} <span className="text-white font-bold bg-slate-700 px-1.5 py-0.5 rounded ml-1">{year1Cost.toFixed(1)} M</span>
                             </div>
                         </div>
 
@@ -270,9 +272,9 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
                             className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition flex items-center justify-center gap-2 mt-4"
                         >
                             {loading ? (
-                                <>Invio in corso...</>
+                                <>{t('modals.bid.sending')}</>
                             ) : (
-                                <>{player.hasActiveAuction ? 'RILANCIA ORA' : 'APRI ASTA'}</>
+                                <>{player.hasActiveAuction ? t('modals.bid.raise_now') : t('modals.bid.open_auction')}</>
                             )}
                         </button>
 

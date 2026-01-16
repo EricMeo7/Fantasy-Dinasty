@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Localization;
 
 namespace FantasyBasket.API.Controllers;
 
@@ -20,8 +21,9 @@ public class AuthController : ControllerBase
     private readonly FantasyBasket.API.Interfaces.IEmailService _emailService;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<AuthController> _logger;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, FantasyBasket.API.Interfaces.IEmailService emailService, IWebHostEnvironment env, ILogger<AuthController> logger)
+    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, FantasyBasket.API.Interfaces.IEmailService emailService, IWebHostEnvironment env, ILogger<AuthController> logger, IStringLocalizer<SharedResource> localizer)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -29,6 +31,7 @@ public class AuthController : ControllerBase
         _emailService = emailService;
         _env = env;
         _logger = logger;
+        _localizer = localizer;
     }
 
     // POST: api/auth/register
@@ -37,11 +40,11 @@ public class AuthController : ControllerBase
     {
         // 1. Controllo Preliminare DB Locale
         var userExists = await _userManager.FindByEmailAsync(model.Email);
-        if (userExists != null) return BadRequest(new { message = "Email già registrata nel sistema." });
+        if (userExists != null) return BadRequest(new { message = _localizer["EmailAlreadyRegistered"].Value });
 
         if (FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance == null)
         {
-            return StatusCode(500, new { message = "Firebase non configurato." });
+            return StatusCode(500, new { message = _localizer["FirebaseNotConfigured"].Value });
         }
 
         string firebaseUid = "";
@@ -94,7 +97,7 @@ public class AuthController : ControllerBase
             return BadRequest(result.Errors);
         }
 
-        return Ok(new { message = "Registrazione avvenuta con successo!" });
+        return Ok(new { message = _localizer["RegistrationSuccess"].Value });
     }
 
     // POST: api/auth/login
@@ -102,7 +105,7 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null) return Unauthorized(new { message = "Email o password non validi." });
+        if (user == null) return Unauthorized(new { message = _localizer["InvalidCredentials"].Value });
 
         var result = await _signInManager.PasswordSignInAsync(user.UserName!, model.Password, false, lockoutOnFailure: false);
 
@@ -117,7 +120,7 @@ public class AuthController : ControllerBase
 
         if (!result.Succeeded)
         {
-            return Unauthorized(new { message = "Email o password non validi." });
+            return Unauthorized(new { message = _localizer["InvalidCredentials"].Value });
         }
 
         var tokenString = GenerateJwtToken(user);
@@ -133,7 +136,7 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<AuthResponseDto>> Login2FA([FromBody] TwoFactorLoginDto model)
     {
         var user = await _userManager.FindByEmailAsync(model.Email);
-        if (user == null) return Unauthorized(new { message = "Utente non trovato." });
+        if (user == null) return Unauthorized(new { message = _localizer["UserNotFound"].Value });
 
         // Rimuovi spazi o trattini dal codice se presenti
         var code = model.Code.Replace(" ", string.Empty).Replace("-", string.Empty);
@@ -143,7 +146,7 @@ public class AuthController : ControllerBase
 
         if (!isValid)
         {
-            return Unauthorized(new { message = "Codice di verifica 2FA non valido." });
+            return Unauthorized(new { message = _localizer["TwoFactorCodeInvalid"].Value });
         }
 
         var tokenString = GenerateJwtToken(user);
@@ -163,7 +166,7 @@ public class AuthController : ControllerBase
             // Verifichiamo il token usando Firebase Admin SDK
             if (FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance == null)
             {
-                return StatusCode(500, new { message = "Firebase non è configurato su questo server." });
+                return StatusCode(500, new { message = _localizer["FirebaseNotConfigured"].Value });
             }
 
             var decodedToken = await FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(model.Token);
@@ -208,7 +211,7 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            return Unauthorized(new { message = $"Firebase Token invalido: {ex.Message}" });
+            return Unauthorized(new { message = $"{_localizer["FirebaseTokenInvalid"].Value}: {ex.Message}" });
         }
     }
 
@@ -225,7 +228,7 @@ public class AuthController : ControllerBase
         // Se l'utente non esiste, restituiamo comunque OK
         if (user == null)
         {
-            return Ok(new { message = "Se l'indirizzo email è associato a un account, riceverai un link per reimpostare la password." });
+            return Ok(new { message = _localizer["ForgotPasswordMessage"].Value });
         }
 
         try
@@ -234,7 +237,7 @@ public class AuthController : ControllerBase
             if (FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance == null)
             {
                 // Fallback graceful se Firebase non è attivo (es. dev environment senza credenziali)
-                return StatusCode(500, new { message = "Servizio di reset password non disponibile (Firebase Admin non configurato)." });
+                return StatusCode(500, new { message = _localizer["PasswordResetNotAvailable"].Value });
             }
 
             var baseUrl = _env.IsDevelopment() 
@@ -264,7 +267,7 @@ public class AuthController : ControllerBase
             // Invia l'email con il link custom
             await _emailService.SendPasswordResetEmailAsync(model.Email, customLink);
 
-            return Ok(new { message = "Se l'indirizzo email è associato a un account, riceverai un link per reimpostare la password." });
+            return Ok(new { message = _localizer["ForgotPasswordMessage"].Value });
 
         }
         catch (FirebaseAdmin.FirebaseException ex)
@@ -273,8 +276,7 @@ public class AuthController : ControllerBase
             // Loggiamo l'errore server-side ma non lo mostriamo al client
             _logger.LogError(ex, "[Firebase Error] Failed to generate password reset link");
             
-            // Ritorniamo sempre 200 OK per sicurezza (Anti-Enumeration)
-            return Ok(new { message = "Se l'indirizzo email è associato a un account, riceverai un link per reimpostare la password." });
+            return Ok(new { message = _localizer["ForgotPasswordMessage"].Value });
         }
     }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   endTime: string; // ISO string dal backend
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function AuctionTimer({ endTime, onExpire }: Props) {
+  const { t } = useTranslation();
   const [timeLeft, setTimeLeft] = useState("");
   const [isExpired, setIsExpired] = useState(false);
   const [urgent, setUrgent] = useState(false);
@@ -19,7 +21,7 @@ export default function AuctionTimer({ endTime, onExpire }: Props) {
 
       if (distance < 0) {
         setIsExpired(true);
-        setTimeLeft("SCADUTA");
+        setTimeLeft(t('auctions.expired'));
         if (onExpire) onExpire();
         return;
       }
@@ -35,12 +37,12 @@ export default function AuctionTimer({ endTime, onExpire }: Props) {
       else setUrgent(false);
 
       if (days > 0) {
-          setTimeLeft(`${days}g ${hours}h`);
+        setTimeLeft(`${days}${t('time.d')} ${hours}${t('time.h')}`);
       } else if (hours > 0) {
-          setTimeLeft(`${hours}h ${minutes}m`);
+        setTimeLeft(`${hours}${t('time.h')} ${minutes}${t('time.m')}`);
       } else {
-          // Mostra secondi solo se manca meno di 1 ora
-          setTimeLeft(`${minutes}m ${seconds}s`);
+        // Mostra secondi solo se manca meno di 1 ora
+        setTimeLeft(`${minutes}${t('time.m')} ${seconds}${t('time.s')}`);
       }
     };
 
@@ -52,8 +54,8 @@ export default function AuctionTimer({ endTime, onExpire }: Props) {
 
   return (
     <div className={`flex items-center gap-1 font-mono font-bold text-sm ${isExpired ? 'text-slate-500' : urgent ? 'text-red-500 animate-pulse' : 'text-emerald-400'}`}>
-        <Clock size={14} />
-        <span>{timeLeft}</span>
+      <Clock size={14} />
+      <span>{timeLeft}</span>
     </div>
   );
 }

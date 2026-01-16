@@ -129,7 +129,7 @@ export default function Navbar() {
                             <span className="text-xl font-black text-white italic tracking-tighter leading-none">
                                 FANTASY <span className="text-blue-500">DYNASTY NBA</span>
                             </span>
-                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mt-1">Dynasty Core</span>
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mt-1">{t('navbar.dynasty_core')}</span>
                         </div>
                     </div>
 
@@ -147,7 +147,7 @@ export default function Navbar() {
                             {isLeagueMenuOpen && (
                                 <div className="absolute top-full left-0 mt-3 w-72 bg-slate-900/90 backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] p-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                     <div className="px-4 py-2 mb-2">
-                                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Arena Selection</span>
+                                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{t('navbar.arena_selection')}</span>
                                     </div>
                                     {
                                         userLeagues.map(l => (
@@ -176,23 +176,23 @@ export default function Navbar() {
                     <div className="hidden lg:flex items-center gap-1 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
                         <NavIcon
                             icon={<LayoutDashboard size={20} />}
-                            label="Dashboard"
+                            label={t('navbar.dashboard')}
                             onClick={() => navigate('/dashboard')}
                         />
                         <NavIcon
                             icon={<List size={20} />}
-                            label="Lineup"
+                            label={t('navbar.lineup')}
                             onClick={() => navigate('/matchup')}
                         />
                         <NavIcon
                             icon={<ArrowLeftRight size={20} />}
-                            label="Trades"
+                            label={t('navbar.trades')}
                             onClick={() => navigate('/trades')}
                             badge={pendingTrades}
                         />
                         <NavIcon
                             icon={<Book size={20} />}
-                            label="Rules"
+                            label={t('navbar.rules')}
                             onClick={() => navigate('/rules')}
                         />
                     </div>
@@ -209,7 +209,7 @@ export default function Navbar() {
                                 <button
                                     onClick={() => navigate('/commissioner')}
                                     className="hidden md:block p-3 rounded-2xl bg-red-500/5 border border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-xl shadow-red-500/5"
-                                    title={t('common.commissioner_zone')}
+                                    title={t('navbar.commissioner_zone')}
                                 >
                                     <Shield size={20} />
                                 </button>
@@ -222,7 +222,7 @@ export default function Navbar() {
                             >
                                 <div className="text-right hidden md:block">
                                     <div className="text-[11px] font-black text-white italic uppercase tracking-tight leading-none truncate max-w-[120px]">{userName}</div>
-                                    <div className="text-[8px] text-slate-600 font-black uppercase mt-1 tracking-widest">General Manager</div>
+                                    <div className="text-[8px] text-slate-600 font-black uppercase mt-1 tracking-widest">{t('navbar.general_manager')}</div>
                                 </div>
                                 <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-blue-600 border border-white/10 flex items-center justify-center shadow-lg">
                                     <User size={16} className="text-white md:hidden" />
@@ -234,39 +234,42 @@ export default function Navbar() {
                                 <div className="absolute top-full right-0 mt-3 w-64 bg-slate-900/90 backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] p-3 animate-in fade-in slide-in-from-top-2 duration-300">
                                     <div className="md:hidden px-4 py-2 border-b border-white/5 mb-2">
                                         <div className="text-sm font-black text-white">{userName}</div>
-                                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">General Manager</div>
+                                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">{t('navbar.general_manager')}</div>
                                     </div>
 
                                     {/* Mobile Navigation Links */}
                                     <div className="lg:hidden mb-2 pb-2 border-b border-white/5">
                                         <button onClick={() => navigate('/dashboard')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
-                                            Dashboard <LayoutDashboard size={16} className="text-blue-500" />
+                                            {t('navbar.dashboard')} <LayoutDashboard size={16} className="text-blue-500" />
                                         </button>
                                         <button onClick={() => navigate('/matchup')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
-                                            Lineup <List size={16} className="text-blue-500" />
+                                            {t('navbar.lineup')} <List size={16} className="text-blue-500" />
                                         </button>
                                         <button onClick={() => navigate('/trades')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
-                                            Trades <ArrowLeftRight size={16} className="text-blue-500" />
+                                            {t('navbar.trades')} <ArrowLeftRight size={16} className="text-blue-500" />
+                                        </button>
+                                        <button onClick={() => navigate('/rules')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
+                                            {t('navbar.rules')} <Book size={16} className="text-blue-500" />
                                         </button>
                                         {currentLeague?.isAdmin && (
                                             <button onClick={() => navigate('/commissioner')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-white/5 transition-all">
-                                                Commissioner <Shield size={16} className="text-red-500" />
+                                                {t('navbar.commissioner_zone')} <Shield size={16} className="text-red-500" />
                                             </button>
                                         )}
                                         <div className="p-4 flex justify-between items-center">
-                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lingua / Language</span>
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('navbar.language')}</span>
                                             <LanguageSwitcher />
                                         </div>
                                     </div>
 
                                     <button onClick={() => navigate('/leagues')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
-                                        Switch League <RefreshCcw size={16} className="text-blue-500" />
+                                        {t('navbar.switch_league')} <RefreshCcw size={16} className="text-blue-500" />
                                     </button>
                                     <button onClick={() => setIs2FAOpen(true)} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
-                                        Setup 2FA <Shield size={16} className="text-blue-500" />
+                                        {t('navbar.setup_2fa')} <Shield size={16} className="text-blue-500" />
                                     </button>
                                     <button onClick={() => { localStorage.clear(); navigate('/login'); }} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all mt-1">
-                                        Terminate Session <LogOut size={16} />
+                                        {t('navbar.terminate_session')} <LogOut size={16} />
                                     </button>
                                 </div>
                             )}

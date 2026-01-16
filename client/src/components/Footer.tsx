@@ -1,17 +1,24 @@
+import { useTranslation } from 'react-i18next';
 
-import { AlertTriangle, Beaker } from 'lucide-react';
+// Footer component
 
 export default function Footer() {
+    const { t } = useTranslation();
+
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-950/80 backdrop-blur-md border-t border-slate-800 py-3 px-6 flex justify-between items-center text-[10px] text-slate-500 font-mono uppercase tracking-widest">
-            <div className="flex items-center gap-2">
-                <Beaker size={12} className="text-emerald-500" />
-                <span>Fantasy Dynasty NBA <span className="text-emerald-400 font-bold">BETA</span> v0.1.1.45</span>
+        <footer className="w-full border-t border-white/10 bg-slate-950/50 backdrop-blur-sm py-8 mt-auto">
+            <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row md:py-0">
+                <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
+                    <p className="text-center text-sm leading-loose text-slate-400 md:text-left">
+                        {t('footer.built_for')}
+                        <span className="font-bold text-emerald-400 mx-1">Fantasy Dynasty NBA</span>
+                        {t('footer.managers')}
+                    </p>
+                </div>
+                <p className="text-center text-sm text-slate-500 md:text-right">
+                    {t('login.beta_version')} v0.0.0.1
+                </p>
             </div>
-            <div className="flex items-center gap-2 text-slate-600 hidden sm:flex">
-                <AlertTriangle size={12} />
-                <span>Work in Progress</span>
-            </div>
-        </div>
+        </footer>
     );
 }

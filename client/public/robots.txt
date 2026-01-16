@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Allow: /login
+Allow: /rules
+
+# Disallow admin or sensitive paths if they were server-side routes, 
+# but for SPA it's mostly about guiding the crawler to valid content.
+Disallow: /commissioner
+
+Sitemap: https://fantasy-dinasty.pages.dev/sitemap.xml

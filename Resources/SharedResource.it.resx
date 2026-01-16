@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Required" xml:space="preserve">
+    <value>Campo obbligatorio.</value>
+  </data>
+  <data name="EmailInvalid" xml:space="preserve">
+    <value>Email non valida.</value>
+  </data>
+  <data name="PasswordLength" xml:space="preserve">
+    <value>La password deve essere di almeno 6 caratteri.</value>
+  </data>
+  <data name="UserNotFound" xml:space="preserve">
+    <value>Utente non trovato.</value>
+  </data>
+  <data name="LoginFailed" xml:space="preserve">
+    <value>Login fallito.</value>
+  </data>
+    <data name="NotFound" xml:space="preserve">
+    <value>Risorsa non trovata.</value>
+  </data>
+  <data name="TradeOfferRequired" xml:space="preserve">
+    <value>Lo scambio deve contenere almeno un'offerta.</value>
+  </data>
+  <data name="BidInvalidPlayer" xml:space="preserve">
+    <value>ID Giocatore non valido.</value>
+  </data>
+  <data name="BidAmountZero" xml:space="preserve">
+    <value>L'offerta deve essere maggiore di 0.</value>
+  </data>
+  <data name="BidDuration" xml:space="preserve">
+    <value>Il contratto deve durare tra 1 e 3 anni.</value>
+  </data>
+  <data name="LeagueIdRequired" xml:space="preserve">
+    <value>League ID richiesto.</value>
+  </data>
+  <data name="UserIdRequired" xml:space="preserve">
+    <value>User ID richiesto.</value>
+  </data>
+  <data name="EmailAlreadyRegistered" xml:space="preserve">
+    <value>Email già registrata nel sistema.</value>
+  </data>
+  <data name="FirebaseNotConfigured" xml:space="preserve">
+    <value>Firebase non configurato.</value>
+  </data>
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Email o password non validi.</value>
+  </data>
+  <data name="RegistrationSuccess" xml:space="preserve">
+    <value>Registrazione avvenuta con successo!</value>
+  </data>
+  <data name="TwoFactorCodeInvalid" xml:space="preserve">
+    <value>Codice di verifica 2FA non valido.</value>
+  </data>
+  <data name="FirebaseTokenInvalid" xml:space="preserve">
+    <value>Token Firebase invalido.</value>
+  </data>
+  <data name="ForgotPasswordMessage" xml:space="preserve">
+    <value>Se l'indirizzo email è associato a un account, riceverai un link per reimpostare la password.</value>
+  </data>
+  <data name="PasswordResetNotAvailable" xml:space="preserve">
+    <value>Servizio di reset password non disponibile.</value>
+  </data>
+  <data name="IdentityDefaultError" xml:space="preserve">
+    <value>Si è verificato un errore sconosciuto.</value>
+  </data>
+  <data name="IdentityPasswordTooShort" xml:space="preserve">
+    <value>La password deve essere di almeno {0} caratteri.</value>
+  </data>
+  <data name="IdentityPasswordRequiresNonAlphanumeric" xml:space="preserve">
+    <value>La password deve contenere almeno un carattere non alfanumerico.</value>
+  </data>
+  <data name="IdentityPasswordRequiresDigit" xml:space="preserve">
+    <value>La password deve contenere almeno un numero ('0'-'9').</value>
+  </data>
+  <data name="IdentityPasswordRequiresLower" xml:space="preserve">
+    <value>La password deve contenere almeno una lettera minuscola ('a'-'z').</value>
+  </data>
+  <data name="IdentityPasswordRequiresUpper" xml:space="preserve">
+    <value>La password deve contenere almeno una lettera maiuscola ('A'-'Z').</value>
+  </data>
+  <data name="IdentityDuplicateEmail" xml:space="preserve">
+    <value>L'email '{0}' è già in uso.</value>
+  </data>
+  <data name="IdentityDuplicateUserName" xml:space="preserve">
+    <value>Il nome utente '{0}' è già in uso.</value>
+  </data>
+  <data name="OfficialInjuryReportImported" xml:space="preserve">
+    <value>Report infortuni ufficiale importato.</value>
+  </data>
+  <data name="ErrorImportingInjuryReport" xml:space="preserve">
+    <value>Errore durante l'importazione del report infortuni.</value>
+  </data>
+  <data name="NbaScheduleUpdated" xml:space="preserve">
+    <value>Calendario NBA aggiornato (Orari partite inseriti).</value>
+  </data>
+</root>

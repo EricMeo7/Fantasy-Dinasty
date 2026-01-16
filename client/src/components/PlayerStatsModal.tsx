@@ -153,18 +153,18 @@ export default function PlayerStatsModal({ player: initialPlayer, isOpen, onClos
                             {/* Info Contratto */}
                             <div className="mt-3 flex gap-4 text-xs font-mono text-slate-300">
                                 <div className="bg-slate-800 px-2 py-1 rounded border border-slate-700">
-                                    Stipendio: <span className="text-emerald-400 font-bold">{fullPlayer.salaryYear1?.toFixed(1)} M</span>
+                                    {t('modals.stats.salary')} <span className="text-emerald-400 font-bold">{fullPlayer.salaryYear1?.toFixed(1)} M</span>
                                 </div>
                                 {fullPlayer.contractYears > 1 && (
                                     <div className="bg-slate-800 px-2 py-1 rounded border border-slate-700">
-                                        Scadenza: tra {fullPlayer.contractYears} anni
+                                        {t('modals.stats.expires_in', { years: fullPlayer.contractYears })}
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         <div className="text-right hidden sm:block">
-                            <div className="text-xs text-slate-500 uppercase font-bold">Fantasy PTS</div>
+                            <div className="text-xs text-slate-500 uppercase font-bold">{t('modals.stats.fantasy_pts')}</div>
                             <div className="text-3xl font-mono font-bold text-yellow-400">{fullPlayer.fantasyPoints?.toFixed(1)}</div>
                         </div>
                     </div>
@@ -205,7 +205,7 @@ export default function PlayerStatsModal({ player: initialPlayer, isOpen, onClos
                                 {/* Shooting Splits */}
                                 <div className="space-y-4">
                                     <h3 className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase border-b border-slate-800 pb-2">
-                                        <Crosshair size={16} /> Shooting Splits
+                                        <Crosshair size={16} /> {t('modals.stats.shooting_splits')}
                                     </h3>
                                     <div className="bg-slate-800/40 rounded-xl p-4 space-y-4">
                                         <SplitRow label="FG" made={fullPlayer.fgm} att={fullPlayer.fga} pct={fullPlayer.fgPercent} color="text-emerald-400" />
@@ -217,7 +217,7 @@ export default function PlayerStatsModal({ player: initialPlayer, isOpen, onClos
                                 {/* Impact & Hustle */}
                                 <div className="space-y-4">
                                     <h3 className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase border-b border-slate-800 pb-2">
-                                        <Zap size={16} /> Impact & Hustle
+                                        <Zap size={16} /> {t('modals.stats.impact_hustle')}
                                     </h3>
                                     <div className="grid grid-cols-2 gap-3">
                                         <DetailBox label="Turnovers" value={fullPlayer.avgTurnovers} icon="TOV" bad={true} />
@@ -234,28 +234,28 @@ export default function PlayerStatsModal({ player: initialPlayer, isOpen, onClos
                         /* TAB STORICO */
                         <div className="space-y-4">
                             <h3 className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase border-b border-slate-800 pb-2">
-                                <History size={16} /> Ultime 5 Stagioni
+                                <History size={16} /> {t('modals.stats.last_5_seasons')}
                             </h3>
 
                             {loadingHistory ? (
                                 <div className="text-center py-20 flex flex-col items-center text-slate-500">
                                     <Loader2 size={32} className="animate-spin mb-2 text-emerald-500" />
-                                    Recupero archivi NBA...
+                                    {t('modals.stats.fetching_history')}
                                 </div>
                             ) : !fullPlayer.seasonStats || fullPlayer.seasonStats.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500">Nessun dato storico disponibile.</div>
+                                <div className="text-center py-10 text-slate-500">{t('modals.stats.no_history')}</div>
                             ) : (
                                 <div className="overflow-x-auto rounded-xl border border-slate-800">
                                     <table className="w-full text-sm text-left text-slate-400">
                                         <thead className="text-xs text-slate-500 uppercase bg-slate-800">
                                             <tr>
-                                                <th className="px-4 py-3">Stagione</th>
-                                                <th className="px-4 py-3">Team</th>
-                                                <th className="px-4 py-3 text-center">GP</th>
+                                                <th className="px-4 py-3">{t('modals.stats.season')}</th>
+                                                <th className="px-4 py-3">{t('modals.stats.team')}</th>
+                                                <th className="px-4 py-3 text-center">{t('modals.stats.gp')}</th>
                                                 <th className="px-4 py-3 text-right text-white">PTS</th>
                                                 <th className="px-4 py-3 text-right text-blue-400">REB</th>
                                                 <th className="px-4 py-3 text-right text-amber-400">AST</th>
-                                                <th className="px-4 py-3 text-right text-yellow-400">FANTASY</th>
+                                                <th className="px-4 py-3 text-right text-yellow-400">{t('modals.stats.fantasy')}</th>
                                             </tr>
                                         </thead>
                                         <tbody>

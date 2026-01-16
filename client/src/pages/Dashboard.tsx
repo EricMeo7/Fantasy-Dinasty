@@ -116,7 +116,7 @@ export default function Dashboard() {
             ) : (
               <div className="bg-slate-900/40 backdrop-blur-3xl border border-white/5 border-dashed rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 flex flex-col items-center justify-center text-center h-auto min-h-[20rem] md:h-[28rem]">
                 <Calendar size={40} className="text-slate-800 mb-6" />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-700 italic">Match Matrix Idle</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-700 italic">{t('dashboard.match_matrix_idle')}</p>
               </div>
             )
             }
@@ -127,11 +127,11 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-6 md:mb-8 relative z-10">
                 <div className="flex items-center gap-2 md:gap-3 bg-red-600/10 border border-red-500/20 px-3 md:px-4 py-1.5 rounded-full">
                   <Activity size={14} className="text-red-500" />
-                  <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-red-500">Physio Intel</span>
+                  <span className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-red-500">{t('dashboard.physio_intel')}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-slate-950 px-3 py-1 rounded-lg border border-slate-800">
                   <TrendingUp size={12} className="text-red-500" />
-                  <span className="text-[10px] font-black text-white italic">{injuredPlayers.length} <span className="text-slate-600">ALERTS</span></span>
+                  <span className="text-[10px] font-black text-white italic">{injuredPlayers.length} <span className="text-slate-600">{t('dashboard.alerts')}</span></span>
                 </div>
               </div>
 
@@ -171,7 +171,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center py-10 opacity-20">
                       <Sparkles size={48} className="mb-4" />
-                      <p className="text-[10px] font-black uppercase tracking-[0.4em] leading-relaxed">Fragility Matrix 100% Core Integrity</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] leading-relaxed">{t('dashboard.fragility_matrix_integrity')}</p>
                     </div>
                   )
                 }
@@ -192,19 +192,19 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2 mb-2 md:mb-4 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl w-fit cursor-default animate-pulse">
                 <Sparkles size={14} className="text-amber-500" />
-                <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-amber-500">Beta v0.1.1.45</span>
+                <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-amber-500">{t('login.beta_version')} v0.1.1.45</span>
               </div>
               <h2 className="text-3xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">
                 Command <span className="text-blue-500">Central</span>
               </h2>
-              <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[8px] md:text-[10px] mt-2 md:mt-3">Dynasty Management Console Experience</p>
+              <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[8px] md:text-[10px] mt-2 md:mt-3">{t('dashboard.dynasty_console_experience')}</p>
             </div>
           </div>
 
           <div className="hidden xl:flex items-center gap-4 bg-slate-900/40 p-2 rounded-[2rem] border border-white/5">
             <div className="px-6 py-2">
-              <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Active Assets</div>
-              <div className="text-xl font-black text-white italic mt-1">{roster.length} <span className="text-[9px] text-slate-800 italic">UNITS</span></div>
+              <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{t('dashboard.active_assets')}</div>
+              <div className="text-xl font-black text-white italic mt-1">{roster.length} <span className="text-[9px] text-slate-800 italic">{t('dashboard.units')}</span></div>
             </div>
           </div>
         </div>
@@ -219,8 +219,8 @@ export default function Dashboard() {
               <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-blue-500"><Users size={120} /></div>
               <div className="p-3 md:p-4 bg-blue-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Users size={24} /></div>
               <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-blue-500 transition-colors">Personnel</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Squad Roster</h3>
+                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-blue-500 transition-colors">{t('dashboard.personnel')}</p>
+                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.squad_roster')}</h3>
               </div>
             </div>
           </button>
@@ -231,8 +231,8 @@ export default function Dashboard() {
               <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-emerald-500"><Search size={120} /></div>
               <div className="p-3 md:p-4 bg-emerald-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(16,185,129,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Search size={24} /></div>
               <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-emerald-500 transition-colors">Intelligence</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Franchise HQ</h3>
+                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-emerald-500 transition-colors">{t('dashboard.intelligence')}</p>
+                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.franchise_hq')}</h3>
               </div>
             </div>
           </button>
@@ -243,15 +243,15 @@ export default function Dashboard() {
               {
                 pendingTradesCount > 0 && (
                   <div className="absolute top-6 right-6 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-2xl z-20 animate-bounce border border-white/20">
-                    {pendingTradesCount} ALERTS
+                    {pendingTradesCount} {t('dashboard.alerts')}
                   </div>
                 )
               }
               <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-purple-500"><ArrowLeftRight size={120} /></div>
               <div className="p-3 md:p-4 bg-purple-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(147,51,234,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><ArrowLeftRight size={24} /></div>
               <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-purple-500 transition-colors">Transaction</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Trade Hub</h3>
+                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-purple-500 transition-colors">{t('dashboard.transaction')}</p>
+                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.trade_hub')}</h3>
               </div>
             </div>
           </button>
@@ -262,8 +262,8 @@ export default function Dashboard() {
               <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-amber-500"><Trophy size={120} /></div>
               <div className="p-3 md:p-4 bg-amber-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(245,158,11,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Trophy size={24} /></div>
               <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-amber-500 transition-colors">Competitive</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Standings</h3>
+                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-amber-500 transition-colors">{t('dashboard.competitive')}</p>
+                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.standings')}</h3>
               </div>
             </div>
           </button>
@@ -274,8 +274,8 @@ export default function Dashboard() {
               <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-indigo-500"><Calendar size={120} /></div>
               <div className="p-3 md:p-4 bg-indigo-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(79,70,229,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Calendar size={24} /></div>
               <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-indigo-500 transition-colors">Operations</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">Matrix Grid</h3>
+                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-indigo-500 transition-colors">{t('dashboard.operations')}</p>
+                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.matrix_grid')}</h3>
               </div>
             </div>
           </button>
@@ -296,14 +296,14 @@ export default function Dashboard() {
                     <div className="inline-flex items-center gap-3 bg-red-600 text-white px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-[0.4em] animate-pulse shadow-[0_0_30px_rgba(220,38,38,0.5)] border-t border-white/20">
                       <Activity size={12} /> {t('market.live_market')}
                     </div>
-                    <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Auction Sequence Initialized</span>
+                    <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">{t('dashboard.auction_sequence_initialized')}</span>
                   </div>
 
                   <h2 className="text-3xl md:text-8xl font-black text-white mb-6 md:mb-10 flex flex-col gap-2 uppercase tracking-tighter italic leading-none">
                     <span className="text-blue-500">Syndicate</span> Auction
                   </h2>
                   <p className="text-slate-400 max-w-2xl text-lg md:text-2xl leading-relaxed italic font-medium opacity-80">
-                    The live allocation event is currently active. Engage with the market to acquire franchise cornerstones through high-frequency bidding.
+                    {t('dashboard.auction_description')}
                   </p>
                 </div>
 
@@ -328,13 +328,13 @@ export default function Dashboard() {
               <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8 md:gap-16">
                 <div className="text-center lg:text-left">
                   <div className="inline-flex items-center gap-3 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-5 py-2 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] mb-6 md:mb-10">
-                    {t('dashboard.regular_season')} PHASE
+                    {t('dashboard.regular_season_phase')}
                   </div>
                   <h2 className="text-3xl md:text-7xl font-black text-white mb-6 md:mb-10 flex flex-col gap-2 uppercase tracking-tighter italic leading-none">
                     Open <span className="text-emerald-500">Market</span>
                   </h2>
                   <p className="text-slate-500 max-w-xl text-lg md:text-2xl leading-relaxed italic font-bold opacity-80 uppercase tracking-widest">
-                    Global acquisition terminal is operational. Optimize roster depth through strategic personnel procurement.
+                    {t('dashboard.market_description')}
                   </p>
                 </div>
 
