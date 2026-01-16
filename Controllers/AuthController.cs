@@ -19,14 +19,16 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly FantasyBasket.API.Interfaces.IEmailService _emailService;
     private readonly IWebHostEnvironment _env;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, FantasyBasket.API.Interfaces.IEmailService emailService, IWebHostEnvironment env)
+    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, FantasyBasket.API.Interfaces.IEmailService emailService, IWebHostEnvironment env, ILogger<AuthController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
         _emailService = emailService;
         _env = env;
+        _logger = logger;
     }
 
     // POST: api/auth/register
@@ -268,7 +270,8 @@ public class AuthController : ControllerBase
         catch (FirebaseAdmin.FirebaseException ex)
         {
             // Loggiamo l'errore server-side ma non lo mostriamo al client
-            Console.WriteLine($"[Firebase Error] {ex.Message}");
+            // Loggiamo l'errore server-side ma non lo mostriamo al client
+            _logger.LogError(ex, "[Firebase Error] Failed to generate password reset link");
             
             // Ritorniamo sempre 200 OK per sicurezza (Anti-Enumeration)
             return Ok(new { message = "Se l'indirizzo email è associato a un account, riceverai un link per reimpostare la password." });

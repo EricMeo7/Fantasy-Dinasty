@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import {
     User, ChevronDown, LogOut,
-    Trophy, RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard
+    Trophy, RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard, Book
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -127,7 +127,7 @@ export default function Navbar() {
                         </div>
                         <div className="flex-col hidden md:flex">
                             <span className="text-xl font-black text-white italic tracking-tighter leading-none">
-                                FANTASY <span className="text-blue-500">DYNASTY</span>
+                                FANTASY <span className="text-blue-500">DYNASTY NBA</span>
                             </span>
                             <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mt-1">Dynasty Core</span>
                         </div>
@@ -189,6 +189,11 @@ export default function Navbar() {
                             label="Trades"
                             onClick={() => navigate('/trades')}
                             badge={pendingTrades}
+                        />
+                        <NavIcon
+                            icon={<Book size={20} />}
+                            label="Rules"
+                            onClick={() => navigate('/rules')}
                         />
                     </div>
 

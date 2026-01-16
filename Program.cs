@@ -92,17 +92,21 @@ builder.Services.AddAuthorization(options =>
 // CORS
 builder.Services.AddCors(options =>
 {
+    var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>();
+    
+    // FALLBACK: Se non c'è appsettings (es. produzione senza file/env), usiamo i default sicuri
+    if (allowedOrigins == null || !allowedOrigins.Any())
+    {
+        allowedOrigins = new[] 
+        { 
+            "https://fantasy-dinasty.pages.dev",
+            "capacitor://localhost",
+            "http://localhost:5173"
+        };
+    }
     options.AddPolicy("AllowReactApp",
         builder => builder
-            .WithOrigins(
-                "http://localhost:5173", 
-                "capacitor://localhost", 
-                "http://localhost",
-                "https://localhost",
-                "http://192.168.1.61:5173",
-                "http://192.168.1.61:5249",
-                "https://fantasy-dinasty.pages.dev"
-            )
+            .WithOrigins(allowedOrigins)
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials());
@@ -142,10 +146,20 @@ builder.Services.AddHttpClient("NbaStats", client =>
     client.DefaultRequestHeaders.Add("x-nba-stats-origin", "stats");
     client.DefaultRequestHeaders.Add("x-nba-stats-token", "true");
 })
-.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+.ConfigurePrimaryHttpMessageHandler(() => 
 {
-    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate,
-    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+    var handler = new HttpClientHandler
+    {
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
+    };
+    
+    // SECURITY FIX: Solo in sviluppo permettiamo certificati non validi (es. self-signed limitati)
+    if (builder.Environment.IsDevelopment())
+    {
+         handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+    }
+    
+    return handler;
 })
 .AddPolicyHandler(retryPolicy)
 .AddPolicyHandler(circuitBreakerPolicy);
@@ -160,7 +174,7 @@ builder.Services.AddHttpClient("NbaCdn", client =>
 
 builder.Services.AddHttpClient("CbsSports", client =>
 {
-    client.Timeout = TimeSpan.FromMinutes(1);
+    client.Timeout = TimeSpan.FromSeconds(60);
     client.BaseAddress = new Uri("https://www.cbssports.com/");
     client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
     client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
@@ -177,10 +191,19 @@ builder.Services.AddHttpClient("CbsSports", client =>
     client.DefaultRequestHeaders.Add("Sec-Fetch-User", "?1");
     client.DefaultRequestHeaders.Add("Cache-Control", "max-age=0");
 })
-.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+.ConfigurePrimaryHttpMessageHandler(() => 
 {
-    AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.Brotli,
-    ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+    var handler = new HttpClientHandler
+    {
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.Brotli
+    };
+
+    if (builder.Environment.IsDevelopment())
+    {
+        handler.ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true;
+    }
+
+    return handler;
 })
 .AddPolicyHandler(retryPolicy);
 

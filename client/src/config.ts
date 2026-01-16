@@ -2,7 +2,7 @@ import { Capacitor } from '@capacitor/core';
 
 // IP Locale del PC (necessario per Android che non vede 'localhost' come il PC)
 // SU PROD: Sostituire con l'URL di produzione o gestire tramite .env
-const SERVER_IP = '192.168.1.61';
+const SERVER_IP = import.meta.env.VITE_SERVER_IP || window.location.hostname;
 
 const isNative = Capacitor.isNativePlatform();
 

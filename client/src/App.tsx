@@ -20,6 +20,7 @@ import LeagueRosters from './pages/LeagueRosters';
 import Trades from './pages/Trades';
 import Matchup from './pages/Matchup';
 import Commissioner from './pages/Commissioner';
+import Rules from './pages/Rules';
 
 
 // Componente Wrapper per gestire la logica della Navbar
@@ -98,6 +99,7 @@ function AppContent() {
           <Route path="/league-rosters" element={<LeagueRosters />} />
           <Route path="/trades" element={<Trades />} />
           <Route path="/commissioner" element={<Commissioner />} />
+          <Route path="/rules" element={<Rules />} />
           {/* Redirect di default */}
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
