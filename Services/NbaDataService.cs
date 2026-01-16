@@ -81,6 +81,7 @@ public class NbaDataService : INbaDataService
         {
             _logger.LogInformation($"Sync Storico: {season}...");
             await ProcessSeasonAsync(context, season, isCurrentSeason: false, bioMap);
+            await Task.Delay(5000); // 5s delay to avoid Rate Limiting / IP excessive usage
         }
 
         return 1;

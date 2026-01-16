@@ -77,6 +77,10 @@ function AppContent() {
   const noNavbarRoutes = ['/login', '/leagues', '/', '/forgot-password', '/reset-password'];
   const shouldHideNavbar = noNavbarRoutes.includes(location.pathname);
 
+  // Definiamo le rotte dove NON vogliamo vedere il Footer globale (es. Login ha già il suo footer)
+  const noFooterRoutes = ['/login', '/forgot-password', '/reset-password', '/setup-profile'];
+  const shouldHideFooter = noFooterRoutes.includes(location.pathname);
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 font-sans">
       {/* Mostra la Navbar solo se non siamo in una rotta "protetta" */}
@@ -115,7 +119,7 @@ function AppContent() {
           </Routes>
         </Suspense>
       </div>
-      <Footer />
+      {!shouldHideFooter && <Footer />}
     </div>
   );
 }

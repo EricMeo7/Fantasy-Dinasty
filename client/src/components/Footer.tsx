@@ -16,7 +16,7 @@ export default function Footer() {
                     </p>
                 </div>
                 <p className="text-center text-sm text-slate-500 md:text-right">
-                    {t('login.beta_version')} v0.0.0.1
+                    {t('login.beta_version')} v0.1.1.45
                 </p>
             </div>
         </footer>
