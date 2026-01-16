@@ -91,7 +91,10 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
             }
         }
 
-        // 4. Force Refresh Logic (If logs missing, try fetch)
+        // 4. Force Refresh Logic DISABLED to prevent UI Lag
+        // We rely on Background Worker for Live Scores.
+        // Syncing synchronously here is too risky (stats.nba.com timeouts).
+        /*
         var playerIds = lineupEntries.Select(l => l.PlayerId).ToList();
         if (playerIds.Any())
         {
@@ -100,11 +103,10 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
 
             if (logsCheck < playerIds.Count && request.Date.Date <= DateTime.UtcNow.Date)
             {
-                // Try fetching only if it's today or past, not future
-                // Controller logic: date.Date <= DateTime.UtcNow.Date
                 await _nbaService.GetFantasyPointsByDate(startOfDay, playerIds);
             }
         }
+        */
 
         // 5. Build DTO
         var gamesMap = await _context.NbaGames
