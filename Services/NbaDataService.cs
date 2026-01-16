@@ -269,7 +269,8 @@ public class NbaDataService : INbaDataService
             }
 
             var newGames = new List<NbaGame>();
-            var existingGameIds = await context.NbaGames.Select(g => g.NbaGameId).ToHashSetAsync();
+            var existingGameIdsList = await context.NbaGames.Select(g => g.NbaGameId).ToListAsync();
+            var existingGameIds = new HashSet<string>(existingGameIdsList);
             int processedDates = 0;
             string[] formats = { "MM/dd/yyyy HH:mm:ss", "MM/dd/yyyy" };
 
