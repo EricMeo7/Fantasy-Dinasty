@@ -1,0 +1,294 @@
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
+import {
+    User, ChevronDown, LogOut,
+    Trophy, RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from './LanguageSwitcher';
+import TwoFactorSetupModal from './TwoFactorSetupModal';
+
+interface UserLega {
+    leagueId: number;
+    leagueName: string;
+    myTeamName: string;
+    isAdmin: boolean;
+}
+
+export default function Navbar() {
+    const { t } = useTranslation();
+    const [userLeagues, setUserLeagues] = useState<UserLega[]>([]);
+    const [userName, setUserName] = useState<string>("");
+    const [pendingTrades, setPendingTrades] = useState(0);
+    const [isLeagueMenuOpen, setIsLeagueMenuOpen] = useState(false);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
+    const [is2FAOpen, setIs2FAOpen] = useState(false);
+
+    const leagueMenuRef = useRef<HTMLDivElement>(null);
+    const profileMenuRef = useRef<HTMLDivElement>(null);
+
+    const navigate = useNavigate();
+    const currentLeagueId = localStorage.getItem('selectedLeagueId');
+
+    // Handle click outside to close menus
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (leagueMenuRef.current && !leagueMenuRef.current.contains(event.target as Node)) {
+                setIsLeagueMenuOpen(false);
+            }
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setIsProfileOpen(false);
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    useEffect(() => {
+        loadData();
+        const timer = setInterval(checkTrades, 30000);
+        return () => clearInterval(timer);
+    }, [currentLeagueId]);
+
+    const loadData = async () => {
+        try {
+            const [profileRes, leaguesRes] = await Promise.all([
+                api.get('/profile'),
+                api.league.getMyLeagues()
+            ]);
+
+            setUserName(profileRes.data.generalManagerName || profileRes.data.email);
+
+            const leagues = leaguesRes.data;
+            setUserLeagues(leagues);
+
+            // AUTO-FIX: Se non ho una lega selezionata o quella selezionata non è valida, prendo la prima
+            if (leagues.length > 0) {
+                const storedId = localStorage.getItem('selectedLeagueId');
+                const isValid = storedId && leagues.find((l: UserLega) => l.leagueId.toString() === storedId);
+
+                if (!isValid) {
+                    const defaultLeague = leagues[0];
+                    localStorage.setItem('selectedLeagueId', defaultLeague.leagueId.toString());
+                    localStorage.setItem('isAdmin', defaultLeague.isAdmin.toString());
+
+                    // Force reload logic if needed, or just let state update handle it
+                    // Se cambio selectedLeagueId in localStorage, però, React non lo sa subito se non triggero un refresh o aggiorno lo state "currentLeagueId".
+                    // Ma `currentLeagueId` qui è const letto al render.
+                    // QUINDI: Meglio triggerare un reload o usare un "effective ID".
+                    // Per semplicità, ricarico la pagina se il fix è necessario, così si allinea tutto.
+                    if (!storedId) { // Solo se era vuoto, ricarico per applicare il contesto
+                        window.location.reload();
+                    }
+                }
+            }
+
+            checkTrades();
+        } catch (e) {
+            console.error("Navbar Load Data Error:", e);
+        }
+    };
+
+    const checkTrades = async () => {
+        const activeId = localStorage.getItem('selectedLeagueId'); // Re-read fresh
+        if (!activeId) return;
+        try {
+            const { data } = await api.get('/trade/pending-count');
+            setPendingTrades(data.count);
+        } catch (e) { }
+    };
+
+    const handleSwitchLeague = (league: UserLega) => {
+        localStorage.setItem('selectedLeagueId', league.leagueId.toString());
+        localStorage.setItem('isAdmin', league.isAdmin.toString());
+        window.location.href = '/dashboard';
+    };
+
+    // Re-read to ensure sync with loadData fix? 
+    // No, React cycle: loadData runs -> updates state. 
+    // We can compute render props from State + LocalStorage.
+    const effectiveLeagueId = localStorage.getItem('selectedLeagueId');
+    const currentLeague = userLeagues.find(l => l.leagueId.toString() === effectiveLeagueId);
+
+    return (
+        <>
+            <nav className="bg-slate-950/80 backdrop-blur-3xl border-b border-white/5 sticky top-0 z-[100] px-4 md:px-8 h-[calc(5rem+var(--sat))] pt-[var(--sat)] flex items-center justify-between shadow-2xl transition-all">
+                <div className="flex items-center gap-2 md:gap-10">
+                    <div
+                        onClick={() => navigate('/dashboard')}
+                        className="flex items-center gap-3 cursor-pointer group"
+                    >
+                        <div className="p-2 bg-blue-600/20 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.3)] group-hover:scale-110 transition-transform backdrop-blur-sm border border-blue-500/30">
+                            <img src="/logo.svg" alt="Fantasy Dynasty" className="w-10 h-10 object-contain shadow-none" />
+                        </div>
+                        <div className="flex-col hidden md:flex">
+                            <span className="text-xl font-black text-white italic tracking-tighter leading-none">
+                                FANTASY <span className="text-blue-500">DYNASTY</span>
+                            </span>
+                            <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mt-1">Dynasty Core</span>
+                        </div>
+                    </div>
+
+                    {currentLeague && (
+                        <div className="relative" ref={leagueMenuRef}>
+                            <button
+                                onClick={() => setIsLeagueMenuOpen(!isLeagueMenuOpen)}
+                                className="flex items-center gap-2 md:gap-3 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 px-3 md:px-4 py-2 rounded-2xl transition-all shadow-inner"
+                            >
+                                <Trophy size={16} className="text-amber-500 shrink-0" />
+                                <span className="text-[10px] md:text-[11px] font-black text-slate-300 uppercase italic tracking-tight max-w-[100px] md:max-w-none truncate">{currentLeague.leagueName}</span>
+                                <ChevronDown size={14} className={`text-slate-600 transition-transform shrink-0 ${isLeagueMenuOpen ? 'rotate-180 text-blue-500' : ''}`} />
+                            </button>
+
+                            {isLeagueMenuOpen && (
+                                <div className="absolute top-full left-0 mt-3 w-72 bg-slate-900/90 backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] p-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="px-4 py-2 mb-2">
+                                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Arena Selection</span>
+                                    </div>
+                                    {
+                                        userLeagues.map(l => (
+                                            <button
+                                                key={l.leagueId}
+                                                onClick={() => handleSwitchLeague(l)}
+                                                className={`w-full text-left p-4 rounded-2xl flex items-center justify-between group transition-all mb-1 ${l.leagueId.toString() === currentLeagueId ? 'bg-blue-600 shadow-lg shadow-blue-500/20' : 'hover:bg-white/5'}`}
+                                            >
+                                                <div>
+                                                    <div className={`text-sm font-black italic uppercase tracking-tight ${l.leagueId.toString() === currentLeagueId ? 'text-white' : 'text-slate-200 group-hover:text-blue-400'}`}>{l.leagueName}</div>
+                                                    <div className={`text-[10px] font-bold ${l.leagueId.toString() === currentLeagueId ? 'text-blue-200' : 'text-slate-500'}`}>{l.myTeamName}</div>
+                                                </div>
+                                                {l.isAdmin && <Shield size={12} className={l.leagueId.toString() === currentLeagueId ? 'text-blue-200' : 'text-slate-700'} />}
+                                            </button>
+                                        ))
+                                    }
+                                </div>
+                            )
+                            }
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-2 md:gap-6">
+
+                    <div className="hidden lg:flex items-center gap-1 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
+                        <NavIcon
+                            icon={<LayoutDashboard size={20} />}
+                            label="Dashboard"
+                            onClick={() => navigate('/dashboard')}
+                        />
+                        <NavIcon
+                            icon={<List size={20} />}
+                            label="Lineup"
+                            onClick={() => navigate('/matchup')}
+                        />
+                        <NavIcon
+                            icon={<ArrowLeftRight size={20} />}
+                            label="Trades"
+                            onClick={() => navigate('/trades')}
+                            badge={pendingTrades}
+                        />
+                    </div>
+
+                    <div className="h-8 w-px bg-slate-800 mx-2 hidden md:block"></div>
+
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <div className="hidden md:block">
+                            <LanguageSwitcher />
+                        </div>
+
+                        {
+                            currentLeague?.isAdmin && (
+                                <button
+                                    onClick={() => navigate('/commissioner')}
+                                    className="hidden md:block p-3 rounded-2xl bg-red-500/5 border border-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-xl shadow-red-500/5"
+                                    title={t('common.commissioner_zone')}
+                                >
+                                    <Shield size={20} />
+                                </button>
+                            )}
+
+                        <div className="relative" ref={profileMenuRef}>
+                            <button
+                                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                                className="flex items-center gap-4 bg-slate-950 border border-slate-800 md:pl-5 md:pr-2 p-1 md:py-2 rounded-[2rem] hover:bg-slate-900 transition-all shadow-2xl"
+                            >
+                                <div className="text-right hidden md:block">
+                                    <div className="text-[11px] font-black text-white italic uppercase tracking-tight leading-none truncate max-w-[120px]">{userName}</div>
+                                    <div className="text-[8px] text-slate-600 font-black uppercase mt-1 tracking-widest">General Manager</div>
+                                </div>
+                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-blue-600 border border-white/10 flex items-center justify-center shadow-lg">
+                                    <User size={16} className="text-white md:hidden" />
+                                    <User size={20} className="text-white hidden md:block" />
+                                </div>
+                            </button>
+
+                            {isProfileOpen && (
+                                <div className="absolute top-full right-0 mt-3 w-64 bg-slate-900/90 backdrop-blur-3xl border border-white/5 rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] p-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <div className="md:hidden px-4 py-2 border-b border-white/5 mb-2">
+                                        <div className="text-sm font-black text-white">{userName}</div>
+                                        <div className="text-[10px] text-slate-500 uppercase tracking-widest">General Manager</div>
+                                    </div>
+
+                                    {/* Mobile Navigation Links */}
+                                    <div className="lg:hidden mb-2 pb-2 border-b border-white/5">
+                                        <button onClick={() => navigate('/dashboard')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
+                                            Dashboard <LayoutDashboard size={16} className="text-blue-500" />
+                                        </button>
+                                        <button onClick={() => navigate('/matchup')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
+                                            Lineup <List size={16} className="text-blue-500" />
+                                        </button>
+                                        <button onClick={() => navigate('/trades')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
+                                            Trades <ArrowLeftRight size={16} className="text-blue-500" />
+                                        </button>
+                                        {currentLeague?.isAdmin && (
+                                            <button onClick={() => navigate('/commissioner')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-white/5 transition-all">
+                                                Commissioner <Shield size={16} className="text-red-500" />
+                                            </button>
+                                        )}
+                                        <div className="p-4 flex justify-between items-center">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Lingua / Language</span>
+                                            <LanguageSwitcher />
+                                        </div>
+                                    </div>
+
+                                    <button onClick={() => navigate('/leagues')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
+                                        Switch League <RefreshCcw size={16} className="text-blue-500" />
+                                    </button>
+                                    <button onClick={() => setIs2FAOpen(true)} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
+                                        Setup 2FA <Shield size={16} className="text-blue-500" />
+                                    </button>
+                                    <button onClick={() => { localStorage.clear(); navigate('/login'); }} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/10 transition-all mt-1">
+                                        Terminate Session <LogOut size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </nav>
+            <TwoFactorSetupModal isOpen={is2FAOpen} onClose={() => setIs2FAOpen(false)} />
+        </>
+    );
+}
+
+function NavIcon({ icon, label, onClick, badge }: { icon: any, label: string, onClick: () => void, badge?: number }) {
+    return (
+        <button
+            onClick={onClick}
+            className={`relative p-3 rounded-xl transition-all duration-300 flex items-center gap-2 group ${badge ? 'text-amber-500 bg-amber-500/5 hover:bg-amber-500 hover:text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}
+            title={label}
+        >
+            {icon}
+            {badge ? (
+                <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 text-[10px] font-black text-white rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
+                    {badge}
+                </span>
+            ) : null
+            }
+            <span className="text-[9px] font-black uppercase tracking-widest hidden xl:block">{label}</span>
+        </button>
+    );
+}

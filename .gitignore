@@ -1,0 +1,23 @@
+# Visual Studio cache e file utente
+.vs/
+*.user
+*.suo
+
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Nuget
+packages/
+
+# Node modules (per il client React/JS)
+node_modules/
+
+appsettings.json
+
+# Security
+firebase-service-account.json
+appsettings.local.json
+appsettings.Development.json
+.env
+*.log

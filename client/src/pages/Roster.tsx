@@ -1,0 +1,205 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Users, ArrowRight, Shirt, LayoutDashboard, Loader2, Sparkles, Activity } from 'lucide-react';
+import { useModal } from '../context/ModalContext';
+import { useMyRoster } from '../features/roster/api/useMyRoster';
+import { useTeamBudget } from '../features/team/api/useTeamBudget';
+import { BudgetOverview } from '../features/roster/components/BudgetOverview';
+import { useReleasePlayer } from '../features/team/api/useReleasePlayer';
+import { RosterTable } from '../features/roster/components/RosterTable';
+import { PlayerCard } from '../features/roster/components/PlayerCard';
+import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModal';
+import ReleaseModal from '../components/ReleaseModal';
+import { useTranslation } from 'react-i18next';
+
+export default function Roster() {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const { showAlert } = useModal();
+
+    // React Query Hooks
+    const { data: players = [], isLoading: loadingRoster } = useMyRoster();
+    const { data: finance, isLoading: loadingBudget } = useTeamBudget();
+
+    // Local State for Modals
+    const [selectedPlayer, setSelectedPlayer] = useState<PlayerFull | null>(null);
+    const [isStatsOpen, setIsStatsOpen] = useState(false);
+    const [releaseTarget, setReleaseTarget] = useState<PlayerFull | null>(null);
+    const [isReleaseOpen, setIsReleaseOpen] = useState(false);
+
+    // Actions
+    const handleReleaseClick = (player: any) => {
+        setReleaseTarget(player);
+        setIsReleaseOpen(true);
+    };
+
+    const { mutate: releasePlayer } = useReleasePlayer();
+
+    const confirmRelease = async () => {
+        if (!releaseTarget) return;
+        setIsReleaseOpen(false);
+
+        releasePlayer(releaseTarget.id, {
+            onSuccess: () => {
+                showAlert({ title: t('common.success'), message: t('roster.player_released_success'), type: "success" });
+            },
+            onError: (error: any) => {
+                console.error("Errore taglio:", error);
+                showAlert({ title: t('common.error'), message: t('roster.loading_error'), type: "error" });
+            }
+        });
+    };
+
+
+    const openStats = (player: any) => {
+        setSelectedPlayer(player);
+        setIsStatsOpen(true);
+    };
+
+    const isLoading = loadingRoster || loadingBudget;
+
+    if (isLoading) return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500">
+            <Loader2 className="animate-spin text-blue-500 mb-8" size={64} />
+            <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-blue-400">Retrieving Personnel Data...</p>
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen bg-slate-950 p-4 md:p-12 text-slate-100 font-sans pb-32 relative overflow-hidden">
+
+            {/* Background decoration */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
+                <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 rounded-full blur-[120px]"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-[30%] h-[30%] bg-indigo-900/10 rounded-full blur-[100px]"></div>
+            </div>
+
+            <div className="mx-auto max-w-7xl relative z-10">
+
+                {/* Modals */}
+                <PlayerStatsModal
+                    player={selectedPlayer}
+                    isOpen={isStatsOpen}
+                    onClose={() => setIsStatsOpen(false)}
+                />
+
+                <ReleaseModal
+                    player={releaseTarget}
+                    isOpen={isReleaseOpen}
+                    onClose={() => setIsReleaseOpen(false)}
+                    onConfirm={confirmRelease}
+                />
+
+                {/* Header Navigation */}
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-8 md:mb-16">
+                    <div className="flex items-center gap-4 md:gap-8">
+                        <div className="p-3 md:p-5 bg-slate-900 border border-white/5 rounded-2xl md:rounded-3xl shadow-2xl relative text-blue-500">
+                            <Shirt size={32} className="relative z-10 animate-in bounce-in duration-1000 md:hidden" />
+                            <Shirt size={40} className="relative z-10 animate-in bounce-in duration-1000 hidden md:block" />
+                            <div className="absolute inset-0 bg-blue-500/5 blur-xl rounded-full"></div>
+                        </div>
+                        <div>
+                            <button
+                                onClick={() => navigate('/dashboard')}
+                                className="group flex items-center gap-2 text-slate-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-[0.3em] mb-3"
+                            >
+                                <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> Return to Dashboard
+                            </button>
+                            <h1 className="text-3xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
+                                Personnel <span className="text-blue-500">Roster</span>
+                            </h1>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">Squad Entity Configuration & Contracts</p>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => navigate('/lineup')}
+                        className="group flex items-center gap-4 px-8 py-4 rounded-3xl bg-slate-900/50 backdrop-blur-xl border border-white/5 text-slate-400 hover:text-white transition-all shadow-2xl hover:border-blue-500/30 w-full md:w-auto justify-between md:justify-start"
+                    >
+                        <div className="flex flex-col text-right">
+                            <span className="text-[8px] font-black uppercase tracking-[0.3em]">Tactical Hub</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">Manage Lineup</span>
+                        </div>
+                        <div className="p-2 bg-slate-800 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg"><LayoutDashboard size={20} /></div>
+                    </button>
+                </div>
+
+                {/* Budget Section */}
+                <div className="mb-8 md:mb-16 animate-in fade-in slide-in-from-top-6 duration-700">
+                    {finance && <BudgetOverview finance={finance} />}
+                </div>
+
+                {/* Roster Container */}
+                <div className="relative">
+                    <div className="absolute -top-10 left-4 md:left-8 px-6 py-2 bg-slate-950 border border-slate-800 rounded-t-2xl border-b-0 inline-flex items-center gap-3 z-20">
+                        <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Unit Roster</span>
+                    </div>
+
+                    <div className="bg-slate-900/40 backdrop-blur-3xl rounded-[2rem] md:rounded-[3rem] border border-white/5 overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-blue-400 to-transparent opacity-50"></div>
+
+                        <div className="px-6 py-6 md:px-10 md:py-8 border-b border-white/5 bg-slate-950/40 flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-blue-600/10 rounded-2xl border border-blue-500/20 text-blue-500"><Users size={24} /></div>
+                                <h3 className="font-black text-white uppercase tracking-tighter text-2xl italic leading-none">Squad Intelligence</h3>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="h-8 w-px bg-slate-800"></div>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-xl font-black text-white italic tabular-nums leading-none">{players.length} <span className="text-[10px] text-slate-700">/ 15</span></span>
+                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">Personnel Count</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {
+                            players.length === 0 ? (
+                                <div className="text-center py-48 bg-slate-950/20">
+                                    <div className="mb-8 p-6 bg-slate-900 rounded-full w-fit mx-auto border border-slate-800 opacity-20"><Shirt size={64} className="text-slate-500" /></div>
+                                    <h4 className="text-2xl font-black text-slate-700 uppercase italic tracking-tighter">Franchise Zero</h4>
+                                    <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.4em] mt-2">Initial squad reconnaissance required. Explore open market.</p>
+                                </div>
+                            ) : (
+                                <div className="p-8 pb-12">
+                                    {/* Desktop View */}
+                                    <div className="hidden lg:block">
+                                        <RosterTable
+                                            players={players}
+                                            onRelease={handleReleaseClick}
+                                            onOpenStats={openStats}
+                                        />
+                                    </div>
+
+                                    {/* Mobile View */}
+                                    <div className="lg:hidden flex flex-col gap-6">
+                                        {players.map((p: any) => (
+                                            <PlayerCard
+                                                key={p.id}
+                                                player={p}
+                                                onRelease={handleReleaseClick}
+                                                onOpenStats={openStats}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        }
+                    </div>
+                </div>
+
+                {/* Footer Info */}
+                <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-8 px-10 opacity-30 group">
+                    <div className="flex items-center gap-4">
+                        <Activity size={18} className="text-blue-500" />
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Personnel Matrix Real-time Synchronization Operational</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Sparkles size={14} className="group-hover:text-blue-500 transition-colors" />
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Syndicate HQ Approved</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
