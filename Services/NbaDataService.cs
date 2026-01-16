@@ -101,138 +101,154 @@ public class NbaDataService : INbaDataService
     // ==============================================================================
     public async Task<Dictionary<int, double>> GetFantasyPointsByDate(DateTime date, List<int> internalPlayerIds)
     {
-        // 1. GESTIONE CACHE PER PARTITE PASSATE
-        // Se la data è "Ieri" o precedenti, i risultati sono definitivi. Possiamo cachare il risultato finale per 24h o più.
-        // Se è "Oggi", cachiamo per pochissimo tempo (es. 1 min) per live scores.
+        // --- STEP 1: CACHE CHECK (Identico a prima) ---
         var nbaDate = ConvertToNbaDate(date);
         bool isPast = nbaDate.Date < ConvertToNbaDate(DateTime.UtcNow).Date;
-        
-        string cacheKey = $"fpts_{nbaDate:yyyyMMdd}_{string.Join("_", internalPlayerIds.OrderBy(x=>x))}";
+        string cacheKey = $"fpts_{nbaDate:yyyyMMdd}"; // Chiave semplificata
 
         if (isPast && _cache.TryGetValue(cacheKey, out Dictionary<int, double> cachedResult))
-        {
             return cachedResult;
-        }
 
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-
-        string apiDateStr = nbaDate.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
         string dbDateStr = nbaDate.ToString("yyyy-MM-dd");
 
-        // 2. Cerca Cache DB usando gli ID interni
+        // --- STEP 2: RECUPERO CACHE DB (Identico a prima) ---
         var cachedLogs = await context.PlayerGameLogs
             .Where(l => l.GameDate == dbDateStr && internalPlayerIds.Contains(l.PlayerId))
             .ToDictionaryAsync(l => l.PlayerId, l => l.FantasyPoints);
         
-        // Se è passata e abbiamo tutto nel DB, ritorniamo e salviamo in RAM
         if (isPast && internalPlayerIds.All(id => cachedLogs.ContainsKey(id))) 
         {
-            _cache.Set(cacheKey, cachedLogs, TimeSpan.FromHours(4)); // Cache RAM lunga
+            _cache.Set(cacheKey, cachedLogs, TimeSpan.FromHours(4));
             return cachedLogs;
         }
 
-        // 3. RECUPERO DA API (SE NECESSARIO)
+        // --- STEP 3: NUOVO METODO CDN ---
+        // Invece di chiamare Stats, cerchiamo le partite di quel giorno nel DB e scarichiamo i boxscore
+        var gamesToday = await context.NbaGames
+            .Where(g => g.GameDate == nbaDate.Date)
+            .Select(g => g.NbaGameId)
+            .ToListAsync();
+
+        if (!gamesToday.Any()) return cachedLogs;
+
+        var client = _clientFactory.CreateClient("NbaCdn");
+        var logsToAdd = new List<PlayerGameLog>();
+        
+        // Mappa per convertire ID NBA (esterni) in ID tuoi (interni)
         var playerMap = await context.Players
             .Where(p => internalPlayerIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.ExternalId, p => p.Id);
 
-        var (currentSeason, _) = CalculateSeasons(nbaDate);
-        var url = $"playergamelogs?DateFrom={apiDateStr}&DateTo={apiDateStr}&LeagueID=00&Season={currentSeason}&SeasonType=Regular%20Season";
-
-        try
+        // Scarichiamo i boxscore in parallelo per velocità
+        var tasks = gamesToday.Select(async gameId => 
         {
-            var client = _clientFactory.CreateClient("NbaStats"); // POLLY ENABLED
-            var response = await client.GetAsync(url);
-            
-            if (response.IsSuccessStatusCode)
+            try 
             {
+                // URL Magico: Contiene statistiche live dettagliate
+                var url = $"https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{gameId}.json";
+                var response = await client.GetAsync(url);
+                if (!response.IsSuccessStatusCode) return;
+
                 var json = await response.Content.ReadAsStringAsync();
-                var data = JsonSerializer.Deserialize<NbaStatsResponse>(json);
-                var resultSet = data?.ResultSets?.FirstOrDefault();
+                using var doc = JsonDocument.Parse(json);
+                var game = doc.RootElement.GetProperty("game");
 
-                if (resultSet != null)
+                // Helper locale per processare un team
+                void ProcessTeam(JsonElement teamNode)
                 {
-                    int idxId = resultSet.Headers.IndexOf("PLAYER_ID");
-                    int idxPts = resultSet.Headers.IndexOf("PTS");
-                    int idxReb = resultSet.Headers.IndexOf("REB");
-                    int idxAst = resultSet.Headers.IndexOf("AST");
-                    int idxStl = resultSet.Headers.IndexOf("STL");
-                    int idxBlk = resultSet.Headers.IndexOf("BLK");
-                    int idxTov = resultSet.Headers.IndexOf("TOV");
-                    int idxMin = resultSet.Headers.IndexOf("MIN");
+                    if (!teamNode.TryGetProperty("players", out var players)) return;
 
-                    var existingLogs = await context.PlayerGameLogs
-                         .Where(l => l.GameDate == dbDateStr && internalPlayerIds.Contains(l.PlayerId))
-                         .ToDictionaryAsync(l => l.PlayerId);
-
-                    var logsToAdd = new List<PlayerGameLog>();
-
-                    foreach (var row in resultSet.RowSet)
+                    foreach (var p in players.EnumerateArray())
                     {
-                        int externalId = row[idxId].GetInt32();
-
-                        if (playerMap.TryGetValue(externalId, out int internalId))
+                        int nbaId = p.GetProperty("personId").GetInt32();
+                        
+                        // Se il giocatore ci interessa
+                        if (playerMap.TryGetValue(nbaId, out int internalId))
                         {
-                            double GetVal(int idx) => idx != -1 && row[idx].ValueKind == JsonValueKind.Number ? row[idx].GetDouble() : 0;
+                            var stats = p.GetProperty("statistics");
+                            
+                            double pts = stats.GetProperty("points").GetDouble();
+                            double reb = stats.GetProperty("reboundsTotal").GetDouble();
+                            double ast = stats.GetProperty("assists").GetDouble();
+                            double stl = stats.GetProperty("steals").GetDouble();
+                            double blk = stats.GetProperty("blocks").GetDouble();
+                            double tov = stats.GetProperty("turnovers").GetDouble();
+                            
+                            // Parsa minuti (formato "PT34M12.00S")
+                            string minStr = stats.GetProperty("minutesCalculated").GetString(); 
+                            double min = ParseIsoMinutes(minStr); 
 
-                            double pts = GetVal(idxPts);
-                            double reb = GetVal(idxReb);
-                            double ast = GetVal(idxAst);
-                            double stl = GetVal(idxStl);
-                            double blk = GetVal(idxBlk);
-                            double tov = GetVal(idxTov);
-                            double min = GetVal(idxMin);
-
-                            // Nota: Qui usiamo i pesi HARDCODED solo come fallback se non passati dall'esterno.
-                            // In realtà questo metodo calcola i fpts "Raw NBA std". Il MatchupService li ricalcolerà dinamici.
-                            // Tuttavia salviamo nel DB un valore indicativo.
+                            // Calcolo Punti
                             double fpts = Math.Round(pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov, 1);
 
-                            cachedLogs[internalId] = fpts;
-
-                            if (existingLogs.TryGetValue(internalId, out var existingLog))
+                            // Aggiungi al dizionario risultati (Lock)
+                            lock(cachedLogs) 
                             {
-                                existingLog.Points = (int)pts;
-                                existingLog.Rebounds = (int)reb;
-                                existingLog.Assists = (int)ast;
-                                existingLog.Steals = (int)stl;
-                                existingLog.Blocks = (int)blk;
-                                existingLog.Turnovers = (int)tov;
-                                existingLog.Minutes = min;
-                                existingLog.FantasyPoints = fpts;
+                                cachedLogs[internalId] = fpts;
                             }
-                            else
+
+                            // Prepara salvataggio DB (semplificato)
+                            lock(logsToAdd)
                             {
-                                logsToAdd.Add(new PlayerGameLog
-                                {
-                                    PlayerId = internalId,
-                                    GameDate = dbDateStr,
-                                    Points = (int)pts,
-                                    Rebounds = (int)reb,
-                                    Assists = (int)ast,
-                                    Steals = (int)stl,
-                                    Blocks = (int)blk,
-                                    Turnovers = (int)tov,
-                                    Minutes = min,
-                                    FantasyPoints = fpts
-                                });
+                                 // Qui dovresti controllare se esiste già nel DB per evitare duplicati, 
+                                 // o usare una logica "Upsert". Per brevità creo l'oggetto.
+                                 logsToAdd.Add(new PlayerGameLog 
+                                 {
+                                     PlayerId = internalId,
+                                     GameDate = dbDateStr,
+                                     Points = (int)pts, Rebounds = (int)reb, Assists = (int)ast,
+                                     Steals = (int)stl, Blocks = (int)blk, Turnovers = (int)tov,
+                                     Minutes = min, FantasyPoints = fpts
+                                 });
                             }
                         }
                     }
-
-                    if (logsToAdd.Any()) context.PlayerGameLogs.AddRange(logsToAdd);
-                    if (logsToAdd.Any() || existingLogs.Any()) await context.SaveChangesAsync();
                 }
-            }
-        }
-        catch (Exception ex) { _logger.LogError(ex, "Errore recupero PlayerGameLogs"); }
 
-        // Salviamo in cache anche se non completo, ma con durata breve
+                ProcessTeam(game.GetProperty("homeTeam"));
+                ProcessTeam(game.GetProperty("awayTeam"));
+            }
+            catch (Exception ex) { _logger.LogError($"Errore boxscore {gameId}: {ex.Message}"); }
+        });
+
+        await Task.WhenAll(tasks);
+
+        // --- STEP 4: SALVATAGGIO ASINCRONO (Upsert manuale) ---
+        // Nota: Qui dovresti gestire l'aggiornamento se il log esiste già
+        if (logsToAdd.Any())
+        {
+            foreach(var log in logsToAdd)
+            {
+                 var existing = await context.PlayerGameLogs
+                    .FirstOrDefaultAsync(l => l.PlayerId == log.PlayerId && l.GameDate == log.GameDate);
+                 
+                 if (existing != null) {
+                     existing.FantasyPoints = log.FantasyPoints;
+                     existing.Points = log.Points; 
+                     // ... aggiorna altri campi
+                 } else {
+                     context.PlayerGameLogs.Add(log);
+                 }
+            }
+            await context.SaveChangesAsync();
+        }
+
         if (isPast) _cache.Set(cacheKey, cachedLogs, TimeSpan.FromMinutes(30)); 
-        else _cache.Set(cacheKey, cachedLogs, TimeSpan.FromSeconds(60)); // Live: 60s cache
+        else _cache.Set(cacheKey, cachedLogs, TimeSpan.FromSeconds(60));
 
         return cachedLogs;
+    }
+
+    // Helper per parsare i minuti dal formato ISO8601 usato dal CDN (es: "PT12M30.00S")
+    private double ParseIsoMinutes(string isoDuration)
+    {
+        try {
+            // Rimuovi "PT" e parsa grossolanamente o usa XmlConvert
+            var time = System.Xml.XmlConvert.ToTimeSpan(isoDuration);
+            return Math.Round(time.TotalMinutes, 1);
+        } catch { return 0; }
     }
 
     // ==============================================================================

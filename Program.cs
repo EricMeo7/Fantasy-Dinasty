@@ -154,9 +154,19 @@ builder.Services.AddHttpClient("NbaStats", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain, */*");
     client.DefaultRequestHeaders.Add("Referer", "https://www.nba.com/");
     client.DefaultRequestHeaders.Add("Origin", "https://www.nba.com");
-    client.DefaultRequestHeaders.Add("Connection", "keep-alive");
+    // client.DefaultRequestHeaders.Add("Connection", "keep-alive"); // HttpClient gestisce questo automaticamente in 2.0
     client.DefaultRequestHeaders.Add("x-nba-stats-origin", "stats");
     client.DefaultRequestHeaders.Add("x-nba-stats-token", "true");
+    
+    // Browser mimic headers
+    client.DefaultRequestHeaders.Add("Sec-Ch-Ua", "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"142\", \"Chromium\";v=\"142\"");
+    client.DefaultRequestHeaders.Add("Sec-Ch-Ua-Mobile", "?0");
+    client.DefaultRequestHeaders.Add("Sec-Ch-Ua-Platform", "\"Windows\"");
+    client.DefaultRequestHeaders.Add("Sec-Fetch-Dest", "empty");
+    client.DefaultRequestHeaders.Add("Sec-Fetch-Mode", "cors");
+    client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "same-site");
+
+    client.DefaultRequestVersion = System.Net.HttpVersion.Version20;
 })
 .ConfigurePrimaryHttpMessageHandler(() => 
 {
@@ -164,7 +174,8 @@ builder.Services.AddHttpClient("NbaStats", client =>
     {
         AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate
     };
-    
+
+   
     // SECURITY FIX: Solo in sviluppo permettiamo certificati non validi (es. self-signed limitati)
     if (builder.Environment.IsDevelopment())
     {
