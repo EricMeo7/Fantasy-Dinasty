@@ -493,7 +493,18 @@ export const en = {
             "already_part": "Already part of the dynasty?",
             "new_to_competition": "New to the competition?",
             "create_account": "CREATE ACCOUNT",
-            "footer_copyright": "© 2025 Fantasy Basketball Syndicate"
+            "footer_copyright": "© 2025 Fantasy Basketball Syndicate",
+            "features_title": "The Ultimate Dynasty Experience",
+            "feature_1_title": "Real Salary Cap",
+            "feature_1_desc": "Manage a complex economy with multi-year contracts, dead money, and luxury tax.",
+            "feature_2_title": "Live Auction",
+            "feature_2_desc": "Build your roster in real-time against other GMs in a heart-pounding auction.",
+            "feature_3_title": "Weekly Matchups",
+            "feature_3_desc": "Challenge your opponents in head-to-head matchups based on real NBA stats.",
+            "how_it_works": "How It Works",
+            "step_1": "Create Account",
+            "step_2": "Join League",
+            "step_3": "Build Dynasty"
         },
         "navbar": {
             "dashboard": "Dashboard",

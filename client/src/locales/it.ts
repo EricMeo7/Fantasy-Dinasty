@@ -511,7 +511,18 @@ export const it = {
             "already_part": "Fai già parte della dinastia?",
             "new_to_competition": "Nuovo nella competizione?",
             "create_account": "CREA ACCOUNT",
-            "footer_copyright": "© 2025 Fantasy Basketball Syndicate"
+            "footer_copyright": "© 2025 Fantasy Basketball Syndicate",
+            "features_title": "L'Esperienza Dynasty Definitiva",
+            "feature_1_title": "Salary Cap Reale",
+            "feature_1_desc": "Gestisci un'economia complessa con contratti pluriennali, dead money e luxury tax.",
+            "feature_2_title": "Asta Live",
+            "feature_2_desc": "Costruisci il tuo roster in tempo reale contro altri GM in un'asta al cardiopalma.",
+            "feature_3_title": "Matchup Settimanali",
+            "feature_3_desc": "Sfida i tuoi avversari in scontri testa a testa basati sulle statistiche reali NBA.",
+            "how_it_works": "Come Funziona",
+            "step_1": "Crea Account",
+            "step_2": "Unisciti alla Lega",
+            "step_3": "Costruisci la Dinastia"
         },
         "navbar": {
             "dashboard": "Dashboard",

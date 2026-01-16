@@ -1,26 +1,35 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
-import Login from './pages/Login';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Dashboard from './pages/Dashboard';
-import SetupProfile from './pages/SetupProfile';
-import Market from './pages/Market';
-import Roster from './pages/Roster';
-import League from './pages/League';
-import LeagueSelection from './pages/LeagueSelection';
-import Matches from './pages/Matches';
-import LiveDraft from './pages/LiveDraft';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import LeagueRosters from './pages/LeagueRosters';
-import Trades from './pages/Trades';
-import Matchup from './pages/Matchup';
-import Commissioner from './pages/Commissioner';
-import Rules from './pages/Rules';
+import { Loader2 } from 'lucide-react';
+
+// Lazy Load Pages for Performance (Code Splitting)
+const Login = lazy(() => import('./pages/Login'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const SetupProfile = lazy(() => import('./pages/SetupProfile'));
+const Market = lazy(() => import('./pages/Market'));
+const Roster = lazy(() => import('./pages/Roster'));
+const League = lazy(() => import('./pages/League'));
+const LeagueSelection = lazy(() => import('./pages/LeagueSelection'));
+const Matches = lazy(() => import('./pages/Matches'));
+const LiveDraft = lazy(() => import('./pages/LiveDraft'));
+const LeagueRosters = lazy(() => import('./pages/LeagueRosters'));
+const Trades = lazy(() => import('./pages/Trades'));
+const Matchup = lazy(() => import('./pages/Matchup'));
+const Commissioner = lazy(() => import('./pages/Commissioner'));
+const Rules = lazy(() => import('./pages/Rules'));
+
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-slate-900">
+    <Loader2 className="animate-spin text-blue-500" size={48} />
+  </div>
+);
 
 
 // Componente Wrapper per gestire la logica della Navbar
@@ -74,35 +83,37 @@ function AppContent() {
       {!shouldHideNavbar && <Navbar />}
 
       <div className={!shouldHideNavbar ? "pt-0 pb-20" : "pb-12"}>
-        <Routes>
-          {/* Rotte Pubbliche o di Accesso */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            {/* Rotte Pubbliche o di Accesso */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Pagina di Selezione Lega (Rimuove la Navbar per forzare la scelta) */}
-          <Route path="/leagues" element={<LeagueSelection />} />
+            {/* Pagina di Selezione Lega (Rimuove la Navbar per forzare la scelta) */}
+            <Route path="/leagues" element={<LeagueSelection />} />
 
-          {/* Setup Profilo */}
-          <Route path="/setup-profile" element={<SetupProfile />} />
+            {/* Setup Profilo */}
+            <Route path="/setup-profile" element={<SetupProfile />} />
 
-          {/* Rotte di Gioco (Richiedono League ID selezionato) */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/market" element={<Market />} />
-          <Route path="/roster" element={<Roster />} />
-          <Route path="/lineup" element={<Navigate to="/matchup" replace />} />
-          <Route path="/league" element={<League />} />
-          <Route path="/matches" element={<Matches />} />
-          <Route path="/matchup" element={<Matchup />} />
-          <Route path="/matchup/:matchId" element={<Matchup />} />
-          <Route path="/live-draft" element={<LiveDraft />} />
-          <Route path="/league-rosters" element={<LeagueRosters />} />
-          <Route path="/trades" element={<Trades />} />
-          <Route path="/commissioner" element={<Commissioner />} />
-          <Route path="/rules" element={<Rules />} />
-          {/* Redirect di default */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-        </Routes>
+            {/* Rotte di Gioco (Richiedono League ID selezionato) */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/market" element={<Market />} />
+            <Route path="/roster" element={<Roster />} />
+            <Route path="/lineup" element={<Navigate to="/matchup" replace />} />
+            <Route path="/league" element={<League />} />
+            <Route path="/matches" element={<Matches />} />
+            <Route path="/matchup" element={<Matchup />} />
+            <Route path="/matchup/:matchId" element={<Matchup />} />
+            <Route path="/live-draft" element={<LiveDraft />} />
+            <Route path="/league-rosters" element={<LeagueRosters />} />
+            <Route path="/trades" element={<Trades />} />
+            <Route path="/commissioner" element={<Commissioner />} />
+            <Route path="/rules" element={<Rules />} />
+            {/* Redirect di default */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Suspense>
       </div>
       <Footer />
     </div>
