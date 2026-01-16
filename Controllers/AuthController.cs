@@ -18,13 +18,15 @@ public class AuthController : ControllerBase
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IConfiguration _configuration;
     private readonly FantasyBasket.API.Interfaces.IEmailService _emailService;
+    private readonly IWebHostEnvironment _env;
 
-    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, FantasyBasket.API.Interfaces.IEmailService emailService)
+    public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, FantasyBasket.API.Interfaces.IEmailService emailService, IWebHostEnvironment env)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _configuration = configuration;
         _emailService = emailService;
+        _env = env;
     }
 
     // POST: api/auth/register
@@ -233,11 +235,15 @@ public class AuthController : ControllerBase
                 return StatusCode(500, new { message = "Servizio di reset password non disponibile (Firebase Admin non configurato)." });
             }
 
+            var baseUrl = _env.IsDevelopment() 
+                ? "http://localhost:5173" 
+                : "https://fantasy-dinasty.pages.dev";
+
             // Configurazione Link: Dove mandiamo l'utente dopo il click?
             // "url": Indirizzo della tua App React che gestirà il codice (es. /reset-password)
             var actionCodeSettings = new FirebaseAdmin.Auth.ActionCodeSettings()
             {
-                Url = "http://localhost:5173/reset-password", // TODO: Prendi da appsettings per Prod
+                Url = $"{baseUrl}/reset-password",
                 HandleCodeInApp = true
             };
 
@@ -251,8 +257,7 @@ public class AuthController : ControllerBase
             var oobCode = query["oobCode"];
 
             // Costruiamo il link diretto alla nostra app React
-            // TODO: In produzione usare l'URL configurato in appsettings
-            var customLink = $"http://localhost:5173/reset-password?oobCode={oobCode}";
+            var customLink = $"{baseUrl}/reset-password?oobCode={oobCode}";
 
             // Invia l'email con il link custom
             await _emailService.SendPasswordResetEmailAsync(model.Email, customLink);

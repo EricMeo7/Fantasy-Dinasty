@@ -100,7 +100,8 @@ builder.Services.AddCors(options =>
                 "http://localhost",
                 "https://localhost",
                 "http://192.168.1.61:5173",
-                "http://192.168.1.61:5249"
+                "http://192.168.1.61:5249",
+                "https://fantasy-dinasty.pages.dev"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
