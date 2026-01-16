@@ -2,12 +2,12 @@
 import { useState } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-// import { useAuth } from '../context/AuthContext';
 import { Loader2, Sparkles, ShieldCheck, Mail, Lock, ArrowRight } from 'lucide-react';
 import SEO from '../components/SEO/SEO';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -111,6 +111,11 @@ export default function Login() {
         structuredData={structuredData}
       />
       <main className="min-h-screen bg-slate-950 flex flex-col items-center relative overflow-hidden font-sans text-slate-200 selection:bg-emerald-500/30">
+
+        {/* Language Switcher */}
+        <div className="absolute top-6 right-6 z-50">
+          <LanguageSwitcher />
+        </div>
 
         {/* Background Gradients */}
         <div className="fixed inset-0 pointer-events-none">

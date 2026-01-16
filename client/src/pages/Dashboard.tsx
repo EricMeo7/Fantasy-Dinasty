@@ -14,6 +14,7 @@ import { useMyRoster } from '../features/roster/api/useMyRoster';
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
 import LineupTimer from '../components/LineupTimer';
+import SEO from '../components/SEO/SEO';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -49,6 +50,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 relative overflow-hidden">
+      <SEO title="Dashboard" description="Gestisci la tua squadra, visualizza le partite e il mercato." />
 
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">

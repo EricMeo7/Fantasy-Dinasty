@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { Mail, ArrowRight, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
+import SEO from '../components/SEO/SEO';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
@@ -34,6 +35,7 @@ const ForgotPassword = () => {
 
     return (
         <div className="flex min-h-screen items-center justify-center p-6 pt-[calc(1.5rem+var(--sat))] md:p-6 bg-slate-950 relative overflow-hidden font-sans">
+            <SEO title="Recupero Password" description="Recupera la tua password di accesso." />
             {/* Background decoration */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px]"></div>

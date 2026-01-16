@@ -11,6 +11,7 @@ import { PlayerCard } from '../features/roster/components/PlayerCard';
 import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModal';
 import ReleaseModal from '../components/ReleaseModal';
 import { useTranslation } from 'react-i18next';
+import SEO from '../components/SEO/SEO';
 
 export default function Roster() {
     const { t } = useTranslation();
@@ -67,6 +68,7 @@ export default function Roster() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-4 md:p-12 text-slate-100 font-sans pb-32 relative overflow-hidden">
+            <SEO title="Roster" description="Gestisci i giocatori e i contratti del team." />
 
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">

@@ -5,6 +5,7 @@ import { useAllRosters } from '../features/league/api/useAllRosters';
 import { useMyTrades } from '../features/trades/api/useMyTrades';
 import { TradeCard } from '../features/trades/components/TradeCard';
 import { TradeBuilder } from '../features/trades/components/TradeBuilder';
+import SEO from '../components/SEO/SEO';
 
 export default function Trades() {
     const [activeTab, setActiveTab] = useState<'build' | 'pending'>('build');
@@ -25,6 +26,7 @@ export default function Trades() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-6 md:p-12 text-slate-100 font-sans relative overflow-hidden">
+            <SEO title="Scambi" description="Negozia scambi di giocatori." />
 
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">

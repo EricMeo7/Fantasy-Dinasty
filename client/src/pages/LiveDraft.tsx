@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Gavel, User, Mic, PlayCircle, Loader2, DollarSign, Users, ChevronDown, Lock, Shield, Wifi, Timer, Activity, TrendingUp, Search } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { useTranslation } from 'react-i18next';
+import SEO from '../components/SEO/SEO';
 
 const HUB_URL = `${CONFIG.HUB_BASE_URL}/drafthub`;
 
@@ -169,6 +170,7 @@ export default function LiveDraft() {
     // LOBBY VIEW
     if (!draftState.isActive) return (
         <div className="min-h-screen bg-slate-950 text-white p-6 relative flex flex-col items-center justify-center">
+            <SEO title="Draft Lobby" description="Sala d'attesa per l'asta live." />
             {/* Header / Stats Overlay */}
             <div className="absolute top-8 left-8 flex items-center gap-4">
                 <div className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-blue-500">
@@ -242,6 +244,7 @@ export default function LiveDraft() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-4 flex flex-col h-screen overflow-hidden font-sans">
+            <SEO title="Asta Live" description="Partecipa all'asta in tempo reale." />
 
             {/* NEW PREMIUM HEADER */}
             <header className="flex justify-between items-center px-6 py-4 bg-slate-900 border border-white/5 shrink-0 rounded-[2rem] shadow-2xl mb-4 relative z-50">

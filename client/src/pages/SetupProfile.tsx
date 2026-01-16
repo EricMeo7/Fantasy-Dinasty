@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { User, Shield, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { useTranslation } from 'react-i18next';
+import SEO from '../components/SEO/SEO';
 
 export default function SetupProfile() {
   const { t } = useTranslation();
@@ -38,6 +39,7 @@ export default function SetupProfile() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6 relative overflow-hidden font-sans">
+      <SEO title="Setup Profilo" description="Configura il tuo profilo allenatore." />
 
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">

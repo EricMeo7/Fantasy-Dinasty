@@ -4,6 +4,7 @@ import { Shield, ArrowRight, Loader2, Globe, Sparkles, User, BadgeDollarSign, Ac
 import { useModal } from '../context/ModalContext';
 import { useAllRosters } from '../features/league/api/useAllRosters';
 import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModal';
+import SEO from '../components/SEO/SEO';
 
 export default function LeagueRosters() {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ export default function LeagueRosters() {
 
   return (
     <div className="min-h-screen bg-slate-950 p-4 md:p-12 text-slate-100 font-sans relative overflow-hidden">
+      <SEO title="Roster Lega" description="Esplora i roster di tutte le squadre della lega." />
 
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">

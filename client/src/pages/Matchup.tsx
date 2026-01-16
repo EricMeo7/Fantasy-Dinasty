@@ -11,6 +11,7 @@ import GameStatsModal from '../components/GameStatsModal';
 import { useTranslation } from 'react-i18next';
 import { CONFIG } from '../config';
 import api from '../services/api';
+import SEO from '../components/SEO/SEO';
 
 // Features / API
 import { useMatchDetails } from '../features/league/api/useMatchDetails';
@@ -328,6 +329,7 @@ export default function Matchup() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-4 font-sans pb-20">
+            <SEO title="Partita" description="Gestisci formazioni e punteggi live." />
             <div className="max-w-4xl mx-auto">
                 <GameStatsModal player={statsPlayer} isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
                 <WeeklyRecapModal

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useMyLeagues, type LeagueListMember } from '../features/league/api/useMyLeagues';
 import { useCreateLeague } from '../features/league/api/useCreateLeague';
 import { useJoinLeague } from '../features/league/api/useJoinLeague';
+import SEO from '../components/SEO/SEO';
 
 export default function LeagueSelection() {
   const { t } = useTranslation();
@@ -69,7 +70,7 @@ export default function LeagueSelection() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6 pt-[calc(1.5rem+var(--sat))] md:p-12 md:pt-12 flex flex-col items-center justify-center relative overflow-hidden">
-
+      <SEO title="Selezione Lega" description="Seleziona o crea la tua lega fanatsy." />
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]"></div>

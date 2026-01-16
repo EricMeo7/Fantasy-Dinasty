@@ -7,6 +7,7 @@ import { useActiveAuctions } from '../features/market/api/useActiveAuctions';
 import { FreeAgentCard } from '../features/market/components/FreeAgentCard';
 import PlayerStatsModal from '../components/PlayerStatsModal';
 import BidModal from '../components/BidModal';
+import SEO from '../components/SEO/SEO';
 
 
 export default function Market() {
@@ -106,6 +107,7 @@ export default function Market() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-4 md:p-6 text-slate-100 font-sans pb-24">
+            <SEO title="Mercato" description="Cerca free agent e partecipa alle aste." />
 
             <PlayerStatsModal player={selectedDetailsPlayer} isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
             <BidModal
