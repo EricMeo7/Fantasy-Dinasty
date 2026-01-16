@@ -148,8 +148,9 @@ builder.Services.AddHttpClient("NbaStats", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(120);
     client.BaseAddress = new Uri("https://stats.nba.com/stats/");
-    client.DefaultRequestHeaders.Add("Host", "stats.nba.com");
+    // client.DefaultRequestHeaders.Add("Host", "stats.nba.com"); // Rimuoviamo Host manuale per evitare conflitti SNI
     client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36");
+    client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
     client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain, */*");
     client.DefaultRequestHeaders.Add("Referer", "https://www.nba.com/");
     client.DefaultRequestHeaders.Add("Origin", "https://www.nba.com");
