@@ -7,6 +7,7 @@ import { Gavel, User, Mic, PlayCircle, Loader2, DollarSign, Users, ChevronDown, 
 import { useModal } from '../context/ModalContext';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO/SEO';
+import { PremiumSelect } from '../components/PremiumSelect';
 
 const HUB_URL = `${CONFIG.HUB_BASE_URL}/drafthub`;
 
@@ -265,56 +266,60 @@ export default function LiveDraft() {
         return { ...p, basePrice, isAffordable };
     });
 
+    const isMobile = window.innerWidth < 768; // Simple check for conditional rendering if needed, though CSS is preferred
+
     return (
         <div className="min-h-screen bg-slate-950 text-white p-4 flex flex-col h-screen overflow-hidden font-sans">
             <SEO title="Asta Live" description="Partecipa all'asta in tempo reale." />
 
             {/* NEW PREMIUM HEADER */}
-            <header className="flex justify-between items-center px-4 md:px-6 py-4 bg-slate-900 border border-white/5 shrink-0 rounded-[2rem] shadow-2xl mb-4 relative z-50">
-                <div className="flex items-center gap-4">
+            <header className="flex flex-col md:flex-row justify-between items-center px-4 md:px-6 py-4 bg-slate-900 border border-white/5 shrink-0 rounded-[2rem] shadow-2xl mb-2 md:mb-4 relative z-50 gap-4 md:gap-0">
+                <div className="flex items-center gap-4 w-full md:w-auto justify-center md:justify-start">
                     <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 text-emerald-400">
                         <TrendingUp size={24} />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-black tracking-tighter uppercase italic leading-none">Live <span className="text-emerald-500">Auction</span></h1>
-                        <div className="flex items-center gap-2 mt-1">
+                        <h1 className="text-xl md:text-2xl font-black tracking-tighter uppercase italic leading-none">{t('draft.live_auction')}</h1>
+                        <div className="flex items-center gap-2 mt-1 justify-center md:justify-start">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">Global Sync Active</span>
+                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-none">{t('draft.global_sync')}</span>
                         </div>
                     </div>
                 </div>
 
-                {isAdmin && (
-                    <button
-                        onClick={() => setShowAdminPanel(!showAdminPanel)}
-                        className={`bg-slate-800 hover:bg-slate-700 text-[10px] font-black uppercase tracking-widest text-slate-300 px-6 py-2 rounded-full border border-slate-700 flex items-center gap-2 transition-all ${showAdminPanel ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/20 bg-slate-900' : ''}`}
-                    >
-                        <Shield size={14} className="text-blue-400" /> Commissioner Zone
-                    </button>
-                )}
+                <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end flex-wrap">
+                    {isAdmin && (
+                        <button
+                            onClick={() => setShowAdminPanel(!showAdminPanel)}
+                            className={`bg-slate-800 hover:bg-slate-700 text-[10px] font-black uppercase tracking-widest text-slate-300 px-4 py-2 rounded-full border border-slate-700 flex items-center gap-2 transition-all shrink-0 ${showAdminPanel ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/20 bg-slate-900' : ''}`}
+                        >
+                            <Shield size={14} className="text-blue-400" /> {t('draft.commissioner_zone')}
+                        </button>
+                    )}
 
-                {myTeam && (
-                    <div className="flex gap-4">
-                        <div className="bg-slate-950 border border-slate-800 px-5 py-2.5 rounded-2xl flex items-center gap-3 group shadow-inner">
-                            <div className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400">
-                                <DollarSign size={16} />
+                    {myTeam && (
+                        <div className="flex gap-2 md:gap-4 shrink-0">
+                            <div className="bg-slate-950 border border-slate-800 px-3 md:px-5 py-2.5 rounded-2xl flex items-center gap-3 group shadow-inner">
+                                <div className="p-1.5 bg-emerald-500/10 rounded-lg text-emerald-400 hidden md:block">
+                                    <DollarSign size={16} />
+                                </div>
+                                <div className="text-center md:text-right">
+                                    <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1">{t('draft.rem_budget')}</p>
+                                    <p className="text-sm md:text-lg font-black font-mono italic text-white leading-none">{myTeam.remainingBudget.toFixed(1)} M</p>
+                                </div>
                             </div>
-                            <div className="text-right">
-                                <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Rem. Budget</p>
-                                <p className="text-lg font-black font-mono italic text-white leading-none">{myTeam.remainingBudget.toFixed(1)} M</p>
+                            <div className="bg-slate-950 border border-slate-800 px-3 md:px-5 py-2.5 rounded-2xl flex items-center gap-3 shadow-inner">
+                                <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400 hidden md:block">
+                                    <Users size={16} />
+                                </div>
+                                <div className="text-center md:text-right">
+                                    <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1">{t('draft.roster_size')}</p>
+                                    <p className="text-sm md:text-lg font-black italic text-white leading-none">{myTeam.rosterCount} <span className="text-xs">/ 12</span></p>
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-slate-950 border border-slate-800 px-5 py-2.5 rounded-2xl flex items-center gap-3 shadow-inner">
-                            <div className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400">
-                                <Users size={16} />
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Roster Size</p>
-                                <p className="text-lg font-black italic text-white leading-none">{myTeam.rosterCount} <span className="text-xs">/ 12</span></p>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </header>
 
             {showAdminPanel && isAdmin && (
@@ -448,23 +453,23 @@ export default function LiveDraft() {
                             </div>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-500 max-w-4xl relative z-10">
-                                <div className="text-center mb-10">
-                                    <span className="bg-blue-500/10 text-blue-500 border border-blue-500/20 px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-4">
+                                <div className="text-center mb-4 shrink-0">
+                                    <span className="bg-blue-500/10 text-blue-500 border border-blue-500/20 px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-2">
                                         <Timer size={14} /> Turn Transition
                                     </span>
-                                    <h2 className={`text-5xl md:text-6xl font-black uppercase italic tracking-tighter leading-none ${isMyTurn ? 'text-white' : 'text-slate-600'}`}>
-                                        {isMyTurn ? 'Nomination Phase' : 'Waiting for Scout'}
+                                    <h2 className={`text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none ${isMyTurn ? 'text-white' : 'text-slate-600'}`}>
+                                        {isMyTurn ? t('draft.nomination_phase') : t('draft.waiting_scout')}
                                     </h2>
                                 </div>
 
                                 {
                                     isMyTurn ? (
-                                        <div className="w-full flex-1 overflow-hidden flex flex-col bg-slate-950/50 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                                            <div className="p-6 border-b border-slate-800 flex flex-col gap-4">
+                                        <div className="w-full flex-1 min-h-0 flex flex-col bg-slate-950/50 rounded-[2.5rem] border border-white/5 shadow-2xl overflow-hidden">
+                                            <div className="p-4 md:p-6 border-b border-slate-800 flex flex-col gap-4 shrink-0">
                                                 <div className="flex justify-between items-center">
-                                                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Available Free Agents</h4>
+                                                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">{t('draft.available_free_agents')}</h4>
                                                     <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-1 rounded">
-                                                        {filteredFreeAgents.length} FOUND
+                                                        {filteredFreeAgents.length} {t('draft.found')}
                                                     </span>
                                                 </div>
                                                 <div className="flex gap-2">
@@ -472,27 +477,28 @@ export default function LiveDraft() {
                                                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
                                                         <input
                                                             type="text"
-                                                            placeholder="Search player..."
+                                                            placeholder={t('draft.search_player')}
                                                             value={searchTerm}
                                                             onChange={(e) => setSearchTerm(e.target.value)}
                                                             className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-9 pr-2 text-[10px] text-white focus:outline-none focus:border-blue-500/50 transition-colors"
                                                         />
                                                     </div>
-                                                    <select
-                                                        value={positionFilter}
-                                                        onChange={(e) => setPositionFilter(e.target.value)}
-                                                        className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none focus:border-blue-500/50 appearance-none font-bold uppercase tracking-wider"
-                                                    >
-                                                        <option value="">All Pos</option>
-                                                        <option value="PG">PG</option>
-                                                        <option value="SG">SG</option>
-                                                        <option value="SF">SF</option>
-                                                        <option value="PF">PF</option>
-                                                        <option value="C">C</option>
-                                                    </select>
+                                                    <div className="w-32">
+                                                        <PremiumSelect
+                                                            value={positionFilter}
+                                                            onChange={setPositionFilter}
+                                                            options={[
+                                                                { value: "", label: "Tutti" },
+                                                                { value: "G", label: "G" },
+                                                                { value: "F", label: "F" },
+                                                                { value: "C", label: "C" }
+                                                            ]}
+                                                            icon={<Users size={14} />}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+                                            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-0">
                                                 {
                                                     filteredFreeAgents.map(p => (
                                                         <div key={p.id} className={`group relative flex items-center justify-between p-4 border transition-all rounded-[1.5rem] shadow-lg ${p.isAffordable ? 'bg-slate-900/50 border-transparent hover:border-blue-500/30 hover:bg-slate-900' : 'bg-slate-900/20 border-slate-800/50 opacity-50 grayscale'}`}>
@@ -508,7 +514,7 @@ export default function LiveDraft() {
                                                                 disabled={!p.isAffordable}
                                                                 className={`font-black px-6 py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-xl transition-all ${p.isAffordable ? 'bg-blue-600 hover:bg-blue-550 text-white cursor-pointer' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
                                                             >
-                                                                {p.isAffordable ? 'Nominate' : 'Too Expensive'}
+                                                                {p.isAffordable ? t('draft.nominate') : t('draft.too_expensive')}
                                                             </button>
                                                         </div>
                                                     ))
@@ -527,14 +533,15 @@ export default function LiveDraft() {
                                                 <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em] mt-2">Scanning Roster Desires...</p>
                                             </div>
                                         </div>
-                                    )}
-                            </div>
+                                    )
+                                }
+                            </div >
                         )}
-                    </div>
-                </div>
+                    </div >
+                </div >
 
                 {/* RIGHT: LIVE ROSTER TRACKER */}
-                <div className="w-96 bg-slate-900 border border-white/5 rounded-[3rem] shadow-2xl flex flex-col overflow-hidden">
+                < div className="w-96 bg-slate-900 border border-white/5 rounded-[3rem] shadow-2xl flex flex-col overflow-hidden" >
                     <div className="p-8 border-b border-slate-800 bg-slate-800/30">
                         <div className="flex items-center gap-3 mb-1">
                             <Users size={20} className="text-blue-500" />
@@ -594,9 +601,9 @@ export default function LiveDraft() {
                                 );
                             })}
                     </div>
-                </div>
-            </div>
-        </div>
+                </div >
+            </div >
+        </div >
     );
 }
 

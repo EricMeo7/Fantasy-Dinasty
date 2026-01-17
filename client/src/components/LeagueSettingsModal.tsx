@@ -117,8 +117,8 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
 
         try {
             await api.delete(`/league/${currentLeagueId}/teams/${teamId}`);
-            showAlert({ title: t('common.success'), message: t('success.settings_updated'), type: "success" }); // Reusing generic success or add specific
-            refetchDetails();
+            await showAlert({ title: t('common.success'), message: t('success.settings_updated'), type: "success" });
+            window.location.reload();
         } catch (e: any) {
             showAlert({ title: t('common.error'), message: e.response?.data?.message || t('error.generic'), type: "error" });
         }
