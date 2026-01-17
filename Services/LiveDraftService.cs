@@ -147,7 +147,13 @@ public class LiveDraftService
             // 4. BULK LOADING: Carica TUTTI i DeadCaps della lega (per UserId delle squadre)
             var teamUserIds = teams.Select(t => t.UserId).ToList();
             var allDeadCaps = await context.DeadCaps
-                .Where(d => teamUserIds.Contains(d.TeamId) && d.Season == currentSeason)
+                .Where(d => teamUserIds.Contains(d.TeamId) && d.LeagueId == leagueId && d.Season == currentSeason)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // 5. BULK LOADING: Carica TUTTE le aste attive nel mercato per questa lega
+            var allMarketAuctions = await context.Auctions
+                .Where(a => a.LeagueId == leagueId && a.IsActive)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -163,6 +169,9 @@ public class LiveDraftService
 
                 // Soldi congelati nell'asta corrente (Se sei l'attuale vincitore, quella cifra conta come spesa)
                 double frozenBid = (state.HighBidderId == team.UserId) ? state.CurrentBidYear1 : 0;
+
+                // Soldi congelati nel mercato normale (Free Agency)
+                double frozenMarketBid = allMarketAuctions.Where(a => a.HighBidderId == team.UserId).Sum(a => a.CurrentYear1Amount);
                 
                 // NOTA IMPORTANTE: Il 'RemainingBudget' per l'UI mostra quanto ti resta per rilanciare,
                 // quindi DEVE sottrarre il 'frozenBid'.
@@ -173,7 +182,7 @@ public class LiveDraftService
                 {
                     UserId = team.UserId,
                     TeamName = team.Name,
-                    RemainingBudget = cap - (committedSalaries + deadMoney + frozenBid),
+                    RemainingBudget = cap - (committedSalaries + deadMoney + frozenBid + frozenMarketBid),
                     RosterCount = contracts.Count,
                     Players = contracts.OrderByDescending(c => c.SalaryYear1)
                                        .Select(c => new DraftPlayerDto
