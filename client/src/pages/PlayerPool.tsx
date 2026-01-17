@@ -365,14 +365,15 @@ export default function PlayerPool() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div className="hidden md:flex items-center gap-2 pr-1">
-                        <PremiumSelect
-                            value={(table.getColumn('position')?.getFilterValue() as string) || ""}
-                            onChange={(val) => table.getColumn('position')?.setFilterValue(val)}
-                            options={positionOptions}
-                            icon={<Filter size={16} />}
-                            className="flex-1"
-                        />
+                    <div className="flex items-center gap-2 pr-1">
+                        <div className="hidden md:block flex-1">
+                            <PremiumSelect
+                                value={(table.getColumn('position')?.getFilterValue() as string) || ""}
+                                onChange={(val) => table.getColumn('position')?.setFilterValue(val)}
+                                options={positionOptions}
+                                icon={<Filter size={16} />}
+                            />
+                        </div>
                         <button
                             onClick={() => setShowFilters(true)}
                             className="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center border border-white/10 group active:scale-95"

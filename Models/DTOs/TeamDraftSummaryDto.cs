@@ -6,5 +6,5 @@ public class TeamDraftSummaryDto
     public string TeamName { get; set; } = string.Empty;
     public double RemainingBudget { get; set; }
     public int RosterCount { get; set; }
-    public List<string> Players { get; set; } = new(); // Lista nomi giocatori presi
+    public List<DraftPlayerDto> Players { get; set; } = new(); // Lista giocatori presi (Dettagliata)
 }

@@ -295,6 +295,9 @@ export default function Navbar() {
                                         <button onClick={() => navigate('/matchup')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
                                             {t('navbar.lineup')} <List size={16} className="text-blue-500" />
                                         </button>
+                                        <button onClick={() => navigate('/pool')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
+                                            {t('navbar.player_stats')} <Activity size={16} className="text-blue-500" />
+                                        </button>
                                         <button onClick={() => navigate('/trades')} className="w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/5 transition-all">
                                             {t('navbar.trades')} <ArrowLeftRight size={16} className="text-blue-500" />
                                         </button>

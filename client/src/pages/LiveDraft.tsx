@@ -10,12 +10,18 @@ import SEO from '../components/SEO/SEO';
 
 const HUB_URL = `${CONFIG.HUB_BASE_URL}/drafthub`;
 
+interface DraftPlayerDto {
+    name: string;
+    salary: number;
+    position: string;
+}
+
 interface TeamSummary {
     userId: string;
     teamName: string;
     remainingBudget: number;
     rosterCount: number;
-    players: string[];
+    players: DraftPlayerDto[];
 }
 
 interface DraftState {
@@ -44,6 +50,11 @@ export default function LiveDraft() {
     const [expandedTeamId, setExpandedTeamId] = useState<string | null>(null);
     const [isAdmin, setIsAdmin] = useState(false);
     const [showAdminPanel, setShowAdminPanel] = useState(false);
+
+    // New Features State
+    const [searchTerm, setSearchTerm] = useState("");
+    const [positionFilter, setPositionFilter] = useState("");
+    const [activeTab, setActiveTab] = useState<'auction' | 'rosters'>('auction'); // Mobile Tab State
 
     const toggleTeamExpand = (teamId: string) => {
         setExpandedTeamId(expandedTeamId === teamId ? null : teamId);
@@ -241,13 +252,25 @@ export default function LiveDraft() {
     // LIVE DRAFT VIEW
     const auctionRunning = draftState.currentPlayerId !== null;
     const myTeam = draftState.teams.find(t => t.userId === myId);
+    const maxAvailableBid = myTeam ? myTeam.remainingBudget : 0;
+
+    const filteredFreeAgents = freeAgents.filter(p => {
+        const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
+        const matchesSearch = searchTerm === "" || fullName.includes(searchTerm.toLowerCase());
+        const matchesPos = positionFilter === "" || p.position === positionFilter;
+        return matchesSearch && matchesPos;
+    }).map(p => {
+        const basePrice = Math.max(1, p.minBid || Math.round(p.avgPoints || 1));
+        const isAffordable = basePrice <= maxAvailableBid;
+        return { ...p, basePrice, isAffordable };
+    });
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-4 flex flex-col h-screen overflow-hidden font-sans">
             <SEO title="Asta Live" description="Partecipa all'asta in tempo reale." />
 
             {/* NEW PREMIUM HEADER */}
-            <header className="flex justify-between items-center px-6 py-4 bg-slate-900 border border-white/5 shrink-0 rounded-[2rem] shadow-2xl mb-4 relative z-50">
+            <header className="flex justify-between items-center px-4 md:px-6 py-4 bg-slate-900 border border-white/5 shrink-0 rounded-[2rem] shadow-2xl mb-4 relative z-50">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 text-emerald-400">
                         <TrendingUp size={24} />
@@ -329,10 +352,26 @@ export default function LiveDraft() {
             )
             }
 
-            <div className="flex flex-1 gap-6 overflow-hidden">
+            {/* MOBILE TABS */}
+            <div className="flex lg:hidden gap-2 mb-4">
+                <button
+                    onClick={() => setActiveTab('auction')}
+                    className={`flex-1 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all ${activeTab === 'auction' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-900 text-slate-500'}`}
+                >
+                    Auction Floor
+                </button>
+                <button
+                    onClick={() => setActiveTab('rosters')}
+                    className={`flex-1 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all ${activeTab === 'rosters' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-slate-900 text-slate-500'}`}
+                >
+                    Team Rosters
+                </button>
+            </div>
+
+            <div className={`flex flex-1 gap-6 overflow-hidden ${auctionRunning ? '' : 'flex-col lg:flex-row'}`}>
                 {/* LEFT: MAIN ACTION AREA */}
-                <div className="flex-[3] flex flex-col gap-6">
-                    <div className={`relative flex-1 bg-slate-900 border rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center p-12 transition-all duration-700 overflow-hidden
+                <div className={`flex-[3] flex flex-col gap-6 ${activeTab === 'auction' ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`relative flex-1 bg-slate-900 border rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center p-6 md:p-12 transition-all duration-700 overflow-hidden
                         ${timeLeft < 10 && auctionRunning ? 'border-red-500/40' : 'border-white/5'}`}>
 
                         {/* THE COURT / BACKGROUND LOGO */}
@@ -346,7 +385,7 @@ export default function LiveDraft() {
 
                         {auctionRunning ? (
                             <div className="text-center w-full max-w-3xl animate-in zoom-in duration-500 relative z-10">
-                                <div className="mb-10">
+                                <div className="mb-4 md:mb-10">
                                     <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-4">
                                         <Gavel size={14} /> Bid in Progress
                                     </span>
@@ -421,26 +460,55 @@ export default function LiveDraft() {
                                 {
                                     isMyTurn ? (
                                         <div className="w-full flex-1 overflow-hidden flex flex-col bg-slate-950/50 rounded-[2.5rem] border border-white/5 shadow-2xl">
-                                            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                                                <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Available Free Agents</h4>
-                                                <div className="relative w-64">
-                                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
-                                                    <input type="text" placeholder="Search player..." className="w-full bg-slate-900 border border-slate-800 rounded-lg py-1.5 pl-9 pr-2 text-[10px] text-white focus:outline-none" />
+                                            <div className="p-6 border-b border-slate-800 flex flex-col gap-4">
+                                                <div className="flex justify-between items-center">
+                                                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Available Free Agents</h4>
+                                                    <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-1 rounded">
+                                                        {filteredFreeAgents.length} FOUND
+                                                    </span>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" />
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Search player..."
+                                                            value={searchTerm}
+                                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-9 pr-2 text-[10px] text-white focus:outline-none focus:border-blue-500/50 transition-colors"
+                                                        />
+                                                    </div>
+                                                    <select
+                                                        value={positionFilter}
+                                                        onChange={(e) => setPositionFilter(e.target.value)}
+                                                        className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none focus:border-blue-500/50 appearance-none font-bold uppercase tracking-wider"
+                                                    >
+                                                        <option value="">All Pos</option>
+                                                        <option value="PG">PG</option>
+                                                        <option value="SG">SG</option>
+                                                        <option value="SF">SF</option>
+                                                        <option value="PF">PF</option>
+                                                        <option value="C">C</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                                                 {
-                                                    freeAgents.map(p => (
-                                                        <div key={p.id} className="group relative flex items-center justify-between p-4 bg-slate-900/50 border border-transparent hover:border-blue-500/30 hover:bg-slate-900 transition-all rounded-[1.5rem] shadow-lg">
+                                                    filteredFreeAgents.map(p => (
+                                                        <div key={p.id} className={`group relative flex items-center justify-between p-4 border transition-all rounded-[1.5rem] shadow-lg ${p.isAffordable ? 'bg-slate-900/50 border-transparent hover:border-blue-500/30 hover:bg-slate-900' : 'bg-slate-900/20 border-slate-800/50 opacity-50 grayscale'}`}>
                                                             <div className="flex items-center gap-4">
-                                                                <div className="w-12 h-12 bg-slate-800 rounded-xl flex items-center justify-center font-black text-xs text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-all">{p.position}</div>
+                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xs transition-all ${p.isAffordable ? 'bg-slate-800 text-blue-500 group-hover:bg-blue-600 group-hover:text-white' : 'bg-slate-800/50 text-slate-600'}`}>{p.position}</div>
                                                                 <div>
                                                                     <div className="font-black text-white uppercase italic tracking-tight text-lg leading-none">{p.firstName} {p.lastName}</div>
-                                                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{p.nbaTeam} <span className="text-slate-700 mx-1">•</span> <span className="text-emerald-500">Base: {Math.max(1, p.minBid || Math.round(p.avgPoints || 1))} M</span></div>
+                                                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{p.nbaTeam} <span className="text-slate-700 mx-1">•</span> <span className={p.isAffordable ? 'text-emerald-500' : 'text-red-500'}>Base: {p.basePrice} M</span></div>
                                                                 </div>
                                                             </div>
-                                                            <button onClick={() => handleNominate(p)} className="bg-blue-600 hover:bg-blue-550 text-white font-black px-6 py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-xl transition-all">
-                                                                Nominate
+                                                            <button
+                                                                onClick={() => p.isAffordable && handleNominate(p)}
+                                                                disabled={!p.isAffordable}
+                                                                className={`font-black px-6 py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-xl transition-all ${p.isAffordable ? 'bg-blue-600 hover:bg-blue-550 text-white cursor-pointer' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                                                            >
+                                                                {p.isAffordable ? 'Nominate' : 'Too Expensive'}
                                                             </button>
                                                         </div>
                                                     ))
@@ -507,11 +575,13 @@ export default function LiveDraft() {
                                                         <ul className="space-y-2">
                                                             {
                                                                 team.players.map((p, idx) => {
-                                                                    const [name, cap] = p.split(' (');
                                                                     return (
-                                                                        <li key={idx} className="bg-slate-900 border border-slate-800/50 px-3 py-2 rounded-xl flex justify-between items-center">
-                                                                            <span className="text-[11px] font-black text-slate-300 uppercase italic tracking-tight">{name}</span>
-                                                                            <span className="text-[9px] font-mono font-black text-emerald-500 bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10 shrink-0">{cap.replace(')', '')}</span>
+                                                                        <li key={idx} className="bg-slate-900 border border-slate-800/50 px-3 py-2 rounded-xl flex justify-between items-center group/player hover:bg-slate-800 transition-colors">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-[9px] font-black w-6 h-6 rounded bg-slate-800 flex items-center justify-center text-blue-500">{p.position}</span>
+                                                                                <span className="text-[11px] font-black text-slate-300 uppercase italic tracking-tight">{p.name}</span>
+                                                                            </div>
+                                                                            <span className="text-[9px] font-mono font-black text-emerald-500 bg-emerald-500/5 px-2 py-0.5 rounded-lg border border-emerald-500/10 shrink-0">{p.salary}M</span>
                                                                         </li >
                                                                     );
                                                                 })

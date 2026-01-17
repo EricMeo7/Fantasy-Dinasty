@@ -176,7 +176,12 @@ public class LiveDraftService
                     RemainingBudget = cap - (committedSalaries + deadMoney + frozenBid),
                     RosterCount = contracts.Count,
                     Players = contracts.OrderByDescending(c => c.SalaryYear1)
-                                       .Select(c => $"{c.Player.LastName} ({c.SalaryYear1}M)")
+                                       .Select(c => new DraftPlayerDto
+                                       {
+                                           Name = c.Player.LastName,
+                                           Salary = c.SalaryYear1,
+                                           Position = c.Player.Position
+                                       })
                                        .ToList()
                 });
             }
