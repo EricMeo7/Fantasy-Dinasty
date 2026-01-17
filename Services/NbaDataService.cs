@@ -781,13 +781,48 @@ public class NbaDataService : INbaDataService
                         // Explicitly add to context to be safe, though navigation property usually handles it
                         if (player.Id != 0) context.PlayerSeasonStats.Add(statEntry); 
                     }
+                    
+                    // Populate ALL fields to match Player model
                     statEntry.NbaTeam = teamName;
                     statEntry.GamesPlayed = gamesPlayed;
+                    
+                    // Base Stats
                     statEntry.AvgPoints = pts;
                     statEntry.AvgRebounds = reb;
                     statEntry.AvgAssists = ast;
                     statEntry.AvgSteals = stl;
                     statEntry.AvgBlocks = blk;
+                    statEntry.AvgMinutes = GetVal(row, idxMin);
+                    statEntry.AvgTurnovers = tov;
+                    
+                    // Shooting Details
+                    statEntry.Fgm = GetVal(row, idxFgm);
+                    statEntry.Fga = GetVal(row, idxFga);
+                    statEntry.FgPercent = GetVal(row, idxFgPct);
+                    statEntry.ThreePm = GetVal(row, idx3pm);
+                    statEntry.ThreePa = GetVal(row, idx3pa);
+                    statEntry.ThreePtPercent = GetVal(row, idx3pPct);
+                    statEntry.Ftm = GetVal(row, idxFtm);
+                    statEntry.Fta = GetVal(row, idxFta);
+                    statEntry.FtPercent = GetVal(row, idxFtPct);
+                    
+                    // Rebound Details
+                    statEntry.OffRebounds = GetVal(row, idxOreb);
+                    statEntry.DefRebounds = GetVal(row, idxDreb);
+                    
+                    // Advanced Stats
+                    statEntry.PersonalFouls = GetInt(row, idxPf);
+                    statEntry.PlusMinus = GetVal(row, idxPlusMinus);
+                    statEntry.WinPct = GetVal(row, idxWpct);
+                    statEntry.DoubleDoubles = GetVal(row, idxDd2);
+                    statEntry.TripleDoubles = GetVal(row, idxTd3);
+                    
+                    // Calculate Efficiency
+                    double missedFg = GetVal(row, idxFga) - GetVal(row, idxFgm);
+                    double missedFt = GetVal(row, idxFta) - GetVal(row, idxFtm);
+                    statEntry.Efficiency = Math.Round((pts + reb + ast + stl + blk) - missedFg - missedFt - tov, 1);
+                    
+                    // Fantasy Points
                     statEntry.FantasyPoints = fpts;
                 }
                 count++;

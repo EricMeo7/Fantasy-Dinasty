@@ -3,6 +3,7 @@ using System;
 using FantasyBasket.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FantasyBasket.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260117154814_ExpandPlayerSeasonStats")]
+    partial class ExpandPlayerSeasonStats
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -608,34 +611,13 @@ namespace FantasyBasket.API.Migrations
                     b.Property<double>("AvgTurnovers")
                         .HasColumnType("double precision");
 
-                    b.Property<double>("DefRebounds")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("DoubleDoubles")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Efficiency")
-                        .HasColumnType("double precision");
-
                     b.Property<double>("FantasyPoints")
                         .HasColumnType("double precision");
 
                     b.Property<double>("FgPercent")
                         .HasColumnType("double precision");
 
-                    b.Property<double>("Fga")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Fgm")
-                        .HasColumnType("double precision");
-
                     b.Property<double>("FtPercent")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Fta")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Ftm")
                         .HasColumnType("double precision");
 
                     b.Property<int>("GamesPlayed")
@@ -645,35 +627,14 @@ namespace FantasyBasket.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("OffRebounds")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("PersonalFouls")
-                        .HasColumnType("double precision");
-
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer");
-
-                    b.Property<double>("PlusMinus")
-                        .HasColumnType("double precision");
 
                     b.Property<string>("Season")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("ThreePa")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("ThreePm")
-                        .HasColumnType("double precision");
-
                     b.Property<double>("ThreePtPercent")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TripleDoubles")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("WinPct")
                         .HasColumnType("double precision");
 
                     b.HasKey("Id");

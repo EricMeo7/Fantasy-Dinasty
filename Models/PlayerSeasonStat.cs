@@ -21,13 +21,35 @@ public class PlayerSeasonStat
     public double AvgAssists { get; set; }
     public double AvgSteals { get; set; }
     public double AvgBlocks { get; set; }
+    
+    // Shooting Details
+    public double Fgm { get; set; }
+    public double Fga { get; set; }
+    public double FgPercent { get; set; }
+    
+    public double ThreePm { get; set; }
+    public double ThreePa { get; set; }
+    public double ThreePtPercent { get; set; }
+    
+    public double Ftm { get; set; }
+    public double Fta { get; set; }
+    public double FtPercent { get; set; }
+    
+    // Rebound Details
+    public double OffRebounds { get; set; }
+    public double DefRebounds { get; set; }
 
-    // Stats Avanzate
+    // Advanced Stats
     public int GamesPlayed { get; set; }
     public double AvgMinutes { get; set; }
-    public double FgPercent { get; set; }
-    public double ThreePtPercent { get; set; }
-    public double FtPercent { get; set; }
     public double AvgTurnovers { get; set; }
+    public double PersonalFouls { get; set; }
+    public double PlusMinus { get; set; }
+    
+    public double Efficiency { get; set; }
+    public double WinPct { get; set; }
+    public double DoubleDoubles { get; set; }
+    public double TripleDoubles { get; set; }
+    
     public double FantasyPoints { get; set; }
 }

@@ -209,4 +209,20 @@ public class AdminController : ControllerBase
         await nbaDataService.ImportSeasonScheduleAsync();
         return Ok(new { message = _localizer["NbaScheduleUpdated"].Value });
     }
+
+    // POST: api/admin/clear-season-stats (TEMPORARY - for re-sync)
+    [HttpPost("clear-season-stats")]
+    public async Task<IActionResult> ClearSeasonStats()
+    {
+        try
+        {
+            // Delete all PlayerSeasonStats to allow fresh re-sync with new fields
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM \"PlayerSeasonStats\"");
+            return Ok(new { message = "PlayerSeasonStats table cleared successfully. Run sync to repopulate." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error clearing season stats", error = ex.Message });
+        }
+    }
 }

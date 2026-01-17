@@ -114,10 +114,10 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
                            FtPercent = s.FtPercent,
                            FantasyPoints = s.FantasyPoints,
                            
-                           // Historical stats don't have detailed splits in this table, mapped to defaults
-                           Fgm = 0, Fga = 0, ThreePm = 0, ThreePa = 0, Ftm = 0, Fta = 0,
-                           OffRebounds = 0, DefRebounds = 0, PlusMinus = 0, Efficiency = 0,
-                           DoubleDoubles = 0, TripleDoubles = 0,
+                           // Use actual historical data from PlayerSeasonStats
+                           Fgm = s.Fgm, Fga = s.Fga, ThreePm = s.ThreePm, ThreePa = s.ThreePa, Ftm = s.Ftm, Fta = s.Fta,
+                           OffRebounds = s.OffRebounds, DefRebounds = s.DefRebounds, PlusMinus = s.PlusMinus, Efficiency = s.Efficiency,
+                           DoubleDoubles = s.DoubleDoubles, TripleDoubles = s.TripleDoubles,
                            InjuryStatus = null, InjuryBodyPart = null, InjuryReturnDate = null
                        };
         }
