@@ -42,8 +42,13 @@ public class UpdateSettingsHandler : IRequestHandler<UpdateSettingsCommand, Resu
         settings.StealWeight = input.StealWeight;
         settings.BlockWeight = input.BlockWeight;
         settings.TurnoverWeight = input.TurnoverWeight;
-        // RosterSlots assignments removed as per user request to simplify model
-        // settings.RosterSlotsPG = input.RosterSlotsPG; ... removed
+        
+        // Roster Limits
+        settings.RoleLimitGuards = input.RoleLimitGuards;
+        settings.RoleLimitForwards = input.RoleLimitForwards;
+        settings.RoleLimitCenters = input.RoleLimitCenters;
+
+        // RosterSlots assignments removed simplifies model
 
         // 3. Sync League table (Legacy)
         if (league != null)
