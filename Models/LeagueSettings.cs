@@ -38,17 +38,8 @@ public class LeagueSettings
     public double BlockWeight { get; set; } = 3.0;
     public double TurnoverWeight { get; set; } = -1.0;
 
-    // Roster Configuration
-    public int RosterSlotsPG { get; set; } = 1;
-    public int RosterSlotsSG { get; set; } = 1;
-    public int RosterSlotsSF { get; set; } = 1;
-    public int RosterSlotsPF { get; set; } = 1;
-    public int RosterSlotsC { get; set; } = 1;
-    public int RosterSlotsG { get; set; } = 0;
-    public int RosterSlotsF { get; set; } = 0;
-    public int RosterSlotsUtil { get; set; } = 0;
-    public int RosterSlotsBench { get; set; } = 5;
-    public int RosterSlotsIR { get; set; } = 1;
+    // Roster Configuration - Detailed slots removed as per user request
+    // Uses RoleLimit... below for validation.
 
     // Schedule
     public DateTime? SeasonStartDate { get; set; }
@@ -56,4 +47,9 @@ public class LeagueSettings
 
     // Stato della lega
     public LeagueState Status { get; set; } = LeagueState.DraftMode;
+
+    // Hard Roster Limits (Total Capacity)
+    public int RoleLimitGuards { get; set; } = 5;
+    public int RoleLimitForwards { get; set; } = 5;
+    public int RoleLimitCenters { get; set; } = 3;
 }

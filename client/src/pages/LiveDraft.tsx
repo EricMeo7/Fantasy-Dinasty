@@ -8,6 +8,8 @@ import { useModal } from '../context/ModalContext';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO/SEO';
 import { PremiumSelect } from '../components/PremiumSelect';
+import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
+import { RosterValidator } from '../utils/RosterValidator';
 
 const HUB_URL = `${CONFIG.HUB_BASE_URL}/drafthub`;
 
@@ -36,9 +38,11 @@ interface DraftState {
     currentBidYears: number;
     currentBidYear1: number;
     highBidderName: string;
+    highBidderId?: string;
     bidEndTime: string;
     teams: TeamSummary[];
 }
+
 
 export default function LiveDraft() {
     const { t } = useTranslation();
@@ -57,13 +61,16 @@ export default function LiveDraft() {
     const [positionFilter, setPositionFilter] = useState("");
     const [activeTab, setActiveTab] = useState<'auction' | 'rosters'>('auction'); // Mobile Tab State
 
-    const toggleTeamExpand = (teamId: string) => {
-        setExpandedTeamId(expandedTeamId === teamId ? null : teamId);
-    };
-
     const navigate = useNavigate();
     const { showAlert, showConfirm } = useModal();
     const isConnecting = useRef(false);
+
+    // Settings for Validation
+    const { data: leagueSettings } = useLeagueSettings();
+
+    const toggleTeamExpand = (teamId: string) => {
+        setExpandedTeamId(expandedTeamId === teamId ? null : teamId);
+    };
 
     const getMyIdFromToken = () => {
         const token = localStorage.getItem('token');
@@ -143,6 +150,27 @@ export default function LiveDraft() {
     }, [isMyTurn, draftState?.currentPlayerId]);
 
     const handleNominate = async (player: any) => {
+        // Validation: Can I fit this player?
+        if (leagueSettings) {
+            const myTeam = draftState?.teams.find(t => t.userId === getMyIdFromToken());
+            if (myTeam) {
+                const validation = RosterValidator.canAddPlayer(
+                    myTeam.players.map(p => ({ id: 0, position: p.position })), // Map to simple input
+                    { id: player.id, position: player.position },
+                    {
+                        guards: leagueSettings.roleLimitGuards,
+                        forwards: leagueSettings.roleLimitForwards,
+                        centers: leagueSettings.roleLimitCenters
+                    }
+                );
+
+                if (!validation.valid) {
+                    showAlert({ title: "Roster Limit", message: t('draft.roster_full_msg') || validation.reason || "Roster Full", type: "error" });
+                    return;
+                }
+            }
+        }
+
         // Use minBid from API if available (simulating FreeAgent logic), otherwise fallback
         const startBid = Math.max(1, player.minBid || Math.round(player.avgPoints || 1));
         await connection?.invoke('Nominate', player.id, `${player.firstName} ${player.lastName}`, startBid, 1);
@@ -150,6 +178,31 @@ export default function LiveDraft() {
 
     const handleBid = async () => {
         if (!draftState) return;
+
+        // Validation: Can I fit current player?
+        if (leagueSettings && draftState.currentPlayerId) {
+            const myTeam = draftState.teams.find(t => t.userId === getMyIdFromToken());
+            // Try to find position. If not in freeAgents, we skip Local Validation (fallback to Backend).
+            const player = freeAgents.find(p => p.id === draftState.currentPlayerId);
+
+            if (myTeam && player) {
+                const validation = RosterValidator.canAddPlayer(
+                    myTeam.players.map(p => ({ id: 0, position: p.position })),
+                    { id: player.id, position: player.position },
+                    {
+                        guards: leagueSettings.roleLimitGuards,
+                        forwards: leagueSettings.roleLimitForwards,
+                        centers: leagueSettings.roleLimitCenters
+                    }
+                );
+
+                if (!validation.valid) {
+                    showAlert({ title: "Roster Limit", message: t('draft.roster_full_msg') || validation.reason || "Roster Full", type: "error" });
+                    return;
+                }
+            }
+        }
+
         await connection?.invoke('Bid', Number(myBidAmount), Number(myBidYears));
     };
 
@@ -373,7 +426,7 @@ export default function LiveDraft() {
 
             <div className={`flex flex-1 gap-6 overflow-hidden ${auctionRunning ? '' : 'flex-col lg:flex-row'}`}>
                 {/* LEFT: MAIN ACTION AREA */}
-                <div className={`flex-[3] flex flex-col gap-6 ${activeTab === 'auction' ? 'flex' : 'hidden lg:flex'}`}>
+                <div className={`flex-[3] flex flex-col gap-6 min-h-0 ${activeTab === 'auction' ? 'flex' : 'hidden lg:flex'}`}>
                     <div className={`relative flex-1 bg-slate-900 border rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center p-6 md:p-12 transition-all duration-700 overflow-hidden
                         ${timeLeft < 10 && auctionRunning ? 'border-red-500/40' : 'border-white/5'}`}>
 
@@ -389,50 +442,52 @@ export default function LiveDraft() {
                         {auctionRunning ? (
                             <div className="text-center w-full max-w-3xl animate-in zoom-in duration-500 relative z-10">
                                 <div className="mb-4 md:mb-10">
-                                    <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-4">
-                                        <Gavel size={14} /> Bid in Progress
+                                    <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-1 md:px-6 md:py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-2 md:mb-4">
+                                        <Gavel size={12} className="md:w-[14px] md:h-[14px]" /> Bid in Progress
                                     </span>
-                                    <h2 className="text-6xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl">
+                                    <h2 className="text-3xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl px-2">
                                         {draftState.currentPlayerName}
                                     </h2>
                                 </div>
 
-                                <div className="grid grid-cols-3 gap-6 mb-12">
+                                <div className="grid grid-cols-3 gap-2 md:gap-6 mb-6 md:mb-12 px-2 md:px-0">
                                     <AuctionStat label="Current Bid" value={draftState.currentBidTotal.toFixed(1)} sub={`x ${draftState.currentBidYears}Y`} color="emerald" />
                                     <AuctionStat label="Annual Avg" value={draftState.currentBidYear1.toFixed(1)} sub="Calculated" color="blue" />
                                     <AuctionStat label="Time Left" value={`${timeLeft}s`} sub="Critical Time" color={timeLeft < 10 ? "red" : "white"} />
                                 </div>
 
-                                <div className="bg-slate-950/80 backdrop-blur-md px-10 py-4 rounded-full inline-flex items-center gap-4 mb-12 border border-white/5 shadow-2xl">
-                                    <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Winning Bid</span>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-                                            <User size={16} />
+                                <div className="bg-slate-950/80 backdrop-blur-md px-6 py-3 md:px-10 md:py-4 rounded-full inline-flex items-center gap-3 md:gap-4 mb-6 md:mb-12 border border-white/5 shadow-2xl max-w-full mx-auto">
+                                    <span className="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Winning Bid</span>
+                                    <div className="flex items-center gap-2 md:gap-3 min-w-0">
+                                        <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
+                                            <User size={12} className="md:w-4 md:h-4" />
                                         </div>
-                                        <span className="text-xl font-black italic uppercase tracking-tight text-white">{draftState.highBidderName}</span>
+                                        <span className="text-base md:text-xl font-black italic uppercase tracking-tight text-white truncate max-w-[150px] md:max-w-none">
+                                            {draftState.teams.find(t => t.userId === draftState.highBidderId)?.teamName || draftState.highBidderName}
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="bg-slate-950/90 backdrop-blur-3xl p-8 rounded-[2.5rem] border border-white/5 max-w-xl mx-auto shadow-2xl">
-                                    <div className="flex gap-4 mb-6">
+                                <div className="bg-slate-950/90 backdrop-blur-3xl p-4 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-white/5 max-w-xl mx-auto shadow-2xl">
+                                    <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-4 md:mb-6">
                                         <div className="relative flex-1 group">
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black p-2 bg-emerald-500/10 rounded-lg">
-                                                <DollarSign size={20} />
+                                            <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black p-1.5 md:p-2 bg-emerald-500/10 rounded-lg">
+                                                <DollarSign size={16} className="md:w-5 md:h-5" />
                                             </div>
                                             <input
                                                 type="number"
                                                 value={myBidAmount}
                                                 onChange={e => setMyBidAmount(Number(e.target.value))}
-                                                className="w-full bg-slate-900 border border-slate-800 group-hover:border-emerald-500/30 transition-colors rounded-2xl py-6 pl-16 pr-6 text-2xl text-white font-black italic focus:outline-none shadow-inner"
+                                                className="w-full bg-slate-900 border border-slate-800 group-hover:border-emerald-500/30 transition-colors rounded-xl md:rounded-2xl py-3 md:py-6 pl-12 md:pl-16 pr-4 md:pr-6 text-xl md:text-2xl text-white font-black italic focus:outline-none shadow-inner"
                                             />
                                         </div>
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-row md:flex-col gap-2">
                                             {
                                                 [1, 2, 3].map(y => (
                                                     <button
                                                         key={y}
                                                         onClick={() => setMyBidYears(y)}
-                                                        className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${myBidYears === y ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 text-slate-500 hover:text-white border border-slate-800'}`}
+                                                        className={`flex-1 md:flex-none px-3 py-2 md:px-5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-black transition-all ${myBidYears === y ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 text-slate-500 hover:text-white border border-slate-800'}`}
                                                     >
                                                         {y}Y
                                                     </button>
@@ -443,7 +498,7 @@ export default function LiveDraft() {
                                     <button
                                         onClick={handleBid}
                                         disabled={timeLeft <= 0}
-                                        className="w-full py-6 bg-emerald-600 hover:bg-emerald-550 border-t border-white/20 active:scale-[0.98] disabled:opacity-30 rounded-2xl font-black text-xl uppercase italic tracking-tighter shadow-2xl transition-all"
+                                        className="w-full py-4 md:py-6 bg-emerald-600 hover:bg-emerald-550 border-t border-white/20 active:scale-[0.98] disabled:opacity-30 rounded-xl md:rounded-2xl font-black text-lg md:text-xl uppercase italic tracking-tighter shadow-2xl transition-all"
                                     >
                                         Place Secure Bid
                                     </button>
@@ -451,11 +506,11 @@ export default function LiveDraft() {
                             </div>
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-500 max-w-4xl relative z-10">
-                                <div className="text-center mb-4 shrink-0">
+                                <div className="text-center mb-2 shrink-0 hidden md:block">
                                     <span className="bg-blue-500/10 text-blue-500 border border-blue-500/20 px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-2">
                                         <Timer size={14} /> Turn Transition
                                     </span>
-                                    <h2 className={`text-4xl md:text-5xl font-black uppercase italic tracking-tighter leading-none ${isMyTurn ? 'text-white' : 'text-slate-600'}`}>
+                                    <h2 className={`text-5xl font-black uppercase italic tracking-tighter leading-none ${isMyTurn ? 'text-white' : 'text-slate-600'}`}>
                                         {isMyTurn ? t('draft.nomination_phase') : t('draft.waiting_scout')}
                                     </h2>
                                 </div>
@@ -486,7 +541,7 @@ export default function LiveDraft() {
                                                             value={positionFilter}
                                                             onChange={setPositionFilter}
                                                             options={[
-                                                                { value: "", label: "Tutti" },
+                                                                { value: "", label: t('draft.all') },
                                                                 { value: "G", label: "G" },
                                                                 { value: "F", label: "F" },
                                                                 { value: "C", label: "C" }
@@ -499,18 +554,18 @@ export default function LiveDraft() {
                                             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-0">
                                                 {
                                                     filteredFreeAgents.map(p => (
-                                                        <div key={p.id} className={`group relative flex items-center justify-between p-4 border transition-all rounded-[1.5rem] shadow-lg ${p.isAffordable ? 'bg-slate-900/50 border-transparent hover:border-blue-500/30 hover:bg-slate-900' : 'bg-slate-900/20 border-slate-800/50 opacity-50 grayscale'}`}>
-                                                            <div className="flex items-center gap-4">
-                                                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-xs transition-all ${p.isAffordable ? 'bg-slate-800 text-blue-500 group-hover:bg-blue-600 group-hover:text-white' : 'bg-slate-800/50 text-slate-600'}`}>{p.position}</div>
-                                                                <div>
-                                                                    <div className="font-black text-white uppercase italic tracking-tight text-lg leading-none">{p.firstName} {p.lastName}</div>
-                                                                    <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">{p.nbaTeam} <span className="text-slate-700 mx-1">•</span> <span className={p.isAffordable ? 'text-emerald-500' : 'text-red-500'}>Base: {p.basePrice} M</span></div>
+                                                        <div key={p.id} className={`group relative flex items-center justify-between p-3 gap-3 border transition-all rounded-2xl shadow-lg ${p.isAffordable ? 'bg-slate-900/50 border-transparent hover:border-blue-500/30 hover:bg-slate-900' : 'bg-slate-900/20 border-slate-800/50 opacity-50 grayscale'}`}>
+                                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-[10px] shrink-0 transition-all ${p.isAffordable ? 'bg-slate-800 text-blue-500 group-hover:bg-blue-600 group-hover:text-white' : 'bg-slate-800/50 text-slate-600'}`}>{p.position}</div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-black text-white uppercase italic tracking-tight text-sm md:text-lg leading-none truncate">{p.firstName} {p.lastName}</div>
+                                                                    <div className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 md:mt-1 truncate">{p.nbaTeam} <span className="text-slate-700 mx-1">•</span> <span className={p.isAffordable ? 'text-emerald-500' : 'text-red-500'}>Base: {p.basePrice} M</span></div>
                                                                 </div>
                                                             </div>
                                                             <button
                                                                 onClick={() => p.isAffordable && handleNominate(p)}
                                                                 disabled={!p.isAffordable}
-                                                                className={`font-black px-6 py-3 rounded-xl text-[10px] uppercase tracking-widest shadow-xl transition-all ${p.isAffordable ? 'bg-blue-600 hover:bg-blue-550 text-white cursor-pointer' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
+                                                                className={`font-black px-4 py-2 shrink-0 rounded-lg text-[9px] uppercase tracking-widest shadow-xl transition-all ${p.isAffordable ? 'bg-blue-600 hover:bg-blue-550 text-white cursor-pointer' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
                                                             >
                                                                 {p.isAffordable ? t('draft.nominate') : t('draft.too_expensive')}
                                                             </button>
@@ -539,7 +594,7 @@ export default function LiveDraft() {
                 </div >
 
                 {/* RIGHT: LIVE ROSTER TRACKER */}
-                < div className="w-96 bg-slate-900 border border-white/5 rounded-[3rem] shadow-2xl flex flex-col overflow-hidden" >
+                <div className={`bg-slate-900 border border-white/5 rounded-[3rem] shadow-2xl flex flex-col overflow-hidden ${activeTab === 'rosters' ? 'flex w-full' : 'hidden lg:flex lg:w-96'}`}>
                     <div className="p-8 border-b border-slate-800 bg-slate-800/30">
                         <div className="flex items-center gap-3 mb-1">
                             <Users size={20} className="text-blue-500" />
@@ -614,10 +669,10 @@ function AuctionStat({ label, value, sub, color }: { label: string, value: strin
         white: 'text-white bg-slate-800/50 border-white/5'
     };
     return (
-        <div className={`p-6 rounded-[2rem] border shadow-xl flex flex-col items-center justify-center transition-all ${colors[color]}`}>
-            <span className="text-[9px] font-black uppercase tracking-[0.2em] mb-2 opacity-50">{label}</span>
-            <span className="text-4xl font-black italic tracking-tighter leading-none mb-1 shadow-glow">{value}</span>
-            <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{sub}</span>
+        <div className={`p-2 md:p-6 rounded-2xl md:rounded-[2rem] border shadow-xl flex flex-col items-center justify-center transition-all ${colors[color]}`}>
+            <span className="text-[7px] md:text-[9px] font-black uppercase tracking-[0.2em] mb-1 md:mb-2 opacity-50 text-center">{label}</span>
+            <span className="text-xl md:text-4xl font-black italic tracking-tighter leading-none mb-1 shadow-glow">{value}</span>
+            <span className="text-[7px] md:text-[9px] font-black uppercase tracking-widest opacity-40 text-center">{sub}</span>
         </div>
     );
 }

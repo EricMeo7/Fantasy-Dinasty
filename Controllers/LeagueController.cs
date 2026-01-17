@@ -45,6 +45,19 @@ public class LeagueController : ControllerBase
         return Ok(result.Value);
     }
 
+    // POST: api/league/{id}/leave
+    [HttpPost("{id}/leave")]
+    public async Task<IActionResult> LeaveLeague(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var command = new Features.League.LeaveLeague.LeaveLeagueCommand(id, userId);
+
+        var result = await _mediator.Send(command);
+
+        if (!result.IsSuccess) return BadRequest(result.Error);
+        return Ok(result.Value);
+    }
+
     // GET: api/league/my-leagues
     [HttpGet("my-leagues")]
     public async Task<IActionResult> GetMyLeagues()

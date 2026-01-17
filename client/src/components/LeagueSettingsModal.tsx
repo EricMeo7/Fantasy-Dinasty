@@ -44,7 +44,10 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
         rosterSlotsF: 0,
         rosterSlotsUtil: 0,
         rosterSlotsBench: 5,
-        rosterSlotsIR: 1
+        rosterSlotsIR: 1,
+        roleLimitGuards: 5,
+        roleLimitForwards: 5,
+        roleLimitCenters: 3
     });
 
     // General State
@@ -159,8 +162,8 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in text-slate-300">
-            <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in text-slate-300 pt-24 md:pt-0">
+            <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
 
                 {/* Header */}
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-950/50 rounded-t-2xl">
@@ -226,6 +229,47 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                             {/* RULES TAB */}
                             {activeTab === 'RULES' && (
                                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                                    {/* 4. ROLE LIMITS */}
+                                    <section>
+                                        <h3 className="flex items-center gap-2 text-purple-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
+                                            <Users size={18} /> {t('modals.league_settings.role_limits')}
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('modals.league_settings.max_guards')}</label>
+                                                <div className="flex items-center gap-3">
+                                                    <button onClick={() => handleChange('roleLimitGuards', settings.roleLimitGuards - 1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 font-bold transition-colors">-</button>
+                                                    <div className="h-10 flex-1 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center font-black text-xl text-emerald-500 shadow-inner">
+                                                        {settings.roleLimitGuards}
+                                                    </div>
+                                                    <button onClick={() => handleChange('roleLimitGuards', settings.roleLimitGuards + 1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 font-bold transition-colors">+</button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('modals.league_settings.max_forwards')}</label>
+                                                <div className="flex items-center gap-3">
+                                                    <button onClick={() => handleChange('roleLimitForwards', settings.roleLimitForwards - 1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 font-bold transition-colors">-</button>
+                                                    <div className="h-10 flex-1 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center font-black text-xl text-emerald-500 shadow-inner">
+                                                        {settings.roleLimitForwards}
+                                                    </div>
+                                                    <button onClick={() => handleChange('roleLimitForwards', settings.roleLimitForwards + 1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 font-bold transition-colors">+</button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('modals.league_settings.max_centers')}</label>
+                                                <div className="flex items-center gap-3">
+                                                    <button onClick={() => handleChange('roleLimitCenters', settings.roleLimitCenters - 1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 font-bold transition-colors">-</button>
+                                                    <div className="h-10 flex-1 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-center font-black text-xl text-emerald-500 shadow-inner">
+                                                        {settings.roleLimitCenters}
+                                                    </div>
+                                                    <button onClick={() => handleChange('roleLimitCenters', settings.roleLimitCenters + 1)} className="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 font-bold transition-colors">+</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
                                     {/* 1. SCORING */}
                                     <section>
                                         <h3 className="flex items-center gap-2 text-emerald-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
@@ -265,24 +309,6 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                                         </div>
                                     </section>
 
-                                    {/* 3. ROSTER */}
-                                    <section>
-                                        <h3 className="flex items-center gap-2 text-blue-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
-                                            <Users size={18} /> {t('modals.roster_config')}
-                                        </h3>
-                                        <div className="grid grid-cols-3 md:grid-cols-5 gap-4">
-                                            <SlotInput label={t('modals.league_settings.pg')} field="rosterSlotsPG" val={settings.rosterSlotsPG} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.sg')} field="rosterSlotsSG" val={settings.rosterSlotsSG} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.sf')} field="rosterSlotsSF" val={settings.rosterSlotsSF} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.pf')} field="rosterSlotsPF" val={settings.rosterSlotsPF} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.c')} field="rosterSlotsC" val={settings.rosterSlotsC} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.g')} field="rosterSlotsG" val={settings.rosterSlotsG} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.f')} field="rosterSlotsF" val={settings.rosterSlotsF} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.util')} field="rosterSlotsUtil" val={settings.rosterSlotsUtil} onChange={handleChange} />
-                                            <SlotInput label={t('modals.league_settings.bench')} field="rosterSlotsBench" val={settings.rosterSlotsBench} onChange={handleChange} color="text-slate-500" />
-                                            <SlotInput label={t('modals.league_settings.ir')} field="rosterSlotsIR" val={settings.rosterSlotsIR} onChange={handleChange} color="text-red-500" />
-                                        </div>
-                                    </section>
 
                                 </div>
                             )}
@@ -396,15 +422,4 @@ function WeightInput({ label, field, val, onChange, isNegative = false }: any) {
     );
 }
 
-function SlotInput({ label, field, val, onChange, color = 'text-white' }: any) {
-    return (
-        <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
-            <span className={`text-[10px] font-black uppercase mb-2 block ${color}`}>{label}</span>
-            <div className="flex items-center justify-center gap-2">
-                <button onClick={() => onChange(field, Math.max(0, val - 1))} className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400">-</button>
-                <span className="font-mono font-bold text-lg w-6">{val}</span>
-                <button onClick={() => onChange(field, val + 1)} className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400">+</button>
-            </div>
-        </div>
-    );
-}
+

@@ -116,6 +116,7 @@ const api = {
       axiosInstance.get<T>('/league/all-rosters'),
     getLeagueDetails: <T = any>() =>
       axiosInstance.get<T>('/league/details'),
+    leave: (id: number) => axiosInstance.post(`/league/${id}/leave`),
   },
   match: {
     getLeagueSchedule: <T = any>() => axiosInstance.get<T>('/match/league-schedule'),

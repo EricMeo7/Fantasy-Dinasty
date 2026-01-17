@@ -3,6 +3,7 @@ using System;
 using FantasyBasket.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FantasyBasket.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260117175105_SetDefaultRosterLimits")]
+    partial class SetDefaultRosterLimits
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -336,6 +339,36 @@ namespace FantasyBasket.API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<int>("RoleLimitGuards")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsBench")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsC")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsF")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsG")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsIR")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsPF")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsPG")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsSF")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsSG")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RosterSlotsUtil")
                         .HasColumnType("integer");
 
                     b.Property<double>("SalaryCap")

@@ -60,7 +60,8 @@ export default function Roster() {
             },
             onError: (error: any) => {
                 console.error("Errore taglio:", error);
-                toast.error(t('roster.loading_error') || 'Error releasing player', { id: toastId });
+                const msg = error.response?.data?.message || error.response?.data || t('roster.loading_error') || 'Error releasing player';
+                toast.error(msg, { id: toastId });
                 setIsReleasing(false);
             }
         });

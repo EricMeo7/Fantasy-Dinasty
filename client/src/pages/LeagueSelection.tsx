@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useMyLeagues, type LeagueListMember } from '../features/league/api/useMyLeagues';
 import { useCreateLeague } from '../features/league/api/useCreateLeague';
 import { useJoinLeague } from '../features/league/api/useJoinLeague';
+import { useLeaveLeague } from '../features/league/api/useLeaveLeague';
 import { CONFIG } from '../config';
 import SEO from '../components/SEO/SEO';
 
@@ -24,6 +25,7 @@ export default function LeagueSelection() {
   const { data: leagues = [], isLoading } = useMyLeagues();
   const createLeague = useCreateLeague();
   const joinLeague = useJoinLeague();
+  const leaveLeague = useLeaveLeague();
 
   const selectLeague = (league: LeagueListMember) => {
     localStorage.setItem('selectedLeagueId', league.leagueId.toString());
@@ -137,9 +139,25 @@ export default function LeagueSelection() {
                     </h3>
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Team: <span className="text-slate-300">{league.myTeamName}</span></p>
 
-                    <div className="mt-8 pt-6 border-t border-slate-800 flex items-center justify-between text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] group-hover:translate-x-2 transition-transform">
-                      <span>Enter Management</span>
-                      <ArrowRight size={18} />
+                    <div className="mt-8 pt-6 border-t border-slate-800 flex items-center justify-between">
+                      <div className="text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] group-hover:translate-x-2 transition-transform flex items-center gap-2">
+                        <span>Enter Management</span>
+                        <ArrowRight size={18} />
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(t('league_selection.leave_confirm') || "Sei sicuro di voler abbandonare questa lega?")) {
+                            leaveLeague.mutateAsync(league.leagueId)
+                              .then(() => showAlert({ title: "Success", message: "Hai abbandonato la lega.", type: 'success' }))
+                              .catch(() => showAlert({ title: "Error", message: "Impossibile abbandonare.", type: 'error' }));
+                          }
+                        }}
+                        className="text-slate-700 hover:text-red-500 p-2 rounded-full hover:bg-slate-800 transition-colors z-20"
+                        title="Leave League"
+                      >
+                        <LogOut size={16} />
+                      </button>
                     </div>
                   </div>
 

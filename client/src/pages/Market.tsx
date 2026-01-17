@@ -11,6 +11,11 @@ import SEO from '../components/SEO/SEO';
 import { CardSkeleton } from '../components/SkeletonLoaders';
 import { EmptyState } from '../components/EmptyState';
 
+import { useMyRoster } from '../features/roster/api/useMyRoster';
+import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
+import { RosterValidator } from '../utils/RosterValidator';
+import { useModal } from '../context/ModalContext';
+
 export default function Market() {
     const { t } = useTranslation();
     const navigate = useNavigate();
@@ -97,8 +102,40 @@ export default function Market() {
         setCurrentPage(1);
     };
 
+
+    // Validation Dependencies
+    const { data: myRoster } = useMyRoster();
+    const { data: leagueSettings } = useLeagueSettings();
+    const { showAlert } = useModal();
+
     const openDetails = (player: any) => { setSelectedDetailsPlayer(player); setIsDetailsOpen(true); };
-    const openBidModal = (player: any) => { setBidPlayer(player); setIsBidOpen(true); }
+
+    const openBidModal = (player: any) => {
+        // Validation: Can I fit this player?
+        if (leagueSettings && myRoster) {
+            const validation = RosterValidator.canAddPlayer(
+                myRoster.map((p: any) => ({ id: p.id, position: p.position })),
+                { id: player.id, position: player.position },
+                {
+                    guards: leagueSettings.roleLimitGuards || 5,
+                    forwards: leagueSettings.roleLimitForwards || 5,
+                    centers: leagueSettings.roleLimitCenters || 3
+                }
+            );
+
+            if (!validation.valid) {
+                showAlert({
+                    title: t('draft.roster_limit_exceeded') || "Roster Limit",
+                    message: validation.reason || t('draft.roster_full_msg') || "Roster Full",
+                    type: "error"
+                });
+                return;
+            }
+        }
+
+        setBidPlayer(player);
+        setIsBidOpen(true);
+    }
 
     if (isInitialLoading) return (
         <div className="min-h-screen bg-slate-950 p-6 md:p-12">
