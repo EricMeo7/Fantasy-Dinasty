@@ -305,6 +305,18 @@ export default function Dashboard() {
               </div>
             </div>
           </button>
+
+          {/* Card: STATISTICHE (Player Pool) */}
+          <button onClick={() => navigate('/pool')} className="group relative text-left outline-none bg-transparent">
+            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-slate-900/60 backdrop-blur-3xl p-6 md:p-8 h-full shadow-2xl group-hover:border-blue-400/50 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between min-h-[160px]">
+              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-blue-400"><Activity size={120} /></div>
+              <div className="p-3 md:p-4 bg-blue-500 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(59,130,246,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Activity size={24} /></div>
+              <div>
+                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-blue-400 transition-colors">{t('dashboard.intelligence')}</p>
+                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('navbar.player_stats')}</h3>
+              </div>
+            </div>
+          </button>
         </div>
 
         {/* --- SEZIONE DINAMICA: ASTA LIVE O MERCATO FREE AGENTS --- */}

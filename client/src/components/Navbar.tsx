@@ -4,7 +4,7 @@ import api from '../services/api';
 import { CONFIG } from '../config';
 import {
     User, ChevronDown, LogOut,
-    Trophy, RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard, Book
+    Trophy, RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard, Book, Activity
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -217,6 +217,11 @@ export default function Navbar() {
                             icon={<List size={20} />}
                             label={t('navbar.lineup')}
                             onClick={() => navigate('/matchup')}
+                        />
+                        <NavIcon
+                            icon={<Activity size={20} />}
+                            label={t('navbar.player_stats')}
+                            onClick={() => navigate('/pool')}
                         />
                         <NavIcon
                             icon={<ArrowLeftRight size={20} />}

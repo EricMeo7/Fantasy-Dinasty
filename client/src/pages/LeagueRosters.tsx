@@ -169,8 +169,8 @@ export default function LeagueRosters() {
                   </div>
 
                   {/* Roster Table */}
-                  <div className="p-8 overflow-x-auto min-h-[500px]">
-                    < table className="w-full text-left border-separate border-spacing-y-3" >
+                  <div className="p-8 responsive-table-container min-h-[500px]">
+                    < table className="w-full text-left border-separate border-spacing-y-3 min-w-table" >
                       <thead>
                         <tr className="text-[10px] uppercase text-slate-600 font-black tracking-[0.2em]">
                           <th className="px-6 py-4">Contract Profile</th>

@@ -35,14 +35,8 @@ public class GenerateScheduleHandler : IRequestHandler<GenerateScheduleCommand, 
             settings.PlayoffTeams = request.PlayoffTeams;
         }
 
-        // Check if there are ANY played matches (to avoid breaking legacy dates)
-        bool hasPlayedMatches = await _context.Matchups.AnyAsync(m => m.LeagueId == request.LeagueId && m.IsPlayed, cancellationToken);
-
-        if (!hasPlayedMatches)
-        {
-            // Start EXACTLY from Today (User Request: "non dal lunedì precedente")
-            league.SeasonStartDate = DateTime.UtcNow.Date;
-        }
+        // Always start from Today (or league setting) as we are wiping everything
+        league.SeasonStartDate = DateTime.UtcNow.Date;
 
         await _context.SaveChangesAsync(cancellationToken);
 

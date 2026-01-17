@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ArrowRight, Shirt, LayoutDashboard, Loader2, Sparkles, Activity, Settings } from 'lucide-react';
-import { useModal } from '../context/ModalContext';
+import { Users, ArrowRight, Shirt, LayoutDashboard, Sparkles, Activity, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useMyRoster } from '../features/roster/api/useMyRoster';
 import { useTeamBudget } from '../features/team/api/useTeamBudget';
 import { useMyTeamInfo } from '../features/team/api/useMyTeamInfo'; // NEW
@@ -12,19 +12,23 @@ import { PlayerCard } from '../features/roster/components/PlayerCard';
 import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModal';
 import ReleaseModal from '../components/ReleaseModal';
 import TeamSettingsModal from '../components/TeamSettingsModal';
-import { useTranslation } from 'react-i18next';
+// i18next import restored above
 import { CONFIG } from '../config';
 import SEO from '../components/SEO/SEO';
+
+import { toast } from 'react-hot-toast';
+import { TableSkeleton } from '../components/SkeletonLoaders';
+import { EmptyState } from '../components/EmptyState';
 
 export default function Roster() {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    const { showAlert } = useModal();
+    // useModal hook removed as showAlert is no longer used here
 
     // React Query Hooks
     const { data: players = [], isLoading: loadingRoster } = useMyRoster();
-    const { data: finance, isLoading: loadingBudget } = useTeamBudget();
-    const { data: myTeam } = useMyTeamInfo(); // NEW
+    const { data: finance } = useTeamBudget();
+    const { data: myTeam } = useMyTeamInfo();
 
     // Local State for Modals
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerFull | null>(null);
@@ -32,6 +36,7 @@ export default function Roster() {
     const [releaseTarget, setReleaseTarget] = useState<PlayerFull | null>(null);
     const [isReleaseOpen, setIsReleaseOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [, setIsReleasing] = useState(false);
 
     // Actions
     const handleReleaseClick = (player: any) => {
@@ -43,33 +48,30 @@ export default function Roster() {
 
     const confirmRelease = async () => {
         if (!releaseTarget) return;
-        setIsReleaseOpen(false);
+        setIsReleasing(true);
+
+        const toastId = toast.loading(t('common.processing') || 'Processing...');
 
         releasePlayer(releaseTarget.id, {
             onSuccess: () => {
-                showAlert({ title: t('common.success'), message: t('roster.player_released_success'), type: "success" });
+                toast.success(t('roster.player_released_success'), { id: toastId });
+                setIsReleaseOpen(false);
+                setIsReleasing(false);
             },
             onError: (error: any) => {
                 console.error("Errore taglio:", error);
-                showAlert({ title: t('common.error'), message: t('roster.loading_error'), type: "error" });
+                toast.error(t('roster.loading_error') || 'Error releasing player', { id: toastId });
+                setIsReleasing(false);
             }
         });
     };
-
 
     const openStats = (player: any) => {
         setSelectedPlayer(player);
         setIsStatsOpen(true);
     };
 
-    const isLoading = loadingRoster || loadingBudget;
-
-    if (isLoading) return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500">
-            <Loader2 className="animate-spin text-blue-500 mb-8" size={64} />
-            <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-blue-400">Retrieving Personnel Data...</p>
-        </div>
-    );
+    const isInitialLoading = loadingRoster && players.length === 0;
 
     return (
         <div className="min-h-screen bg-slate-950 p-4 md:p-12 text-slate-100 font-sans pb-32 relative overflow-hidden">
@@ -186,12 +188,20 @@ export default function Roster() {
                         </div>
 
                         {
-                            players.length === 0 ? (
-                                <div className="text-center py-48 bg-slate-950/20">
-                                    <div className="mb-8 p-6 bg-slate-900 rounded-full w-fit mx-auto border border-slate-800 opacity-20"><Shirt size={64} className="text-slate-500" /></div>
-                                    <h4 className="text-2xl font-black text-slate-700 uppercase italic tracking-tighter">Franchise Zero</h4>
-                                    <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.4em] mt-2">Initial squad reconnaissance required. Explore open market.</p>
+                            isInitialLoading ? (
+                                <div className="p-8 pb-12">
+                                    <TableSkeleton rows={10} cols={6} />
                                 </div>
+                            ) : players.length === 0 ? (
+                                <EmptyState
+                                    icon={Shirt}
+                                    title={t('roster.no_players_title') || "No Players Found"}
+                                    description={t('roster.no_players_desc') || "Your roster is currently empty. Head to the market to sign some talent."}
+                                    action={{
+                                        label: t('roster.go_to_market') || "Go to Market",
+                                        onClick: () => navigate('/market')
+                                    }}
+                                />
                             ) : (
                                 <div className="p-8 pb-12">
                                     {/* Desktop View */}

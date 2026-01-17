@@ -179,7 +179,7 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-slate-800 bg-slate-950/30 px-6 gap-6 overflow-x-auto">
+                <div className="flex border-b border-slate-800 bg-slate-950/30 px-6 gap-6 responsive-table-container">
                     <TabButton active={activeTab === 'GENERAL'} onClick={() => setActiveTab('GENERAL')} label={t('modals.league_settings.general')} icon={<Sliders size={14} />} />
                     <TabButton active={activeTab === 'RULES'} onClick={() => setActiveTab('RULES')} label={t('modals.league_settings.rules')} icon={<Target size={14} />} />
                     <TabButton active={activeTab === 'MEMBERS'} onClick={() => setActiveTab('MEMBERS')} label={t('modals.league_settings.members')} icon={<Users size={14} />} />

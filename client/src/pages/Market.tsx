@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Users, ArrowLeft, ChevronLeft, ChevronRight, Loader2, Filter, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Search, Users, ArrowLeft, ChevronLeft, ChevronRight, Filter, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useFreeAgents } from '../features/market/api/useFreeAgents';
 import { useActiveAuctions } from '../features/market/api/useActiveAuctions';
@@ -8,16 +8,18 @@ import { FreeAgentCard } from '../features/market/components/FreeAgentCard';
 import PlayerStatsModal from '../components/PlayerStatsModal';
 import BidModal from '../components/BidModal';
 import SEO from '../components/SEO/SEO';
-
+import { CardSkeleton } from '../components/SkeletonLoaders';
+import { EmptyState } from '../components/EmptyState';
 
 export default function Market() {
     const { t } = useTranslation();
     const navigate = useNavigate();
-    // const queryClient = useQueryClient(); // Unused for now
 
     // Server State
     const { data: staticPlayers = [], isLoading: isStaticLoading } = useFreeAgents();
     const { data: activeAuctions = [], refetch: refetchAuctions } = useActiveAuctions();
+
+    const isInitialLoading = isStaticLoading && staticPlayers.length === 0;
 
     // Local State
     const [searchTerm, setSearchTerm] = useState('');
@@ -98,10 +100,14 @@ export default function Market() {
     const openDetails = (player: any) => { setSelectedDetailsPlayer(player); setIsDetailsOpen(true); };
     const openBidModal = (player: any) => { setBidPlayer(player); setIsBidOpen(true); }
 
-    if (isStaticLoading) return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500">
-            <Loader2 className="animate-spin mb-6 text-emerald-500" size={48} />
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-400">Analisi report scout in tempo reale...</p>
+    if (isInitialLoading) return (
+        <div className="min-h-screen bg-slate-950 p-6 md:p-12">
+            <div className="mx-auto max-w-7xl">
+                <div className="h-12 w-48 bg-slate-800 animate-pulse rounded-xl mb-12" />
+                <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)}
+                </div>
+            </div>
         </div>
     );
 
@@ -162,8 +168,16 @@ export default function Market() {
                             />
                         ))
                     ) : (
-                        <div className="col-span-full py-20 bg-slate-900/30 border-2 border-dashed border-slate-800 rounded-[3rem] text-center text-slate-600 italic font-medium">
-                            Nessun giocatore corrisponde ai criteri di ricerca.
+                        <div className="col-span-full">
+                            <EmptyState
+                                icon={Search}
+                                title={t('market.no_results_title') || "No Players Found"}
+                                description={t('market.no_results_desc') || "We couldn't find any players matching your search criteria."}
+                                action={{
+                                    label: t('market.clear_search') || "Clear Search",
+                                    onClick: () => setSearchTerm('')
+                                }}
+                            />
                         </div>
                     )}
                 </div>

@@ -1,29 +1,38 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Loader2, RefreshCcw, LayoutGrid, Inbox, Sparkles } from 'lucide-react';
+import { ArrowRight, RefreshCcw, LayoutGrid, Inbox } from 'lucide-react';
 import { useAllRosters } from '../features/league/api/useAllRosters';
 import { useMyTrades } from '../features/trades/api/useMyTrades';
-import { useMyTeamInfo } from '../features/team/api/useMyTeamInfo'; // NEW
+import { useMyTeamInfo } from '../features/team/api/useMyTeamInfo';
 import { TradeCard } from '../features/trades/components/TradeCard';
 import { TradeBuilder } from '../features/trades/components/TradeBuilder';
 import { CONFIG } from '../config';
 import SEO from '../components/SEO/SEO';
+import { useTranslation } from 'react-i18next';
+import { CardSkeleton } from '../components/SkeletonLoaders';
+import { EmptyState } from '../components/EmptyState';
 
 export default function Trades() {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'build' | 'pending'>('build');
     const navigate = useNavigate();
 
     // Fetch all rosters for the builder
     const { data: teams = [], isLoading: loadingRosters } = useAllRosters();
     const { data: pendingTrades = [], isLoading: loadingTrades } = useMyTrades();
-    const { data: myTeam } = useMyTeamInfo(); // NEW
+    const { data: myTeam } = useMyTeamInfo();
 
-    const loading = loadingRosters || loadingTrades;
+    const isInitialLoading = (loadingRosters || loadingTrades) && teams.length === 0;
 
-    if (loading) return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500">
-            <Loader2 className="animate-spin mb-6 text-blue-500" size={48} />
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-blue-400">Interfacing with Trade Protocols...</p>
+    if (isInitialLoading) return (
+        <div className="min-h-screen bg-slate-950 p-6 md:p-12">
+            <div className="mx-auto max-w-7xl">
+                <div className="h-16 w-64 bg-slate-800 animate-pulse rounded-2xl mb-12" />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <CardSkeleton />
+                    <CardSkeleton />
+                </div>
+            </div>
         </div>
     );
 
@@ -37,7 +46,7 @@ export default function Trades() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600/10 rounded-full blur-[120px]"></div>
             </div>
 
-            <div className="mx-auto max-w-7xl relative z-10">
+            <div className="max-w-none px-4 md:px-6 relative z-10">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 mb-16">
                     <div className="flex items-center gap-8">
                         <div className="p-5 bg-slate-900 border border-white/5 rounded-3xl shadow-2xl relative text-blue-500 overflow-hidden group">
@@ -95,20 +104,23 @@ export default function Trades() {
 
                 <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                     {activeTab === 'build' ? (
-                        <TradeBuilder teams={teams} onSuccess={() => setActiveTab('pending')} />
+                        <TradeBuilder
+                            teams={teams}
+                            myTeamId={myTeam?.id?.toString()}
+                            onSuccess={() => setActiveTab('pending')}
+                        />
                     ) : (
                         <div className="max-w-4xl mx-auto space-y-10">
                             {pendingTrades.length === 0 ? (
-                                <div className="relative overflow-hidden">
-                                    <div className="text-center py-48 bg-slate-900/40 backdrop-blur-3xl rounded-[4rem] border border-white/5 shadow-inner">
-                                        <div className="p-6 bg-slate-950/50 rounded-3xl w-fit mx-auto mb-8 border border-slate-800 shadow-2xl relative">
-                                            <Sparkles size={48} className="text-slate-800" />
-                                            <div className="absolute inset-0 bg-blue-500/5 blur-2xl rounded-full"></div>
-                                        </div>
-                                        <p className="text-slate-600 font-black uppercase text-xs tracking-[0.4em] italic mb-2">Protocol Standby</p>
-                                        <p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">No active trade documents found in current league cycle</p>
-                                    </div>
-                                </div>
+                                <EmptyState
+                                    icon={Inbox}
+                                    title={t('trades.no_trades_title') || "Inbox Empty"}
+                                    description={t('trades.no_trades_desc') || "You have no pending trade offers at the moment."}
+                                    action={{
+                                        label: t('trades.start_negotiation') || "Start Negotiation",
+                                        onClick: () => setActiveTab('build')
+                                    }}
+                                />
                             ) : (
                                 pendingTrades.map((trade) => (
                                     <TradeCard key={trade.id} trade={trade} />

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CONFIG } from '../../../config';
-import { ArrowLeftRight, ArrowRight, Send, Trash2, AlertCircle, Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeftRight, Sparkles, Users, X } from 'lucide-react';
 import { useProposeTrade } from '../api/useProposeTrade';
 import { useModal } from '../../../context/ModalContext';
+import { PremiumSelect } from '../../../components/PremiumSelect';
+import { PlayerRow } from './PlayerRow';
+import { StickyTradeBar } from './StickyTradeBar';
 
 interface PlayerDetails {
     id: number;
@@ -13,6 +15,7 @@ interface PlayerDetails {
     position: string;
     nbaTeam: string;
     avgPoints: number;
+    fantasyPoints: number;
     salaryYear1: number;
     salaryYear2: number;
     salaryYear3: number;
@@ -38,41 +41,73 @@ interface TradeOffer {
 
 interface TradeBuilderProps {
     teams: TeamRoster[];
+    myTeamId?: string;
     onSuccess: () => void;
 }
 
-export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) => {
+export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, myTeamId, onSuccess }) => {
     const { t } = useTranslation();
     const [selectedOffers, setSelectedOffers] = useState<TradeOffer[]>([]);
+    const [targetTeamIds, setTargetTeamIds] = useState<string[]>([]);
     const { mutate: propose, isPending } = useProposeTrade();
     const { showAlert, showConfirm } = useModal();
 
-    const addOffer = (fromUserId: string, toUserId: string, player: PlayerDetails) => {
-        if (!fromUserId || !toUserId || fromUserId === toUserId) return;
+    const myRoster = teams.find(t => {
+        const teamId = t.userId || String(t.id);
+        return teamId === myTeamId || t.id?.toString() === myTeamId;
+    }) || teams[0];
 
-        if (selectedOffers.some(o => o.playerId === player.id)) {
-            showAlert({ title: t('common.error'), message: t('trades.player_already_added'), type: 'error' });
-            return;
+    const otherTeams = teams.filter(t => {
+        const teamId = t.userId || String(t.id);
+        const myTeamUserId = myRoster?.userId || String(myRoster?.id);
+        return teamId !== myTeamUserId && t.id !== myRoster?.id;
+    });
+    const targetRosters = teams.filter(t => targetTeamIds.includes(t.userId || String(t.id)));
+
+    const handleSelectTarget = (id: string) => {
+        if (!id) return;
+        if (!targetTeamIds.includes(id)) {
+            setTargetTeamIds([...targetTeamIds, id]);
         }
-
-        setSelectedOffers([...selectedOffers, {
-            fromUserId,
-            toUserId,
-            playerId: player.id,
-            salary: player.salaryYear1,
-            playerName: `${player.firstName} ${player.lastName}`
-        }]);
     };
 
-    const removeOffer = (pid: number) => {
-        setSelectedOffers(selectedOffers.filter(o => o.playerId !== pid));
+    const removeTarget = (id: string) => {
+        setTargetTeamIds(targetTeamIds.filter(tid => tid !== id));
     };
 
-    const calculateImpact = (userId: string) => {
+    const togglePlayerSelection = (player: PlayerDetails, fromTeamId: string) => {
+        const isAlreadySelected = selectedOffers.some(o => o.playerId === player.id);
+
+        if (isAlreadySelected) {
+            // Remove from selection
+            setSelectedOffers(selectedOffers.filter(o => o.playerId !== player.id));
+        } else {
+            // Add to selection - we'll assign destination later or use first available
+            const toTeamId = fromTeamId === (myRoster.userId || String(myRoster.id))
+                ? (targetTeamIds[0] || '')
+                : (myRoster.userId || String(myRoster.id));
+
+            if (!toTeamId) {
+                showAlert({ title: t('common.error'), message: 'Please add a trade partner first', type: 'error' });
+                return;
+            }
+
+            setSelectedOffers([...selectedOffers, {
+                fromUserId: fromTeamId,
+                toUserId: toTeamId,
+                playerId: player.id,
+                salary: player.salaryYear1,
+                playerName: `${player.firstName} ${player.lastName}`
+            }]);
+        }
+    };
+
+    const calculateTotalSalary = (userId: string, direction: 'outgoing' | 'incoming') => {
         if (!userId) return 0;
-        const incoming = selectedOffers.filter(o => o.toUserId === userId).reduce((sum, o) => sum + o.salary, 0);
-        const outgoing = selectedOffers.filter(o => o.fromUserId === userId).reduce((sum, o) => sum + o.salary, 0);
-        return incoming - outgoing;
+        const offers = direction === 'outgoing'
+            ? selectedOffers.filter(o => o.fromUserId === userId)
+            : selectedOffers.filter(o => o.toUserId === userId);
+        return offers.reduce((sum, o) => sum + o.salary, 0);
     };
 
     const handlePropose = async () => {
@@ -106,224 +141,163 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
         });
     };
 
+    const myTeamUserId = myRoster.userId || String(myRoster.id);
+    const totalOutgoing = calculateTotalSalary(myTeamUserId, 'outgoing');
+    const totalIncoming = calculateTotalSalary(myTeamUserId, 'incoming');
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {teams.map((team) => {
-                        const teamIdentifier = team.userId || String(team.id);
-                        const impact = calculateImpact(teamIdentifier);
+        <div className="flex flex-col gap-6 pb-32">
+            {/* Target Selection Header */}
+            <div className="bg-slate-900/40 backdrop-blur-3xl p-6 rounded-2xl border border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                    <div className="p-3 bg-blue-600/10 rounded-xl border border-blue-500/20 text-blue-500">
+                        <ArrowLeftRight size={20} />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-white">{t('trades.negotiate_deal')}</h2>
+                        <p className="text-[10px] text-slate-600 font-semibold uppercase tracking-wider mt-0.5">{t('trades.add_partners_hint')}</p>
+                    </div>
+                </div>
 
-                        return (
-                            <div
-                                key={teamIdentifier}
-                                className={`group relative bg-slate-900/40 backdrop-blur-3xl rounded-[2.5rem] border transition-all duration-500 shadow-2xl overflow-hidden ${impact > 0
-                                    ? 'border-red-500/30 ring-4 ring-red-500/5 shadow-red-500/10'
-                                    : impact < 0
-                                        ? 'border-emerald-500/30 ring-4 ring-emerald-500/10 shadow-emerald-500/10'
-                                        : 'border-white/5'
-                                    }`}
-                            >
-                                <div className="absolute top-0 left-0 w-full h-1.5 bg-slate-800 transition-colors group-hover:bg-slate-700"></div>
-                                {impact !== 0 && (
-                                    <div className={`absolute top-0 left-0 h-1.5 transition-all duration-500 ${impact > 0 ? 'bg-red-500 w-full shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-emerald-500 w-full shadow-[0_0_15px_rgba(16,185,129,0.5)]'}`}></div>
-                                )}
-
-                                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
-                                    <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-blue-500 transition-colors shadow-inner overflow-hidden">
-                                            <img
-                                                src={`${CONFIG.API_BASE_URL}/team/${team.id}/logo?t=${new Date().getTime()}`}
-                                                alt={team.teamName}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="overflow-hidden">
-                                            <h4 className="font-black text-white italic uppercase text-lg tracking-tighter truncate leading-none">{team.teamName}</h4>
-                                            <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest mt-1 truncate">{team.ownerName}</p>
-                                        </div>
-                                    </div>
-                                    <div className={`shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black border uppercase tracking-widest shadow-xl ${impact > 0
-                                        ? 'bg-red-500/10 border-red-500/20 text-red-500'
-                                        : impact < 0
-                                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
-                                            : 'bg-slate-950 border-slate-800 text-slate-700'
-                                        }`}>
-                                        {impact > 0 ? <TrendingUp size={12} /> : impact < 0 ? <TrendingDown size={12} /> : null}
-                                        {impact === 0 ? t('trades.neutral') : `${impact > 0 ? '+' : ''}${impact.toFixed(1)} M`}
-                                    </div>
-                                </div>
-
-                                <div className="p-4 max-h-[500px] overflow-y-auto custom-scrollbar-hidden space-y-3">
-                                    {team.players.map((p) => {
-                                        const locked = selectedOffers.some(o => o.playerId === p.id);
-                                        return (
-                                            <div key={p.id} className={`p-4 rounded-2xl border transition-all relative overflow-hidden group/item ${locked ? 'bg-slate-950/80 opacity-30 grayscale border-transparent' : 'bg-slate-950/40 border-white/5 hover:border-blue-500/30'}`}>
-
-                                                <div className="flex justify-between items-center mb-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-12 w-12 bg-slate-900 rounded-2xl overflow-hidden border border-white/5 shrink-0 shadow-2xl transition-transform group-hover/item:scale-110">
-                                                            <img
-                                                                src={`https://cdn.nba.com/headshots/nba/latest/260x190/${p.externalId}.png`}
-                                                                className="h-full object-cover translate-y-2"
-                                                                onError={(e) => (e.currentTarget.style.display = 'none')}
-                                                                alt=""
-                                                            />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <span className="text-[8px] font-black text-slate-500 border border-slate-800 px-1.5 py-0.5 rounded uppercase">{p.position}</span>
-                                                                <span className="text-[9px] font-black text-emerald-500 italic">{p.avgPoints?.toFixed(1)} FP</span>
-                                                                {p.injuryStatus && <span className="text-[8px] font-black text-white bg-red-600 px-1.5 py-0.5 rounded uppercase tracking-wider">{p.injuryStatus}</span>}
-                                                            </div>
-                                                            <div className="text-sm font-black text-white italic uppercase tracking-tighter truncate leading-tight group-hover/item:text-blue-400">{p.firstName} {p.lastName}</div>
-                                                        </div>
-                                                    </div>
-
-                                                    {!locked && (
-                                                        <div className="relative group/sel">
-                                                            < select
-                                                                onChange={(e) => addOffer(teamIdentifier, e.target.value, p)}
-                                                                className="appearance-none bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 rounded-xl text-[9px] font-black px-4 py-2 text-blue-400 hover:text-white outline-none transition-all cursor-pointer w-28 uppercase tracking-widest text-center"
-                                                                defaultValue=""
-                                                            >
-                                                                <option value="" disabled>{t('trades.select_dest')}</option>
-                                                                {
-                                                                    teams.map((t) => {
-                                                                        const tid = t.userId || String(t.id);
-                                                                        if (tid === teamIdentifier) return null;
-                                                                        return <option key={tid} value={tid} className="bg-slate-900">{t.teamName.toUpperCase()}</option>
-                                                                    })
-                                                                }
-                                                            </select >
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-2 bg-slate-950/80 p-3 rounded-xl border border-white/5 shadow-inner">
-                                                    <div className="text-center bg-slate-900/50 py-1 rounded-lg border border-white/5">
-                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">{t('trades.season_label')} 1</div>
-                                                        <div className="text-[11px] font-black font-mono text-emerald-500">{p.salaryYear1.toFixed(1)}M</div>
-                                                    </div>
-                                                    <div className="text-center py-1">
-                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">{t('trades.season_label')} 2</div>
-                                                        <div className="text-[11px] font-black font-mono text-slate-400">{p.salaryYear2 > 0 ? p.salaryYear2.toFixed(1) + 'M' : '-'}</div>
-                                                    </div>
-                                                    <div className="text-center py-1">
-                                                        <div className="text-[7px] text-slate-700 font-black uppercase tracking-widest leading-none mb-1">{t('trades.season_label')} 3</div>
-                                                        <div className="text-[11px] font-black font-mono text-slate-400">{p.salaryYear3 > 0 ? p.salaryYear3.toFixed(1) + 'M' : '-'}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                    })}
+                <div className="w-full md:w-96">
+                    <PremiumSelect
+                        value=""
+                        onChange={handleSelectTarget}
+                        options={otherTeams
+                            .filter(t => !targetTeamIds.includes(t.userId || String(t.id)))
+                            .map(t => ({
+                                value: t.userId || String(t.id),
+                                label: t.teamName.toUpperCase()
+                            }))}
+                        placeholder={t('trades.add_team_placeholder')}
+                        icon={<Sparkles size={16} />}
+                    />
                 </div>
             </div>
 
-            <div className="space-y-8 flex flex-col h-full">
-                {/* PROPOSAL CARD */}
-                <div className="bg-slate-900/60 backdrop-blur-3xl rounded-[3rem] p-10 shadow-[0_50px_100px_rgba(0,0,0,0.6)] sticky top-28 border border-white/5 border-t-blue-500 flex flex-col min-h-[500px]">
-                    <div className="flex items-center gap-4 mb-10 overflow-hidden">
-                        <div className="p-4 bg-blue-600 rounded-3xl shadow-[0_10px_20px_rgba(37,99,235,0.3)] text-white shrink-0">
-                            <Send size={24} className="-rotate-12" />
+            {/* Two-Column Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* My Team Column */}
+                {myRoster && (
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center justify-between px-2 pb-3 border-b border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-1 h-6 bg-blue-500 rounded-full"></div>
+                                <div>
+                                    <h3 className="text-base font-bold text-white">{myRoster.teamName}</h3>
+                                    <p className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider">{t('trades.sending_label')}</p>
+                                </div>
+                            </div>
+                            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                {myRoster.players.length} Players
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('trades.draft_hub')}</h3>
-                            <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">{t('trades.components')} ({selectedOffers.length})</p>
+
+                        {/* Column Headers */}
+                        <div className="flex items-center gap-3 px-4 py-2 text-[9px] font-bold text-slate-600 uppercase tracking-wider border-b border-white/5 bg-slate-950/40">
+                            <div className="h-8 w-8 shrink-0"></div> {/* Avatar space */}
+                            <div className="flex-1">Player</div>
+                            <div className="shrink-0 w-[40px] text-center">Pos</div>
+                            <div className="shrink-0 w-[45px] text-right">FP</div>
+                            <div className="shrink-0 flex items-center gap-1 text-right">
+                                <span className="text-white">Y1</span>
+                                <span className="text-slate-700">/</span>
+                                <span className="text-slate-400">Y2</span>
+                                <span className="text-slate-700">/</span>
+                                <span className="text-slate-500">Y3</span>
+                            </div>
+                            <div className="h-5 w-5 shrink-0"></div> {/* Checkbox space */}
+                        </div>
+
+                        <div className="space-y-2">
+                            {myRoster.players.map((player) => (
+                                <PlayerRow
+                                    key={player.id}
+                                    player={player}
+                                    isSelected={selectedOffers.some(o => o.playerId === player.id)}
+                                    onSelect={() => togglePlayerSelection(player, myRoster.userId || String(myRoster.id))}
+                                />
+                            ))}
                         </div>
                     </div>
+                )}
 
-                    <div className="flex-1 space-y-4 overflow-y-auto custom-scrollbar-hidden mb-10">
-                        {selectedOffers.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-10 text-center bg-slate-950/50 rounded-[2.5rem] border-2 border-dashed border-slate-800 h-64">
-                                <ArrowLeftRight size={48} className="text-slate-800 mb-6" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] leading-relaxed text-slate-700 px-4">{t('trades.assign_players_placeholder')}</p>
-                            </div>
-                        ) : (
-                            selectedOffers.map((off) => {
-                                const fromTeam = teams.find(t => (t.userId || String(t.id)) === off.fromUserId);
-                                const toTeam = teams.find(t => (t.userId || String(t.id)) === off.toUserId);
-                                return (
-                                    <div key={off.playerId} className="bg-slate-950 p-5 rounded-2xl border border-white/5 flex flex-col gap-4 animate-in slide-in-from-right-4 group/row shadow-xl">
-                                        <div className="flex justify-between items-center">
-                                            <div className="text-sm font-black text-white italic uppercase tracking-tight">{off.playerName}</div>
-                                            <button
-                                                onClick={() => removeOffer(off.playerId)}
-                                                className="p-2 bg-slate-900 rounded-xl text-slate-700 hover:text-red-500 hover:bg-red-500/10 transition-all"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-
-                                        <div className="flex items-center gap-3 bg-slate-900/50 p-3 rounded-xl border border-white/5">
-                                            <div className="flex flex-col flex-1">
-                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">{t('trades.exporter')}</span>
-                                                <span className="text-[10px] font-black text-blue-400 uppercase truncate">{fromTeam?.teamName}</span>
-                                            </div>
-                                            <ArrowRight size={16} className="text-slate-700" />
-                                            <div className="flex flex-col flex-1 text-right">
-                                                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">{t('trades.importer')}</span>
-                                                <span className="text-[10px] font-black text-white uppercase truncate">{toTeam?.teamName}</span>
-                                            </div>
+                {/* Target Teams Column(s) */}
+                <div className="flex flex-col gap-6">
+                    {targetRosters.length === 0 ? (
+                        <div className="h-[400px] border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center justify-center p-10 text-center bg-slate-900/10">
+                            <Users size={40} className="text-slate-800 mb-6" />
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-700 leading-relaxed max-w-[250px]">
+                                {t('trades.no_partners_placeholder')}
+                            </p>
+                        </div>
+                    ) : (
+                        targetRosters.map((team) => (
+                            <div key={team.userId || team.id} className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between px-2 pb-3 border-b border-white/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-1 h-6 bg-emerald-500 rounded-full"></div>
+                                        <div>
+                                            <h3 className="text-base font-bold text-white">{team.teamName}</h3>
+                                            <p className="text-[9px] font-semibold text-slate-600 uppercase tracking-wider">{t('trades.receiving_label')}</p>
                                         </div>
                                     </div>
-                                )
-                            })
-                        )}
-                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                            {team.players.length} Players
+                                        </div>
+                                        <button
+                                            onClick={() => removeTarget(team.userId || String(team.id))}
+                                            className="text-slate-600 hover:text-red-500 transition-colors p-1"
+                                            title={t('trades.remove_team')}
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                </div>
 
-                    <div className="pt-8 border-t border-white/5">
-                        <button
-                            onClick={handlePropose}
-                            disabled={selectedOffers.length === 0 || isPending}
-                            className="w-full bg-blue-600 hover:bg-blue-550 border-t border-white/10 text-white py-6 rounded-2xl font-black uppercase italic tracking-tighter text-2xl shadow-[0_20px_50px_rgba(37,99,235,0.4)] transform transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center gap-4"
-                        >
-                            {
-                                isPending ? <Loader2 className="animate-spin" size={24} /> : <Sparkles size={24} />}
-                            {
-                                isPending ? t('common.loading') : t('trades.initialize_deal')}
-                        </button>
-                    </div>
-                </div>
+                                {/* Column Headers */}
+                                <div className="flex items-center gap-3 px-4 py-2 text-[9px] font-bold text-slate-600 uppercase tracking-wider border-b border-white/5 bg-slate-950/40">
+                                    <div className="h-8 w-8 shrink-0"></div> {/* Avatar space */}
+                                    <div className="flex-1">Player</div>
+                                    <div className="shrink-0 w-[40px] text-center">Pos</div>
+                                    <div className="shrink-0 w-[45px] text-right">FP</div>
+                                    <div className="shrink-0 flex items-center gap-1 text-right">
+                                        <span className="text-white">Y1</span>
+                                        <span className="text-slate-700">/</span>
+                                        <span className="text-slate-400">Y2</span>
+                                        <span className="text-slate-700">/</span>
+                                        <span className="text-slate-500">Y3</span>
+                                    </div>
+                                    <div className="h-5 w-5 shrink-0"></div> {/* Checkbox space */}
+                                </div>
 
-                {/* RULES CARD */}
-                <div className="bg-slate-900/40 backdrop-blur-3xl border border-white/5 rounded-[2rem] p-8 shadow-2xl">
-                    <div className="flex items-center gap-4 text-amber-500 mb-6">
-                        <div className="p-2 bg-amber-500/10 rounded-lg"><AlertCircle size={20} /></div>
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">{t('trades.fair_trade_protocols')}</h4>
-                    </div>
-                    <p className="text-[11px] text-slate-500 leading-relaxed font-bold uppercase tracking-widest italic">
-                        {t('trades.protocol_description')}
-                    </p>
+                                <div className="space-y-2">
+                                    {team.players.map((player) => (
+                                        <PlayerRow
+                                            key={player.id}
+                                            player={player}
+                                            isSelected={selectedOffers.some(o => o.playerId === player.id)}
+                                            onSelect={() => togglePlayerSelection(player, team.userId || String(team.id))}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             </div>
+
+            {/* Sticky Trade Bar */}
+            <StickyTradeBar
+                totalOutgoing={totalOutgoing}
+                totalIncoming={totalIncoming}
+                onPropose={handlePropose}
+                isPending={isPending}
+                isDisabled={selectedOffers.length === 0}
+                myTeamName={myRoster?.teamName || ''}
+                targetTeamNames={targetRosters.map(t => t.teamName)}
+            />
         </div>
     );
 };
-
-function Loader2({ className, size }: { className: string, size: number }) {
-    return (
-        <svg
-            className={className}
-            xmlns="http://www.w3.org/2000/svg"
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-        </svg>
-    )
-}

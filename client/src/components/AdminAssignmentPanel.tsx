@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLeagueMembers } from '../features/admin/api/useLeagueMembers';
 import { useSearchPlayers } from '../features/admin/api/useSearchPlayers';
 import { useAssignPlayer } from '../features/admin/api/useAssignPlayer';
+import { PremiumSelect } from './PremiumSelect';
 
 
 
@@ -187,26 +188,16 @@ export const AdminAssignmentPanel = () => {
                             {/* 2. SELEZIONA TEAM */}
                             < div className="space-y-3" >
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-4">{t('admin.destination_squad')}</label>
-                                <div className="relative">
-                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-700 pointer-events-none">
-                                        <User size={22} />
-                                    </div>
-                                    <select
-                                        value={targetUserId}
-                                        onChange={e => setTargetUserId(e.target.value)}
-                                        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-5 pl-14 text-white font-black italic tracking-tight focus:border-emerald-500/50 outline-none transition-all appearance-none cursor-pointer shadow-inner"
-                                    >
-                                        <option value="">{t('admin.select_gm_placeholder')}</option>
-                                        {
-                                            members.map((m: any) => (
-                                                <option key={m.userId} value={m.userId}>{m.teamName.toUpperCase()} ({m.ownerName})</option>
-                                            ))
-                                        }
-                                    </select >
-                                    <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-700 pointer-events-none">
-                                        <ChevronRight size={18} className="rotate-90" />
-                                    </div>
-                                </div>
+                                <PremiumSelect
+                                    value={targetUserId}
+                                    onChange={setTargetUserId}
+                                    options={members.map((m: any) => ({
+                                        value: m.userId,
+                                        label: `${m.teamName.toUpperCase()} (${m.ownerName})`
+                                    }))}
+                                    placeholder={t('admin.select_gm_placeholder')}
+                                    icon={<User size={18} />}
+                                />
                             </div >
                         </div >
 

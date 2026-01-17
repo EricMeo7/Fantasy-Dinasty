@@ -133,6 +133,11 @@ const api = {
       axiosInstance.post('/lineup/save', data),
   },
 
+  stats: {
+    getPlayers: <T = any>(params: any) => axiosInstance.get<T>('/stats/players', { params }),
+    getSeasons: <T = any>() => axiosInstance.get<T>('/stats/seasons'),
+  },
+
   // --- PROFILE ---
 
   getProfile: () => axiosInstance.get('/profile'), // Assumendo tu abbia questo endpoint

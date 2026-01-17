@@ -245,8 +245,8 @@ export default function PlayerStatsModal({ player: initialPlayer, isOpen, onClos
                             ) : !fullPlayer.seasonStats || fullPlayer.seasonStats.length === 0 ? (
                                 <div className="text-center py-10 text-slate-500">{t('modals.stats.no_history')}</div>
                             ) : (
-                                <div className="overflow-x-auto rounded-xl border border-slate-800">
-                                    <table className="w-full text-sm text-left text-slate-400">
+                                <div className="responsive-table-container rounded-xl border border-slate-800">
+                                    <table className="w-full text-sm text-left text-slate-400 min-w-table">
                                         <thead className="text-xs text-slate-500 uppercase bg-slate-800">
                                             <tr>
                                                 <th className="px-4 py-3">{t('modals.stats.season')}</th>

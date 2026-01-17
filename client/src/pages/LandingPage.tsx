@@ -22,7 +22,7 @@ export default function LandingPage() {
                     {
                         "@context": "https://schema.org",
                         "@type": "WebSite",
-                        "name": "Legacy",
+                        "name": "Fantasy Dynasty NBA",
                         "alternateName": "Fantasy Dynasty NBA Hub",
                         "url": "https://fantasy-dynasty.pages.dev/"
                     }
@@ -45,7 +45,7 @@ export default function LandingPage() {
                             <Trophy size={18} className="text-white" />
                         </div>
                         <span className="text-lg font-black tracking-tighter text-white uppercase italic">
-                            Legacy <span className="text-emerald-400">Hub</span>
+                            Fantasy <span className="text-emerald-400">Dynasty NBA</span>
                         </span>
                     </div>
 

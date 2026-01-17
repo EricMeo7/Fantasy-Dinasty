@@ -9,6 +9,7 @@ export interface RosterPlayer {
     position: string;
     nbaTeam: string;
     avgPoints: number;
+    fantasyPoints: number;
     salaryYear1: number;
     salaryYear2: number;
     salaryYear3: number;

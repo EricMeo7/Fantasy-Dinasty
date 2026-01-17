@@ -23,6 +23,7 @@ public class PlayerRosterDto
     public double SalaryYear3 { get; set; }
     public int ContractYears { get; set; }
     public bool IsStarter { get; set; }
+    public double FantasyPoints { get; set; }
     public string? InjuryStatus { get; set; }
     public string? InjuryBodyPart { get; set; }
 }

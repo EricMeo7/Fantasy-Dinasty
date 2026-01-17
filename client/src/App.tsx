@@ -6,6 +6,7 @@ import { Capacitor } from '@capacitor/core';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { Loader2 } from 'lucide-react';
+import { Toaster } from 'react-hot-toast';
 
 // Lazy Load Pages for Performance (Code Splitting)
 const Login = lazy(() => import('./pages/Login'));
@@ -24,6 +25,7 @@ const Trades = lazy(() => import('./pages/Trades'));
 const Matchup = lazy(() => import('./pages/Matchup'));
 const Commissioner = lazy(() => import('./pages/Commissioner'));
 const Rules = lazy(() => import('./pages/Rules'));
+const PlayerPool = lazy(() => import('./pages/PlayerPool'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const LoadingFallback = () => (
@@ -84,6 +86,18 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 font-sans">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          className: 'bg-slate-800 text-white border border-white/10 rounded-2xl shadow-2xl backdrop-blur-xl',
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            borderRadius: '1rem',
+          },
+        }}
+      />
       {/* Mostra la Navbar solo se non siamo in una rotta "protetta" */}
       {!shouldHideNavbar && <Navbar />}
 
@@ -115,6 +129,7 @@ function AppContent() {
             <Route path="/trades" element={<Trades />} />
             <Route path="/commissioner" element={<Commissioner />} />
             <Route path="/rules" element={<Rules />} />
+            <Route path="/pool" element={<PlayerPool />} />
             {/* Dashboard Landing Page (Public) */}
             <Route path="/" element={<LandingPage />} />
           </Routes>

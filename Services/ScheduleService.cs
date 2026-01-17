@@ -40,11 +40,18 @@ public class ScheduleService
         // 8 squadre -> 3 sett (Quarti + Semi + Finale)
         int playoffWeeks = (int)Math.Max(1, Math.Ceiling(Math.Log2(playoffTeams)));
 
-        // 1. Pulizia calendario futuro
-        var futureMatches = await _context.Matchups
-            .Where(m => m.LeagueId == leagueId && !m.IsPlayed)
+        // 1. Pulizia TOTALE calendario e formazioni (User Request: "non deve rimanere traccia")
+        var allMatches = await _context.Matchups
+            .Where(m => m.LeagueId == leagueId)
             .ToListAsync();
-        _context.Matchups.RemoveRange(futureMatches);
+        _context.Matchups.RemoveRange(allMatches);
+
+        var allLineups = await _context.DailyLineups
+            .Where(l => l.LeagueId == leagueId)
+            .ToListAsync();
+        _context.DailyLineups.RemoveRange(allLineups);
+
+        await _context.SaveChangesAsync();
         
         // 2. Division Assignment (Robust & Balanced)
         int eastCount = league.Teams.Count(t => t.Division == Division.East);
@@ -86,27 +93,11 @@ public class ScheduleService
         // da "Oggi" o dalla "Data Inizio Lega" se non è ancora iniziata.
         // Se ci sono match passati (IsPlayed=true), NON li tocchiamo e partiamo dalla prima data utile successiva.
         
-        var lastPlayedMatch = await _context.Matchups
-            .Where(m => m.LeagueId == leagueId && m.IsPlayed)
-            .OrderByDescending(m => m.EndAt) // Idealmente usiamo EndAt
-            .FirstOrDefaultAsync();
-
-        int startWeekNumber;
-        if (lastPlayedMatch != null && lastPlayedMatch.WeekNumber > 0)
-        {
-             startWeekNumber = lastPlayedMatch.WeekNumber + 1;
-        }
-        else
-        {
-             startWeekNumber = 1;
-        }
+        // Sempre dalla settimana 1 dopo una rigenerazione totale
+        int startWeekNumber = 1;
 
         DateTime effectiveStartDate = seasonStartDate;
-        if (lastPlayedMatch != null && lastPlayedMatch.EndAt.HasValue)
-        {
-            effectiveStartDate = lastPlayedMatch.EndAt.Value;
-        }
-        else if (effectiveStartDate < DateTime.UtcNow.Date)
+        if (effectiveStartDate < DateTime.UtcNow.Date)
         {
             // Se la lega doveva iniziare nel passato ma non ha giocato nulla, partiamo da oggi?
             // O manteniamo la data storica? Manteniamo data storica user-defined se possibile, 

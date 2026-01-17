@@ -79,6 +79,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // SELECT ... FROM Contracts WHERE TeamId = ...
         builder.Entity<Contract>()
             .HasIndex(c => c.TeamId);
+        
+        builder.Entity<Contract>()
+            .HasIndex(c => c.PlayerId);
 
         // 2. Teams Query
         // SELECT ... FROM Teams WHERE UserId = ... AND LeagueId = ...
@@ -116,6 +119,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             
         builder.Entity<Auction>()
             .HasIndex(a => new { a.LeagueId, a.IsActive });
+
+        // 7. Player Season Stats
+        builder.Entity<PlayerSeasonStat>()
+            .HasIndex(s => new { s.PlayerId, s.Season });
+        
+        // 8. Player Search Optimization
+        builder.Entity<Player>()
+            .HasIndex(p => p.LastName);
+        builder.Entity<Player>()
+            .HasIndex(p => p.FirstName);
 
     }
 }

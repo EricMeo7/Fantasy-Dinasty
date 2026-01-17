@@ -26,8 +26,8 @@ interface Props {
 export const RosterTable = ({ players, onRelease, onOpenStats }: Props) => {
     const { t } = useTranslation();
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+        <div className="responsive-table-container">
+            <table className="w-full text-left border-collapse min-w-table">
                 <thead>
                     <tr className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] bg-slate-950/50">
                         <th className="px-8 py-5">{t('roster.header_player')}</th>

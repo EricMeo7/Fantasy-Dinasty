@@ -37,8 +37,8 @@ export const StandingsTable = ({ standings, title, icon, color = "text-yellow-50
                 </div>
             </div>
 
-            <div className="overflow-x-auto custom-scrollbar flex-1">
-                <table className="w-full text-left border-collapse">
+            <div className="responsive-table-container flex-1">
+                <table className="w-full text-left border-collapse min-w-table">
                     <thead className="sticky top-0 z-10">
                         <tr className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] bg-slate-950/80 backdrop-blur-sm">
                             <th className="px-8 py-5">{t('league.rank')}</th>
