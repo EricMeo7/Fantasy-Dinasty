@@ -142,7 +142,33 @@ export const it = {
                 "f": "Ala (F)",
                 "util": "Utility",
                 "bench": "Panchina",
-                "ir": "IR (Infortunati)"
+                "ir": "IR (Infortunati)",
+                "general": "Generale",
+                "rules": "Regole Gioco",
+                "members": "Membri",
+                "danger_zone": "Danger Zone",
+                "league_name": "Nome Lega",
+                "save_details": "Salva Dettagli",
+                "league_logo": "Logo Lega",
+                "upload_hint": "Clicca per caricare (Max 5MB)",
+                "manage_access": "Gestisci Accessi",
+                "remove_user_title": "Rimuovi Utente",
+                "remove_user_confirm": "Sei sicuro di voler rimuovere {{name}}? Questa azione cancellerà il suo team.",
+                "remove_btn": "Rimuovi",
+                "delete_league": "Elimina Lega",
+                "delete_league_desc": "Sciogli permanentemente questa lega. Questa azione non può essere annullata. Tutte le squadre, la cronologia e i dati andranno persi.",
+                "delete_confirm_placeholder": "Scrivi \"{{name}}\" per confermare",
+                "update_rulebook": "Aggiorna Regolamento",
+                "preview": "Anteprima"
+            },
+            "team_settings": {
+                "title": "Impostazioni Team",
+                "identity": "Identità & Branding",
+                "upload_logo": "Carica Logo",
+                "team_name": "Nome Team",
+                "save_changes": "Salva Modifiche",
+                "error_fetch": "Impossibile recuperare i dati del team",
+                "success_update": "Impostazioni aggiornate"
             },
             "playoff_config": {
                 "title": "Configurazione Calendario",
@@ -662,6 +688,28 @@ export const it = {
             "update_scores_title": "Aggiornamento Punteggi",
             "update_scores_confirm": "Forzare ricalcolo per TUTTE le giornate passate? (Lento)",
             "scores_recalculated": "Punteggi ricalcolati."
+        },
+        "landing": {
+            "seo_title": "Fantasy Dynasty NBA Salary Cap Tool | Legacy Hub",
+            "seo_description": "Lo strumento definitivo per leghe Fantasy Basketball Dynasty. Gestisci salari reali NBA, contratti, cap space e luxury tax automaticamente.",
+            "hero_badge": "L'Evoluzione del Fantasy Basket",
+            "hero_title_prefix": "Domina la tua",
+            "hero_title_accent": "Lega Dynasty",
+            "hero_title_suffix": "con i Salari Reali NBA",
+            "hero_subtitle": "Gestione Contratti, Trade Machine & Calcolatore Cap Space. Porta il realismo del front office nella tua lega fantasy.",
+            "cta_launch": "Avvia App",
+            "cta_learn_more": "Scopri di Più",
+            "feature_1_title": "Gestione Salary Cap",
+            "feature_1_desc": "Sincronizzazione automatica con i contratti reali NBA. Gestisci il salary cap del tuo team, calcola la luxury tax e pianifica le stagioni future con precisione.",
+            "feature_2_title": "Contratti Rookie Scale",
+            "feature_2_desc": "Gestisci senza problemi i contratti rookie scale e le estensioni. Il sistema traccia i draft rights, le rookie exceptions e i two-way contracts.",
+            "feature_3_title": "Free Agency & Trades",
+            "feature_3_desc": "Simula scambi complessi con la nostra Trade Machine. Gestisci le aste Free Agency con aggiornamenti in tempo reale dello spazio salariale.",
+            "footer_headline": "Costruito per",
+            "footer_accent": "Hardcore",
+            "footer_suffix": "Commissioners",
+            "footer_text": "Legacy Hub elimina i fogli di calcolo e i conteggi manuali. Offriamo una piattaforma robusta per le Leghe Dynasty che vogliono rispecchiare la complessità e la strategia del vero front office NBA.",
+            "copyright": "Legacy Hub. Fantasy Dynasty NBA."
         }
     }
 };

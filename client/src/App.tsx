@@ -24,6 +24,7 @@ const Trades = lazy(() => import('./pages/Trades'));
 const Matchup = lazy(() => import('./pages/Matchup'));
 const Commissioner = lazy(() => import('./pages/Commissioner'));
 const Rules = lazy(() => import('./pages/Rules'));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -114,8 +115,8 @@ function AppContent() {
             <Route path="/trades" element={<Trades />} />
             <Route path="/commissioner" element={<Commissioner />} />
             <Route path="/rules" element={<Rules />} />
-            {/* Redirect di default */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            {/* Dashboard Landing Page (Public) */}
+            <Route path="/" element={<LandingPage />} />
           </Routes>
         </Suspense>
       </div>

@@ -20,8 +20,10 @@ public class TradeDto
 public class TradeOfferDto
 {
     public string FromUserId { get; set; } = string.Empty;
+    public int FromTeamId { get; set; }
     public string FromTeamName { get; set; } = string.Empty;
     public string ToUserId { get; set; } = string.Empty;
+    public int ToTeamId { get; set; }
     public string ToTeamName { get; set; } = string.Empty;
     public int PlayerId { get; set; }
     public string PlayerName { get; set; } = string.Empty;

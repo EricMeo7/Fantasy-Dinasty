@@ -4,7 +4,7 @@ import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import {
     ArrowLeft, X, Activity, Loader2, Shirt, Plus,
-    ChevronUp, ChevronDown, Lock
+    ChevronUp, ChevronDown, Lock, CalendarOff
 } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import GameStatsModal from '../components/GameStatsModal';
@@ -320,7 +320,30 @@ export default function Matchup() {
     const dailyTotal = roster.filter(p => p.isStarter).reduce((sum, p) => sum + (p.realPoints || 0), 0);
     const allBench = roster.filter(p => !p.isStarter).sort((a, b) => (a.benchOrder || 99) - (b.benchOrder || 99));
 
-    if (loadingMatch || !matchup || !selectedDate) return (
+    if (loadingMatch) return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500">
+            <Loader2 className="animate-spin mb-4" size={40} />
+            <p className="font-mono text-xs uppercase tracking-widest">{t('matchup.entering_court')}</p>
+        </div>
+    );
+
+    if (!matchup) return (
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500 p-6 text-center">
+            <div className="w-24 h-24 bg-slate-900 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl border border-slate-800 animate-in zoom-in duration-500">
+                <CalendarOff size={40} className="text-slate-600" />
+            </div>
+            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-3">Calendario Non Presente</h2>
+            <p className="text-sm font-bold text-slate-500 max-w-xs leading-relaxed uppercase tracking-wide">
+                Nessuna partita in programma per questa settimana.
+            </p>
+            <button onClick={() => navigate('/dashboard')} className="mt-8 px-10 py-4 bg-slate-900 border border-slate-700 hover:border-emerald-500 text-white font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-lg hover:shadow-emerald-500/10 active:scale-95 flex items-center gap-2 group">
+                <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
+                Torna alla Dashboard
+            </button>
+        </div>
+    );
+
+    if (!selectedDate) return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500">
             <Loader2 className="animate-spin mb-4" size={40} />
             <p className="font-mono text-xs uppercase tracking-widest">{t('matchup.entering_court')}</p>
@@ -356,15 +379,31 @@ export default function Matchup() {
                     <div className="flex justify-center bg-slate-900 p-1 rounded-2xl border border-slate-800 self-center shadow-2xl">
                         <button
                             onClick={() => setViewingTeamId(matchup.homeTeamId)}
-                            className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${viewingTeamId === matchup.homeTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${viewingTeamId === matchup.homeTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            {matchup.homeTeam} {myTeam?.id === matchup.homeTeamId && " (TU)"}
+                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950/50 flex-shrink-0">
+                                <img
+                                    src={`${CONFIG.API_BASE_URL}/team/${matchup.homeTeamId}/logo?t=${new Date().getTime()}`}
+                                    alt={matchup.homeTeam}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                                />
+                            </div>
+                            <span>{matchup.homeTeam} {myTeam?.id === matchup.homeTeamId && " (TU)"}</span>
                         </button>
                         <button
                             onClick={() => setViewingTeamId(matchup.awayTeamId)}
-                            className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${viewingTeamId === matchup.awayTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${viewingTeamId === matchup.awayTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            {matchup.awayTeam} {myTeam?.id === matchup.awayTeamId && " (TU)"}
+                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950/50 flex-shrink-0">
+                                <img
+                                    src={`${CONFIG.API_BASE_URL}/team/${matchup.awayTeamId}/logo?t=${new Date().getTime()}`}
+                                    alt={matchup.awayTeam}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                                />
+                            </div>
+                            <span>{matchup.awayTeam} {myTeam?.id === matchup.awayTeamId && " (TU)"}</span>
                         </button>
                     </div>
 

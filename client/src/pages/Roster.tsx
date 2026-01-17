@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ArrowRight, Shirt, LayoutDashboard, Loader2, Sparkles, Activity } from 'lucide-react';
+import { Users, ArrowRight, Shirt, LayoutDashboard, Loader2, Sparkles, Activity, Settings } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { useMyRoster } from '../features/roster/api/useMyRoster';
 import { useTeamBudget } from '../features/team/api/useTeamBudget';
+import { useMyTeamInfo } from '../features/team/api/useMyTeamInfo'; // NEW
 import { BudgetOverview } from '../features/roster/components/BudgetOverview';
 import { useReleasePlayer } from '../features/team/api/useReleasePlayer';
 import { RosterTable } from '../features/roster/components/RosterTable';
 import { PlayerCard } from '../features/roster/components/PlayerCard';
 import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModal';
 import ReleaseModal from '../components/ReleaseModal';
+import TeamSettingsModal from '../components/TeamSettingsModal';
 import { useTranslation } from 'react-i18next';
+import { CONFIG } from '../config';
 import SEO from '../components/SEO/SEO';
 
 export default function Roster() {
@@ -21,12 +24,14 @@ export default function Roster() {
     // React Query Hooks
     const { data: players = [], isLoading: loadingRoster } = useMyRoster();
     const { data: finance, isLoading: loadingBudget } = useTeamBudget();
+    const { data: myTeam } = useMyTeamInfo(); // NEW
 
     // Local State for Modals
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerFull | null>(null);
     const [isStatsOpen, setIsStatsOpen] = useState(false);
     const [releaseTarget, setReleaseTarget] = useState<PlayerFull | null>(null);
     const [isReleaseOpen, setIsReleaseOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Actions
     const handleReleaseClick = (player: any) => {
@@ -92,12 +97,32 @@ export default function Roster() {
                     onConfirm={confirmRelease}
                 />
 
+                <TeamSettingsModal
+                    isOpen={isSettingsOpen}
+                    onClose={() => setIsSettingsOpen(false)}
+                />
+
                 {/* Header Navigation */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-8 md:mb-16">
                     <div className="flex items-center gap-4 md:gap-8">
-                        <div className="p-3 md:p-5 bg-slate-900 border border-white/5 rounded-2xl md:rounded-3xl shadow-2xl relative text-blue-500">
-                            <Shirt size={32} className="relative z-10 animate-in bounce-in duration-1000 md:hidden" />
-                            <Shirt size={40} className="relative z-10 animate-in bounce-in duration-1000 hidden md:block" />
+                        <div className="p-3 md:p-5 bg-slate-900 border border-white/5 rounded-2xl md:rounded-3xl shadow-2xl relative text-blue-500 overflow-hidden group">
+                            {myTeam?.id ? (
+                                <img
+                                    src={`${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}`}
+                                    alt={myTeam.name}
+                                    className="w-16 h-16 md:w-32 md:h-32 object-cover relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).parentElement!.className += ' flex items-center justify-center';
+                                        (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="relative z-10 animate-in bounce-in duration-1000 hidden md:block"><path d="M20.38 3.4a2 2 0 0 0-2-1H5.62a2 2 0 0 0-2 1L2 22h20l-1.62-18.6Z"/><path d="M12 12v10"/><path d="M16 12v10"/><path d="M8 12v10"/><path d="M12 2v2"/><path d="M9 2v2"/><path d="M15 2v2"/></svg>';
+                                    }}
+                                />
+                            ) : (
+                                <>
+                                    <Shirt size={32} className="relative z-10 animate-in bounce-in duration-1000 md:hidden" />
+                                    <Shirt size={40} className="relative z-10 animate-in bounce-in duration-1000 hidden md:block" />
+                                </>
+                            )}
                             <div className="absolute inset-0 bg-blue-500/5 blur-xl rounded-full"></div>
                         </div>
                         <div>
@@ -107,9 +132,14 @@ export default function Roster() {
                             >
                                 <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> Return to Dashboard
                             </button>
-                            <h1 className="text-3xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
-                                Personnel <span className="text-blue-500">Roster</span>
-                            </h1>
+                            <div className="flex items-center gap-4">
+                                <h1 className="text-3xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
+                                    {myTeam?.name || "Personnel"} <span className="text-blue-500">Roster</span>
+                                </h1>
+                                <button onClick={() => setIsSettingsOpen(true)} className="p-2 md:p-3 rounded-full bg-slate-900/50 border border-white/10 text-slate-500 hover:text-white hover:bg-slate-800 transition-all hover:scale-105" title={t('team_settings.title')}>
+                                    <Settings size={20} />
+                                </button>
+                            </div>
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">Squad Entity Configuration & Contracts</p>
                         </div>
                     </div>

@@ -112,8 +112,8 @@ export default function Login() {
       />
       <main className="min-h-screen bg-slate-950 flex flex-col items-center relative overflow-hidden font-sans text-slate-200 selection:bg-emerald-500/30">
 
-        {/* Language Switcher */}
-        <div className="absolute top-6 right-6 z-50">
+        {/* Top Bar */}
+        <div className="w-full max-w-7xl px-4 pt-6 flex justify-end relative z-50">
           <LanguageSwitcher />
         </div>
 
@@ -124,10 +124,10 @@ export default function Login() {
         </div>
 
         {/* --- HERO SECTION (Login + Title) --- */}
-        <div className="w-full max-w-7xl px-4 py-12 lg:py-20 relative z-10 flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+        <div className="w-full max-w-7xl px-4 py-12 lg:py-20 relative z-10 grid grid-cols-1 lg:grid-cols-2 lg:items-start gap-8 lg:gap-16">
 
-          {/* Left Content (Marketing Hero) */}
-          <div className="flex-1 text-center lg:text-left space-y-8">
+          {/* 1. Badge & Title (Mobile: First) */}
+          <div className="space-y-6 text-center lg:text-left lg:col-start-1 lg:row-start-1">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-700/50 backdrop-blur-md animate-fade-in-up">
               <Sparkles size={14} className="text-amber-400" />
               <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">{t('login.beta_version')} 0.1.1.45</span>
@@ -137,36 +137,10 @@ export default function Login() {
               Fantasy <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-br from-emerald-400 to-cyan-400">Dynasty NBA</span>
             </h1>
-
-            <p className="text-lg lg:text-xl text-slate-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up delay-200">
-              {t('login.build_legacy')}
-            </p>
-
-            {/* Features Grid (Mini) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12 animate-fade-in-up delay-300">
-              <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-emerald-500/30 transition-colors">
-                <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3 text-emerald-400">
-                  <Lock size={20} />
-                </div>
-                <h3 className="font-bold text-white uppercase text-sm">{t('login.feature_1_title')}</h3>
-              </div>
-              <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-blue-500/30 transition-colors">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3 text-blue-400">
-                  <Sparkles size={20} />
-                </div>
-                <h3 className="font-bold text-white uppercase text-sm">{t('login.feature_2_title')}</h3>
-              </div>
-              <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-purple-500/30 transition-colors">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3 text-purple-400">
-                  <ShieldCheck size={20} />
-                </div>
-                <h3 className="font-bold text-white uppercase text-sm">{t('login.feature_3_title')}</h3>
-              </div>
-            </div>
           </div>
 
-          {/* Right Content (Login Card) */}
-          <div className="w-full max-w-md lg:w-[480px]">
+          {/* 2. Login Card (Mobile: Second - Immediately after Title) */}
+          <div className="w-full max-w-md mx-auto lg:mx-0 lg:w-[480px] lg:col-start-2 lg:row-span-3 lg:row-start-1 self-start">
             <div className="bg-slate-900/60 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden group">
               {/* Card Glow */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/20 rounded-full blur-[80px] -mr-32 -mt-32 group-hover:bg-emerald-500/30 transition-all duration-1000"></div>
@@ -366,13 +340,43 @@ export default function Login() {
 
             </div>
           </div>
+
+          {/* 3. Description & Features (Mobile: Third) */}
+          <div className="space-y-8 text-center lg:text-left lg:col-start-1 lg:row-start-2">
+            <p className="text-lg lg:text-xl text-slate-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed animate-fade-in-up delay-200">
+              {t('login.build_legacy')}
+            </p>
+
+            {/* Features Grid (Mini) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-12 animate-fade-in-up delay-300">
+              <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-emerald-500/30 transition-colors">
+                <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-3 text-emerald-400">
+                  <Lock size={20} />
+                </div>
+                <h3 className="font-bold text-white uppercase text-sm">{t('login.feature_1_title')}</h3>
+              </div>
+              <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-blue-500/30 transition-colors">
+                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center mb-3 text-blue-400">
+                  <Sparkles size={20} />
+                </div>
+                <h3 className="font-bold text-white uppercase text-sm">{t('login.feature_2_title')}</h3>
+              </div>
+              <div className="bg-slate-900/40 p-5 rounded-2xl border border-white/5 backdrop-blur-sm hover:border-purple-500/30 transition-colors">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3 text-purple-400">
+                  <ShieldCheck size={20} />
+                </div>
+                <h3 className="font-bold text-white uppercase text-sm">{t('login.feature_3_title')}</h3>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* --- FOOTER SECTION --- */}
         <div className="w-full border-t border-slate-800 bg-slate-950 z-10 mt-auto">
           <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-              <img src="/logo.svg" className="w-8 h-8" alt="Logo" />
+              <img src="/logo.png" className="w-8 h-8" alt="Logo" />
               <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Fantasy Dynasty NBA</span>
             </div>
             <div className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">

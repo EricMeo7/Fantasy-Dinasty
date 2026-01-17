@@ -3,8 +3,10 @@ import api from '../../../services/api';
 
 export interface TradeOffer {
     fromUserId: string;
+    fromTeamId: number; // NEW
     fromTeamName: string;
     toUserId: string;
+    toTeamId: number; // NEW
     toTeamName: string;
     playerId: number;
     playerName: string;

@@ -117,12 +117,12 @@ public class MatchupService
             if (weekStart <= DateTime.UtcNow)
             {
                 // Risolvi TeamId (int) dal UserId (string) del Matchup
-                if (userToTeamMap.TryGetValue(match.HomeTeamId, out int homeTeamId))
+                if (!string.IsNullOrEmpty(match.HomeTeamId) && userToTeamMap.TryGetValue(match.HomeTeamId, out int homeTeamId))
                 {
                     match.HomeScore = CalculateWeeklyScoreInMemory(homeTeamId, weekStart, weekEnd, settings, allLineups, allLogs);
                 }
                 
-                if (userToTeamMap.TryGetValue(match.AwayTeamId, out int awayTeamId))
+                if (!string.IsNullOrEmpty(match.AwayTeamId) && userToTeamMap.TryGetValue(match.AwayTeamId, out int awayTeamId))
                 {
                      match.AwayScore = CalculateWeeklyScoreInMemory(awayTeamId, weekStart, weekEnd, settings, allLineups, allLogs);
                 }
@@ -249,7 +249,7 @@ public class MatchupService
             .OrderByDescending(d => d.Date)
             .FirstOrDefaultAsync();
 
-        List<DailyLineup> templateLineup = null;
+        List<DailyLineup>? templateLineup = null;
 
         if (lastValidLineup != null)
         {
@@ -282,7 +282,9 @@ public class MatchupService
         foreach (var date in missingDates)
         {
             // Clona il template per la nuova data
-            foreach (var templateItem in templateLineup)
+            if (templateLineup != null)
+            {
+                foreach (var templateItem in templateLineup)
             {
                 newEntriesBuffer.Add(new DailyLineup
                 {
@@ -293,6 +295,7 @@ public class MatchupService
                     Slot = templateItem.Slot,
                     BenchOrder = templateItem.BenchOrder
                 });
+            }
             }
         }
 

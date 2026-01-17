@@ -17,7 +17,7 @@ export default function SEO({
     name = 'Fantasy Dynasty NBA',
     type = 'website',
     url = 'https://fantasy-dinasty.pages.dev',
-    image = '/logo.svg', // Assumes logo.svg is in public folder
+    image = '/logo.png', // Assumes logo.png is in public folder
     structuredData
 }: SEOProps) {
 

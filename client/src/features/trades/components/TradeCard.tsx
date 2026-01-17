@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Trade } from '../api/useMyTrades';
 import { useAcceptTrade } from '../api/useAcceptTrade';
 import { useRejectTrade } from '../api/useRejectTrade';
+import { CONFIG } from '../../../config';
 import { CheckCircle2, Clock, Loader2, ArrowRight, ShieldAlert, Sparkles, XCircle } from 'lucide-react';
 
 interface TradeCardProps {
@@ -23,8 +24,8 @@ export const TradeCard: React.FC<TradeCardProps> = ({ trade }) => {
             <div className="p-8 bg-slate-950/40 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 px-10">
                 <div className="flex items-center gap-6" >
                     <div className={`p-4 rounded-2xl shadow-inner border ${trade.isMeProposer
-                            ? 'bg-blue-600/10 text-blue-500 border-blue-500/20 shadow-blue-500/10'
-                            : 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-500/10'
+                        ? 'bg-blue-600/10 text-blue-500 border-blue-500/20 shadow-blue-500/10'
+                        : 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-500/10'
                         }`}>
                         {trade.isMeProposer ? <Sparkles size={24} /> : <ShieldAlert size={24} />}
                     </div>
@@ -76,10 +77,12 @@ export const TradeCard: React.FC<TradeCardProps> = ({ trade }) => {
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 bg-slate-900 px-2.5 py-1 rounded-lg w-fit border border-white/5">
                                         <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{t('trades.from')}</span>
+                                        <div className="w-4 h-4 rounded bg-slate-800 overflow-hidden"><img src={`${CONFIG.API_BASE_URL}/team/${off.fromTeamId}/logo?t=${new Date().getTime()}`} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLElement).style.display = 'none'} /></div>
                                         <span className="text-[9px] font-black text-white uppercase truncate max-w-[100px]">{off.fromTeamName}</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-blue-600/10 px-2.5 py-1 rounded-lg w-fit border border-blue-500/20">
                                         <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">{t('trades.towards')}</span>
+                                        <div className="w-4 h-4 rounded bg-slate-800 overflow-hidden"><img src={`${CONFIG.API_BASE_URL}/team/${off.toTeamId}/logo?t=${new Date().getTime()}`} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLElement).style.display = 'none'} /></div>
                                         <span className="text-[9px] font-black text-blue-400 uppercase truncate max-w-[100px]">{off.toTeamName}</span>
                                     </div>
                                 </div>

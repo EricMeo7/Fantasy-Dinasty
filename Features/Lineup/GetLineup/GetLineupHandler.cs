@@ -121,7 +121,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
 
         foreach (var entry in lineupEntries)
         {
-            var game = gamesMap.FirstOrDefault(g => g.HomeTeam == entry.Player.NbaTeam || g.AwayTeam == entry.Player.NbaTeam);
+            var game = gamesMap.FirstOrDefault(g => g.HomeTeam == entry.Player!.NbaTeam || g.AwayTeam == entry.Player!.NbaTeam);
             var liveLog = logsToday.FirstOrDefault(l => l.PlayerId == entry.PlayerId);
 
             string opponent = "";
@@ -130,7 +130,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
 
             if (hasGame)
             {
-                bool isHome = game!.HomeTeam == entry.Player.NbaTeam;
+                bool isHome = game!.HomeTeam == entry.Player!.NbaTeam;
                 opponent = isHome ? game.AwayTeam : "@" + game.HomeTeam;
                 gameTime = game.Status;
             }
@@ -139,18 +139,18 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
             {
                 Id = entry.Id,
                 PlayerId = entry.PlayerId,
-                ExternalId = entry.Player.ExternalId,
-                Name = $"{entry.Player.FirstName} {entry.Player.LastName}",
-                Position = entry.Player.Position,
-                NbaTeam = entry.Player.NbaTeam,
+                ExternalId = entry.Player!.ExternalId,
+                Name = $"{entry.Player!.FirstName} {entry.Player!.LastName}",
+                Position = entry.Player!.Position,
+                NbaTeam = entry.Player!.NbaTeam,
                 IsStarter = entry.IsStarter,
                 Slot = entry.Slot, // Map the slot
                 BenchOrder = entry.BenchOrder,
                 HasGame = hasGame,
                 Opponent = opponent,
                 GameTime = gameTime,
-                InjuryStatus = entry.Player.InjuryStatus,
-                InjuryBodyPart = entry.Player.InjuryBodyPart,
+                InjuryStatus = entry.Player!.InjuryStatus,
+                InjuryBodyPart = entry.Player!.InjuryBodyPart,
                 RealPoints = liveLog?.FantasyPoints,
 
                 GamePoints = liveLog?.Points,
@@ -161,10 +161,10 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                 GameTurnovers = liveLog?.Turnovers,
                 GameMinutes = liveLog?.Minutes.ToString() ?? "0",
 
-                AvgPoints = entry.Player.AvgPoints,
-                AvgRebounds = entry.Player.AvgRebounds,
-                AvgAssists = entry.Player.AvgAssists,
-                AvgFantasyPoints = entry.Player.FantasyPoints
+                AvgPoints = entry.Player!.AvgPoints,
+                AvgRebounds = entry.Player!.AvgRebounds,
+                AvgAssists = entry.Player!.AvgAssists,
+                AvgFantasyPoints = entry.Player!.FantasyPoints
             });
         }
 

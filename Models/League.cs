@@ -19,6 +19,10 @@ public class League
     public DateTime? SeasonStartDate { get; set; }
     // --- ADD THIS PROPERTY ---
     public double MinBidAmount { get; set; } = 1.0;
+    
+    // Logo Storage
+    public byte[]? LogoData { get; set; }
+    public string? LogoContentType { get; set; }
     // -------------------------
 
     public LeagueSettings? Settings { get; set; } // Navigator

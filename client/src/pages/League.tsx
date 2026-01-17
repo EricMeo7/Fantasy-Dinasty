@@ -1,12 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Loader2, Activity, Globe, ArrowRight } from 'lucide-react';
 import { useLeagueDetails } from '../features/league/api/useLeagueDetails';
+import { CONFIG } from '../config';
 import { LeagueHeader } from '../features/league/components/LeagueHeader';
 import { StandingsTable } from '../features/league/components/StandingsTable';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO/SEO';
 
 export default function League() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { data: league, isLoading, isError } = useLeagueDetails();
 
@@ -57,8 +60,8 @@ export default function League() {
                             >
                                 <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> Return to Dashboard
                             </button>
-                            <h1 className="text-5xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
-                                League <span className="text-amber-500 text-6xl md:text-8xl px-2">Matrix</span>
+                            <h1 className="text-3xl md:text-7xl font-black text-white flex flex-col md:flex-row md:items-center gap-1 md:gap-4 tracking-tighter italic uppercase leading-none">
+                                League <span className="text-amber-500 text-3xl md:text-8xl md:px-2">Matrix</span>
                             </h1>
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">Global Competitive Standings & Assets</p>
                         </div>
@@ -81,7 +84,20 @@ export default function League() {
 
                         <div className="px-10 py-10 border-b border-white/5 bg-slate-950/40 flex flex-col md:flex-row justify-between items-center gap-6">
                             <div className="flex items-center gap-5">
-                                <div className="p-3 bg-amber-600/10 rounded-2xl border border-amber-500/20 text-amber-500"><Globe size={24} /></div>
+                                <div className="h-16 w-16 rounded-2xl border border-amber-500/20 overflow-hidden relative bg-slate-900 flex items-center justify-center">
+                                    <img
+                                        src={`${CONFIG.API_BASE_URL}/league/${localStorage.getItem('selectedLeagueId')}/logo?t=${new Date().getTime()}`}
+                                        alt={t('modals.league_settings.league_logo')}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                        }}
+                                    />
+                                    <div className="hidden absolute inset-0 flex items-center justify-center text-amber-500">
+                                        <Globe size={24} />
+                                    </div>
+                                </div>
                                 <div>
                                     <h3 className="font-black text-white uppercase tracking-tighter text-3xl italic leading-none">{league.name}</h3>
                                     <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest mt-2">Official 2024/2025 Regular Season</p>

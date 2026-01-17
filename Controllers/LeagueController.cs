@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace FantasyBasket.API.Controllers;
 
@@ -10,10 +11,12 @@ namespace FantasyBasket.API.Controllers;
 public class LeagueController : ControllerBase
 {
     private readonly MediatR.IMediator _mediator;
+    private readonly Data.ApplicationDbContext _context;
 
-    public LeagueController(MediatR.IMediator mediator)
+    public LeagueController(MediatR.IMediator mediator, Data.ApplicationDbContext context)
     {
         _mediator = mediator;
+        _context = context;
     }
 
     // POST: api/league/create
@@ -73,5 +76,116 @@ public class LeagueController : ControllerBase
         var query = new Features.League.GetAllRosters.GetAllRostersQuery(leagueId);
         var result = await _mediator.Send(query);
         return Ok(result);
+    }
+
+    // ==========================================
+    // LEAGUE SETTINGS & LOGO (Direct DB Access)
+    // ==========================================
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateLeague(int id, [FromBody] Models.Dto.UpdateLeagueDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        // Auth check manually since using direct DB
+        var team = await _context.Teams.FirstOrDefaultAsync(t => t.LeagueId == id && t.UserId == userId);
+        if (team == null || !team.IsAdmin) return Forbid();
+
+        var league = await _context.Leagues.FindAsync(id);
+        if (league == null) return NotFound();
+
+        league.Name = dto.Name;
+        // Optionally update other settings here
+        
+        await _context.SaveChangesAsync();
+        return Ok(league);
+    }
+
+    [HttpPost("{id}/logo")]
+    public async Task<IActionResult> UploadLogo(int id, IFormFile file)
+    {
+        if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
+        if (file.Length > 5 * 1024 * 1024) return BadRequest("File too large (Max 5MB).");
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        // Check Admin
+        var team = await _context.Teams.FirstOrDefaultAsync(t => t.LeagueId == id && t.UserId == userId);
+        if (team == null || !team.IsAdmin) return Forbid();
+
+        var league = await _context.Leagues.FindAsync(id);
+        if (league == null) return NotFound();
+
+        using (var memoryStream = new MemoryStream())
+        {
+            await file.CopyToAsync(memoryStream);
+            league.LogoData = memoryStream.ToArray();
+            league.LogoContentType = file.ContentType;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Logo uploaded successfully" });
+    }
+
+    [HttpGet("{id}/logo")]
+    [AllowAnonymous] // Allow public access for images (optional, usually ok for logos)
+    public async Task<IActionResult> GetLogo(int id)
+    {
+        var league = await _context.Leagues
+            .Where(l => l.Id == id)
+            .Select(l => new { l.LogoData, l.LogoContentType }) // Projection to only fetch image data
+            .FirstOrDefaultAsync();
+
+        if (league == null || league.LogoData == null)
+        {
+            // Return placeholder or 404
+            return NotFound("No logo found");
+        }
+
+        Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+        Response.Headers.Append("Pragma", "no-cache");
+        Response.Headers.Append("Expires", "0");
+
+        return File(league.LogoData, league.LogoContentType ?? "image/png");
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteLeague(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var team = await _context.Teams.FirstOrDefaultAsync(t => t.LeagueId == id && t.UserId == userId);
+        
+        if (team == null || !team.IsAdmin) return Forbid();
+
+        var league = await _context.Leagues.FindAsync(id);
+        if (league == null) return NotFound();
+
+        _context.Leagues.Remove(league); // Cascading delete should handle teams? Need to check foreign keys
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "League deleted" });
+    }
+
+    [HttpDelete("{id}/teams/{teamId}")]
+    public async Task<IActionResult> RemoveTeam(int id, int teamId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        // 1. Am I Admin?
+        var adminTeam = await _context.Teams.FirstOrDefaultAsync(t => t.LeagueId == id && t.UserId == currentUserId);
+        if (adminTeam == null || !adminTeam.IsAdmin) return Forbid();
+
+        // 2. Find Target Team
+        var targetTeam = await _context.Teams.FindAsync(teamId);
+        if (targetTeam == null) return NotFound("Team not found");
+        if (targetTeam.LeagueId != id) return BadRequest("Team belongs to another league");
+
+        // Prevent suicide (optional)
+        if (targetTeam.UserId == currentUserId) return BadRequest("Cannot kick yourself. Use 'Leave League' or Delete League.");
+
+        _context.Teams.Remove(targetTeam);
+        await _context.SaveChangesAsync();
+        
+        return Ok(new { message = "Team removed from league" });
     }
 }

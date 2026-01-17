@@ -283,6 +283,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 
 builder.Services.AddHostedService<ScoreUpdateService>();
+builder.Services.AddHealthChecks();
+builder.Services.AddHostedService<KeepAliveWorker>();
 
 // ==========================================
 // 2. BUILD DELL'APP
@@ -315,6 +317,7 @@ app.UseAuthorization(); // Questo attiva i controlli [Authorize]
 
 app.MapHub<DraftHub>("/drafthub");
 app.MapHub<MatchupHub>("/matchuphub");
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();

@@ -31,10 +31,10 @@ public class GetMyTradesHandler : IRequestHandler<GetMyTradesQuery, Result<List<
                      o.FromUserId,
                      o.ToUserId,
                      o.PlayerId,
-                     o.Player.FirstName,
-                     o.Player.LastName,
-                     o.Player.Position,
-                     o.Player.ExternalId
+                     o.Player!.FirstName,
+                     o.Player!.LastName,
+                     o.Player!.Position,
+                     o.Player!.ExternalId
                 }).ToList(),
                 Acceptances = t.Acceptances.Select(a => a.UserId).ToList()
             })
@@ -51,8 +51,8 @@ public class GetMyTradesHandler : IRequestHandler<GetMyTradesQuery, Result<List<
         var teamsMap = await _context.Teams
             .Where(t => t.LeagueId == request.LeagueId && teamUserIds.Contains(t.UserId))
             .AsNoTracking()
-            .Select(t => new { t.UserId, t.Name })
-            .ToDictionaryAsync(t => t.UserId, t => t.Name, cancellationToken);
+            .Select(t => new { t.UserId, t.Id, t.Name })
+            .ToDictionaryAsync(t => t.UserId, t => new { t.Id, t.Name }, cancellationToken);
 
         var result = trades.Select(t =>
         {
@@ -72,16 +72,24 @@ public class GetMyTradesHandler : IRequestHandler<GetMyTradesQuery, Result<List<
                 IsMeProposer = isMeProposer,
                 DidIAccept = didIAccept,
                 CanIAccept = canIAccept,
-                Offers = t.Offers.Select(o => new TradeOfferDto
+                Offers = t.Offers.Select(o => 
                 {
-                    FromUserId = o.FromUserId,
-                    FromTeamName = teamsMap.GetValueOrDefault(o.FromUserId, "N/A"),
-                    ToUserId = o.ToUserId,
-                    ToTeamName = teamsMap.GetValueOrDefault(o.ToUserId, "N/A"),
-                    PlayerId = o.PlayerId,
-                    PlayerName = $"{o.FirstName} {o.LastName}",
-                    PlayerPosition = o.Position,
-                    PlayerExternalId = o.ExternalId
+                    var fromTeam = teamsMap.GetValueOrDefault(o.FromUserId);
+                    var toTeam = teamsMap.GetValueOrDefault(o.ToUserId);
+
+                    return new TradeOfferDto
+                    {
+                        FromUserId = o.FromUserId,
+                        FromTeamId = fromTeam?.Id ?? 0,
+                        FromTeamName = fromTeam?.Name ?? "N/A",
+                        ToUserId = o.ToUserId,
+                        ToTeamId = toTeam?.Id ?? 0,
+                        ToTeamName = toTeam?.Name ?? "N/A",
+                        PlayerId = o.PlayerId,
+                        PlayerName = $"{o.FirstName} {o.LastName}",
+                        PlayerPosition = o.Position,
+                        PlayerExternalId = o.ExternalId
+                    };
                 }).ToList()
             };
         }).ToList();

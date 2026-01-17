@@ -11,8 +11,10 @@ import { useMyTrades } from '../features/trades/api/useMyTrades';
 import { useLeagueStatus } from '../features/admin/api/useLeagueStatus';
 import { useMatchDetails } from '../features/league/api/useMatchDetails';
 import { useMyRoster } from '../features/roster/api/useMyRoster';
+import { useMyTeamInfo } from '../features/team/api/useMyTeamInfo'; // NEW
 import { useQuery } from '@tanstack/react-query';
 import api from '../services/api';
+import { CONFIG } from '../config';
 import LineupTimer from '../components/LineupTimer';
 import SEO from '../components/SEO/SEO';
 
@@ -25,8 +27,7 @@ export default function Dashboard() {
   const { data: currentMatch, isLoading: loadingMatch } = useMatchDetails();
   const { data: roster = [], isLoading: loadingRoster } = useMyRoster();
   const { data: trades = [] } = useMyTrades();
-
-
+  const { data: myTeam } = useMyTeamInfo(); // NEW
 
   const todayStr = new Date().toISOString().split('T')[0];
   const { data: lockStatus } = useQuery({
@@ -68,7 +69,7 @@ export default function Dashboard() {
             {currentMatch ? (
               <div
                 onClick={() => navigate('/matches')}
-                className="bg-slate-900/60 backdrop-blur-3xl border border-white/5 hover:border-blue-500/30 rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative overflow-hidden group cursor-pointer transition-all duration-500 h-auto min-h-[24rem] md:h-[28rem] flex flex-col justify-between"
+                className="bg-slate-900/60 backdrop-blur-3xl border border-white/5 hover:border-blue-500/30 rounded-[2rem] md:rounded-[3rem] p-6 md:p-8 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative overflow-hidden group cursor-pointer transition-all duration-500 h-auto min-h-[24rem] md:min-h-[28rem] flex flex-col justify-between"
               >
                 <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-125 transition-transform duration-1000"><Trophy size={120} /></div>
                 <div className="flex justify-between items-start mb-6 md:mb-8">
@@ -87,28 +88,34 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-between gap-2 md:gap-4">
+                <div className="flex items-center justify-between gap-2 md:gap-4 relative z-10">
                   <div className="flex flex-col flex-1">
-                    <div className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-2 md:mb-3 ${currentMatch.homeScore > currentMatch.awayScore ? "text-blue-400" : "text-slate-600"}`}>
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-950/80 border border-slate-800 mb-4 overflow-hidden shadow-lg self-start">
+                      <img src={`${CONFIG.API_BASE_URL}/team/${currentMatch.homeTeamId}/logo?t=${new Date().getTime()}`} alt={currentMatch.homeTeam} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
+                    </div>
+                    <div className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 ${currentMatch.homeScore > currentMatch.homeScore ? "text-blue-400" : "text-slate-600"}`}>
                       {currentMatch.homeScore > currentMatch.awayScore && t('dashboard.winning')}
                     </div>
-                    <h4 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter truncate leading-none">{currentMatch.homeTeam}</h4>
-                    <span className="text-3xl md:text-5xl font-black text-blue-500 italic mt-2 md:mt-4 tracking-tighter tabular-nums">{currentMatch.homeScore.toFixed(1)}</span>
+                    <h4 className="text-lg md:text-2xl font-black text-white italic uppercase tracking-tighter leading-none break-words line-clamp-2">{currentMatch.homeTeam}</h4>
+                    <span className="text-3xl md:text-5xl font-black text-blue-500 italic mt-2 md:mt-2 tracking-tighter tabular-nums">{currentMatch.homeScore.toFixed(1)}</span>
                   </div>
-                  <div className="px-2 md:px-4 flex flex-col items-center">
+                  <div className="px-2 md:px-4 flex flex-col items-center pt-10">
                     <div className="text-slate-800 text-[10px] font-black tracking-[0.3em] italic">VS</div>
                     <div className="h-8 md:h-12 w-px bg-gradient-to-b from-transparent via-slate-800 to-transparent mt-2 md:mt-4"></div>
                   </div>
-                  <div className="flex flex-col flex-1 text-right">
-                    <div className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-2 md:mb-3 ${currentMatch.awayScore > currentMatch.homeScore ? "text-emerald-400" : "text-slate-600"}`}>
+                  <div className="flex flex-col flex-1 text-right items-end">
+                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-950/80 border border-slate-800 mb-4 overflow-hidden shadow-lg">
+                      <img src={`${CONFIG.API_BASE_URL}/team/${currentMatch.awayTeamId}/logo?t=${new Date().getTime()}`} alt={currentMatch.awayTeam} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
+                    </div>
+                    <div className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 ${currentMatch.awayScore > currentMatch.homeScore ? "text-emerald-400" : "text-slate-600"}`}>
                       {
                         currentMatch.awayScore > currentMatch.homeScore && t('dashboard.leading')}
                     </div>
-                    <h4 className="text-xl md:text-2xl font-black text-white italic uppercase tracking-tighter truncate leading-none">{currentMatch.awayTeam}</h4>
-                    <span className="text-3xl md:text-5xl font-black text-emerald-500 italic mt-2 md:mt-4 tracking-tighter tabular-nums">{currentMatch.awayScore.toFixed(1)}</span>
+                    <h4 className="text-lg md:text-2xl font-black text-white italic uppercase tracking-tighter leading-none break-words line-clamp-2">{currentMatch.awayTeam}</h4>
+                    <span className="text-3xl md:text-5xl font-black text-emerald-500 italic mt-2 md:mt-2 tracking-tighter tabular-nums">{currentMatch.awayScore.toFixed(1)}</span>
                   </div>
                 </div>
-                <div className="mt-6 md:mt-10 pt-4 md:pt-6 border-t border-white/5 flex items-center justify-between">
+                <div className="mt-6 md:mt-10 pt-4 md:pt-6 border-t border-white/5 flex items-center justify-between relative z-10">
                   <span className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('dashboard.real_time_stream')}</span>
                   <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest text-blue-400 group-hover:text-white transition-colors">
                     {t('dashboard.match_analysis')} <ArrowUpRight size={14} />
@@ -186,9 +193,26 @@ export default function Dashboard() {
         {/* Header Benvenuto */}
         <div className="mb-8 md:mb-12 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
           <div className="flex items-center gap-4 md:gap-8">
-            <div className="p-3 md:p-5 bg-slate-900 border border-white/5 rounded-2xl md:rounded-3xl shadow-2xl relative text-blue-500">
-              <Activity size={32} className="relative z-10 animate-in zoom-in-50 duration-1000 hidden md:block" />
-              <Activity size={24} className="relative z-10 animate-in zoom-in-50 duration-1000 md:hidden" />
+            <div className="p-3 md:p-5 bg-slate-900 border border-white/5 rounded-2xl md:rounded-3xl shadow-2xl relative text-blue-500 overflow-hidden group">
+              {myTeam?.id ? (
+                <img
+                  src={`${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}`}
+                  alt={myTeam.name}
+                  className="w-16 h-16 md:w-32 md:h-32 object-cover relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    // Fallback to icon will be handled by logic inside or sibling
+                    // Actually it's easier to just hide and show icon if error, but here I'm replacing image source.
+                    // Let's just keep simple fallback for now or valid image.
+                    // If error, I can swap src to placeholder or let it be blank.
+                  }}
+                />
+              ) : (
+                <>
+                  <Activity size={32} className="relative z-10 animate-in zoom-in-50 duration-1000 hidden md:block" />
+                  <Activity size={24} className="relative z-10 animate-in zoom-in-50 duration-1000 md:hidden" />
+                </>
+              )}
               <div className="absolute inset-0 bg-blue-500/5 blur-xl rounded-full"></div>
             </div>
             <div>

@@ -123,7 +123,33 @@ export const en = {
                 "f": "Forward (F)",
                 "util": "Utility",
                 "bench": "Bench",
-                "ir": "IR (Injured)"
+                "ir": "IR (Injured)",
+                "general": "General",
+                "rules": "Game Rules",
+                "members": "Members",
+                "danger_zone": "Danger Zone",
+                "league_name": "League Name",
+                "save_details": "Save Details",
+                "league_logo": "League Logo",
+                "upload_hint": "Click to upload (Max 5MB)",
+                "manage_access": "Manage Access",
+                "remove_user_title": "Remove User",
+                "remove_user_confirm": "Are you sure you want to remove {{name}}? This action will delete their team.",
+                "remove_btn": "Remove",
+                "delete_league": "Delete League",
+                "delete_league_desc": "Permanently disband this league. This action cannot be undone. All teams, history, and data will be lost.",
+                "delete_confirm_placeholder": "Type \"{{name}}\" to confirm",
+                "update_rulebook": "Update Rulebook",
+                "preview": "Preview"
+            },
+            "team_settings": {
+                "title": "Team Settings",
+                "identity": "Identity & Branding",
+                "upload_logo": "Upload Logo",
+                "team_name": "Team Name",
+                "save_changes": "Save Changes",
+                "error_fetch": "Unable to fetch team data",
+                "success_update": "Settings updated successfully"
             },
             "playoff_config": {
                 "title": "Schedule Config",
@@ -644,6 +670,28 @@ export const en = {
             "update_scores_title": "Update Scores",
             "update_scores_confirm": "Force recalculation for ALL past matchdays? (Slow)",
             "scores_recalculated": "Scores recalculated."
+        },
+        "landing": {
+            "seo_title": "Fantasy Dynasty NBA Salary Cap Tool | Legacy Hub",
+            "seo_description": "The ultimate tool for Fantasy Basketball Dynasty leagues. Manage real NBA salaries, contracts, cap space, and luxury tax automatically.",
+            "hero_badge": "Fantasy Basketball Evolved",
+            "hero_title_prefix": "Master your",
+            "hero_title_accent": "Dynasty League",
+            "hero_title_suffix": "with Real NBA Salaries",
+            "hero_subtitle": "Contract Management, Trade Machine & Cap Space Calculator. Bring the realism of the front office to your fantasy league.",
+            "cta_launch": "Launch App",
+            "cta_learn_more": "Learn More",
+            "feature_1_title": "Salary Cap Management",
+            "feature_1_desc": "Automatic data synchronization with real NBA contracts. Manage your team's salary cap, calculate luxury tax implications, and plan for future seasons with precision.",
+            "feature_2_title": "Rookie Scale Contracts",
+            "feature_2_desc": "Seamlessly handle rookie scale contracts and extensions. Our system tracks draft rights, rookie exceptions, and two-way contracts efficiently.",
+            "feature_3_title": "Free Agency & Trades",
+            "feature_3_desc": "Simulate complex trades with our Trade Machine. Manage Free Agency bidding wars with live cap space updates and automated contract rules.",
+            "footer_headline": "Built for",
+            "footer_accent": "Hardcore",
+            "footer_suffix": "Commissioners",
+            "footer_text": "Legacy Hub eliminates the spreadsheets and manual calculations. We provide a robust platform for Dynasty Leagues that want to mirror the complexity and strategy of the real NBA front office.",
+            "copyright": "Legacy Hub. Fantasy Dynasty NBA."
         }
     }
 };

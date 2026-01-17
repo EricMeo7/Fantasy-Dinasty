@@ -107,6 +107,64 @@ public class TeamController : ControllerBase
         return Ok(team);
     }
 
+    [HttpPost("{id}/logo")]
+    public async Task<IActionResult> UploadLogo(int id, IFormFile file)
+    {
+        if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
+        if (file.Length > 5 * 1024 * 1024) return BadRequest("File too large (Max 5MB).");
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var team = await _context.Teams.FindAsync(id);
+
+        if (team == null) return NotFound();
+        if (team.UserId != userId) return Forbid(); // Only owner can upload
+
+        using (var memoryStream = new MemoryStream())
+        {
+            await file.CopyToAsync(memoryStream);
+            team.LogoData = memoryStream.ToArray();
+            team.LogoContentType = file.ContentType;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Logo uploaded successfully" });
+    }
+
+    [HttpGet("{id}/logo")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetLogo(int id)
+    {
+        var team = await _context.Teams
+            .Where(t => t.Id == id)
+            .Select(t => new { t.LogoData, t.LogoContentType })
+            .FirstOrDefaultAsync();
+
+        if (team == null || team.LogoData == null)
+        {
+            return NotFound("No logo found");
+        }
+
+        Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+        Response.Headers.Append("Pragma", "no-cache");
+        Response.Headers.Append("Expires", "0");
+
+        return File(team.LogoData, team.LogoContentType ?? "image/png");
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateTeam(int id, [FromBody] UpdateTeamDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var team = await _context.Teams.FindAsync(id);
+
+        if (team == null) return NotFound();
+        if (team.UserId != userId) return Forbid();
+
+        team.Name = dto.Name;
+        await _context.SaveChangesAsync();
+        return Ok(team);
+    }
+
     private int GetCurrentLeagueId()
     {
         if (Request.Headers.TryGetValue("X-League-Id", out var leagueIdVal))

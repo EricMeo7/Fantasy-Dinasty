@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeftRight, ArrowRight, Send, Trash2, AlertCircle, Sparkles, TrendingUp, TrendingDown, Users } from 'lucide-react';
+import { CONFIG } from '../../../config';
+import { ArrowLeftRight, ArrowRight, Send, Trash2, AlertCircle, Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
 import { useProposeTrade } from '../api/useProposeTrade';
 import { useModal } from '../../../context/ModalContext';
 
@@ -130,8 +131,16 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, onSuccess }) 
 
                                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-950/40">
                                     <div className="flex items-center gap-4">
-                                        <div className="h-10 w-10 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-blue-500 transition-colors shadow-inner">
-                                            <Users size={20} />
+                                        <div className="h-10 w-10 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-blue-500 transition-colors shadow-inner overflow-hidden">
+                                            <img
+                                                src={`${CONFIG.API_BASE_URL}/team/${team.id}/logo?t=${new Date().getTime()}`}
+                                                alt={team.teamName}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>';
+                                                }}
+                                            />
                                         </div>
                                         <div className="overflow-hidden">
                                             <h4 className="font-black text-white italic uppercase text-lg tracking-tighter truncate leading-none">{team.teamName}</h4>

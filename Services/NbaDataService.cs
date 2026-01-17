@@ -106,8 +106,8 @@ public class NbaDataService : INbaDataService
         bool isPast = nbaDate.Date < ConvertToNbaDate(DateTime.UtcNow).Date;
         string cacheKey = $"fpts_{nbaDate:yyyyMMdd}"; // Chiave semplificata
 
-        if (isPast && _cache.TryGetValue(cacheKey, out Dictionary<int, double> cachedResult))
-            return cachedResult;
+        if (isPast && _cache.TryGetValue(cacheKey, out Dictionary<int, double>? cachedResult))
+            return cachedResult!;
 
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -707,7 +707,7 @@ public class NbaDataService : INbaDataService
             {
                 int externalId = GetInt(row, idxId);
 
-                Player player = null;
+                Player? player = null;
 
                 if (existingPlayers.TryGetValue(externalId, out var dbPlayer))
                 {
@@ -818,7 +818,7 @@ public class NbaDataService : INbaDataService
     private async Task<Dictionary<int, PlayerBio>> GetPlayerBioMapAsync(string season)
     {
         // CACHING BIOMAP (Dati statici che cambiano raramente) - 24H Cache
-        if (_cache.TryGetValue($"bio_{season}", out Dictionary<int, PlayerBio> cachedBio)) return cachedBio;
+        if (_cache.TryGetValue($"bio_{season}", out Dictionary<int, PlayerBio>? cachedBio)) return cachedBio!;
 
         var bioMap = new Dictionary<int, PlayerBio>();
         var url = $"playerindex?Historical=1&LeagueID=00&Season={season}&SeasonType=Regular%20Season";
@@ -960,5 +960,5 @@ public class NbaScheduleGame
 public class NbaScheduleTeam
 {
     [JsonPropertyName("teamTricode")]
-    public string TeamTricode { get; set; }
+    public string TeamTricode { get; set; } = string.Empty;
 }

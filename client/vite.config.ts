@@ -25,5 +25,24 @@ export default defineConfig({
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5249',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/drafthub': {
+        target: 'http://localhost:5249',
+        changeOrigin: true,
+        secure: false,
+        ws: true
+      },
+      '/matchuphub': {
+        target: 'http://localhost:5249',
+        changeOrigin: true,
+        secure: false,
+        ws: true
+      }
+    }
   },
 });

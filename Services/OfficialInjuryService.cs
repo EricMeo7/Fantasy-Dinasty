@@ -111,7 +111,7 @@ namespace FantasyBasket.API.Services
                         });
                     }
                 }
-                catch (Exception ex)
+                catch
                 {
                     // Skip bad rows but don't crash
                     continue; 
