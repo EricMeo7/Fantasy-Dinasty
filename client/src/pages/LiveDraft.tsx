@@ -266,8 +266,6 @@ export default function LiveDraft() {
         return { ...p, basePrice, isAffordable };
     });
 
-    const isMobile = window.innerWidth < 768; // Simple check for conditional rendering if needed, though CSS is preferred
-
     return (
         <div className="min-h-screen bg-slate-950 text-white p-4 flex flex-col h-screen overflow-hidden font-sans">
             <SEO title="Asta Live" description="Partecipa all'asta in tempo reale." />
