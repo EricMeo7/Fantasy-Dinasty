@@ -332,13 +332,13 @@ export default function Matchup() {
             <div className="w-24 h-24 bg-slate-900 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl border border-slate-800 animate-in zoom-in duration-500">
                 <CalendarOff size={40} className="text-slate-600" />
             </div>
-            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-3">Calendario Non Presente</h2>
+            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-3">{t('matchup.no_schedule_title')}</h2>
             <p className="text-sm font-bold text-slate-500 max-w-xs leading-relaxed uppercase tracking-wide">
-                Nessuna partita in programma per questa settimana.
+                {t('matchup.no_schedule_desc')}
             </p>
             <button onClick={() => navigate('/dashboard')} className="mt-8 px-10 py-4 bg-slate-900 border border-slate-700 hover:border-emerald-500 text-white font-black uppercase text-xs tracking-widest rounded-2xl transition-all shadow-lg hover:shadow-emerald-500/10 active:scale-95 flex items-center gap-2 group">
                 <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-                Torna alla Dashboard
+                {t('matchup.return_dashboard')}
             </button>
         </div>
     );
@@ -352,7 +352,7 @@ export default function Matchup() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-4 font-sans pb-20">
-            <SEO title="Partita" description="Gestisci formazioni e punteggi live." />
+            <SEO title={t('matchup.title')} description={t('matchup.seo_description')} />
             <div className="max-w-4xl mx-auto">
                 <GameStatsModal player={statsPlayer} isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
                 <WeeklyRecapModal
@@ -371,7 +371,7 @@ export default function Matchup() {
                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">{t('dashboard.daily_score')}</span>
                             <span className="text-3xl font-black text-emerald-400">{dailyTotal.toFixed(1)}</span>
                             <button onClick={() => setIsWeeklyRecapOpen(true)} className="block ml-auto mt-1 text-[9px] font-black text-blue-400 hover:text-blue-300 uppercase tracking-widest underline decoration-blue-500/30 hover:decoration-blue-400 transition-all">
-                                Weekly Recap
+                                {t('matchup.weekly_recap')}
                             </button>
                         </div>
                     </div>
@@ -389,7 +389,7 @@ export default function Matchup() {
                                     onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
                                 />
                             </div>
-                            <span>{matchup.homeTeam} {myTeam?.id === matchup.homeTeamId && " (TU)"}</span>
+                            <span>{matchup.homeTeam} {myTeam?.id === matchup.homeTeamId && ` (${t('league.you')})`}</span>
                         </button>
                         <button
                             onClick={() => setViewingTeamId(matchup.awayTeamId)}
@@ -403,7 +403,7 @@ export default function Matchup() {
                                     onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
                                 />
                             </div>
-                            <span>{matchup.awayTeam} {myTeam?.id === matchup.awayTeamId && " (TU)"}</span>
+                            <span>{matchup.awayTeam} {myTeam?.id === matchup.awayTeamId && ` (${t('league.you')})`}</span>
                         </button>
                     </div>
 
@@ -416,7 +416,7 @@ export default function Matchup() {
 
                     {isReadOnly && (
                         <div className="flex items-center justify-center gap-3 text-amber-500 bg-amber-500/5 p-3 rounded-2xl border border-amber-500/20 text-[10px] font-black uppercase tracking-[0.2em]">
-                            <Lock size={14} /> Solo Lettura
+                            <Lock size={14} /> {t('matchup.read_only')}
                         </div>
                     )}
                 </div>
@@ -438,7 +438,7 @@ export default function Matchup() {
                 {loadingLineup ? (
                     <div className="h-[500px] flex flex-col items-center justify-center bg-slate-900/30 rounded-[3rem] border-2 border-slate-800 border-dashed mb-10">
                         <Activity className="animate-spin mb-4 text-blue-500" size={48} />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Sincronizzazione parquet...</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">{t('matchup.preparing_court')}</span>
                     </div>
                 ) : (
                     <div className="relative w-full aspect-[3/4] md:aspect-video bg-[#0f111a] border-4 border-slate-800 rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] mb-10">
@@ -490,10 +490,10 @@ export default function Matchup() {
                             limboPlayers.forEach(bucketPlayer); // Add Limbo players to buckets so they appear
 
                             const groups = [
-                                { title: 'Guards', icon: <Shirt size={18} />, list: guards },
-                                { title: 'Forwards', icon: <Shirt size={18} />, list: forwards },
-                                { title: 'Centers', icon: <Activity size={18} />, list: centers },
-                                { title: 'Others', icon: <Activity size={18} />, list: others }
+                                { title: t('matchup.guards'), icon: <Shirt size={18} />, list: guards },
+                                { title: t('matchup.forwards'), icon: <Shirt size={18} />, list: forwards },
+                                { title: t('matchup.centers'), icon: <Activity size={18} />, list: centers },
+                                { title: t('matchup.others'), icon: <Activity size={18} />, list: others }
                             ];
 
                             return groups.map((group) => {
@@ -536,7 +536,7 @@ export default function Matchup() {
                     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[200] flex items-center justify-center p-6 animate-in fade-in duration-300">
                         <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl border-white/5">
                             <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
-                                <div><h3 className="font-black text-white uppercase tracking-widest italic leading-none">Inserisci {showBenchForSlot}</h3><p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">Mostrando giocatori compatibili</p></div>
+                                <div><h3 className="font-black text-white uppercase tracking-widest italic leading-none">{t('matchup.insert_player')} {showBenchForSlot}</h3><p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-wider">{t('matchup.compatible_players_subtitle')}</p></div>
                                 <button onClick={() => setShowBenchForSlot(null)} className="p-3 hover:bg-slate-700 rounded-full text-slate-400 transition-colors"><X size={24} /></button>
                             </div>
                             <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">
@@ -604,6 +604,7 @@ function CourtPlayerCard({ slot, player, onSelect, onRemove, onStats, isReadOnly
 
 
 function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, totalBench, isReadOnly, isLimbo }: any) {
+    const { t } = useTranslation();
     return (
         <div className={`bg-slate-900 border ${isLimbo ? 'border-amber-500/50 bg-amber-500/5' : 'border-slate-800'} p-4 rounded-[1.5rem] flex items-center gap-4 transition-all hover:border-slate-600 group shadow-lg`}>
             {!isReadOnly && (
@@ -631,7 +632,7 @@ function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, to
                     <div><div className="text-[9px] text-slate-600 uppercase font-black tracking-widest">Live</div><div className="text-xl font-black text-emerald-500 italic leading-none">{p.realPoints.toFixed(1)}</div></div>
                 ) : (
                     <div className="flex flex-col items-end">
-                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none">Avg</span>
+                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none">{t('matchup.avg')}</span>
                         <span className="text-lg font-black text-amber-500 italic leading-none mt-1">{p.avgFantasyPoints?.toFixed(1) || '--'}</span>
                     </div>
                 )}
@@ -641,6 +642,7 @@ function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, to
 }
 
 function WeeklyRecapModal({ isOpen, onClose, players, teamName }: any) {
+    const { t } = useTranslation();
     if (!isOpen || !players) return null;
 
     const sortedPlayers = [...players].sort((a: any, b: any) => b.weeklyScore - a.weeklyScore);
@@ -651,8 +653,8 @@ function WeeklyRecapModal({ isOpen, onClose, players, teamName }: any) {
             <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
                 <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
                     <div>
-                        <h3 className="font-black text-white uppercase tracking-widest italic text-lg">Weekly Recap</h3>
-                        <div className="text-xs text-blue-400 font-bold uppercase mt-1">{teamName} • Total: {totalWeeklyScore.toFixed(1)}</div>
+                        <h3 className="font-black text-white uppercase tracking-widest italic text-lg">{t('matchup.weekly_recap')}</h3>
+                        <div className="text-xs text-blue-400 font-bold uppercase mt-1">{teamName} • {t('matchup.total')}: {totalWeeklyScore.toFixed(1)}</div>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full text-slate-400 transition-colors"><X size={20} /></button>
                 </div>

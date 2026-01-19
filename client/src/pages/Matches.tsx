@@ -59,7 +59,7 @@ export default function Matches() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-6 md:p-12 text-white font-sans pb-32 relative overflow-hidden">
-            <SEO title="Calendario" description="Calendario partite e risultati." />
+            <SEO title={t('matches.title')} description={t('matches.seo_description')} />
 
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
@@ -105,7 +105,7 @@ export default function Matches() {
                     <div className="relative">
                         <div className="absolute -top-10 left-8 px-6 py-2 bg-slate-950 border border-slate-800 rounded-t-2xl border-b-0 inline-flex items-center gap-3 z-20">
                             <Sparkles size={14} className="text-blue-500" />
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Temporal Navigation</span>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('matches.temporal_navigation')}</span>
                         </div>
 
                         <div className="flex items-center justify-between bg-slate-900/60 backdrop-blur-3xl rounded-[3rem] p-10 border border-white/5 shadow-[0_30px_60px_rgba(0,0,0,0.5)] relative group z-20">
@@ -120,7 +120,7 @@ export default function Matches() {
                             </button>
 
                             <div className="text-center relative z-10">
-                                <span className="text-[12px] text-slate-600 uppercase font-black tracking-[0.4em] block mb-4 italic">Fiscal Week Control</span>
+                                <span className="text-[12px] text-slate-600 uppercase font-black tracking-[0.4em] block mb-4 italic">{t('matches.fiscal_week_control')}</span>
                                 <div
                                     onClick={() => setIsWeekSelectorOpen(!isWeekSelectorOpen)}
                                     className="flex items-baseline justify-center gap-3 bg-slate-950/80 px-10 py-3 rounded-[2rem] border border-white/5 shadow-inner hover:scale-105 hover:bg-slate-900 cursor-pointer transition-all duration-300 relative"
@@ -131,7 +131,7 @@ export default function Matches() {
                                     {/* Hint for interaction */}
                                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                         <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1">
-                                            <Grid size={10} /> Change Week
+                                            <Grid size={10} /> {t('matches.change_week')}
                                         </span>
                                     </div>
                                 </div>
@@ -141,7 +141,7 @@ export default function Matches() {
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 mt-4 w-[300px] z-50 animate-in fade-in zoom-in-95 duration-200">
                                         <div className="bg-slate-950/90 backdrop-blur-xl border border-white/10 rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                                             <div className="flex justify-between items-center mb-4 px-2">
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Select Week</span>
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('matches.select_week')}</span>
                                                 <button onClick={() => setIsWeekSelectorOpen(false)} className="text-slate-500 hover:text-white transition-colors">
                                                     <X size={14} />
                                                 </button>
@@ -196,8 +196,8 @@ export default function Matches() {
                             ) : (
                                 <div className="col-span-full text-center py-32 bg-slate-900/40 backdrop-blur-3xl border-2 border-dashed border-white/5 rounded-[4rem] flex flex-col items-center justify-center group">
                                     <Activity size={80} className="text-slate-900 mb-8 group-hover:scale-110 transition-transform duration-700" />
-                                    <h4 className="text-3xl font-black italic uppercase text-slate-700 tracking-tighter leading-none mb-4">Dormant Schedule</h4>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-800">No match documents initialized for this chronometric window</p>
+                                    <h4 className="text-3xl font-black italic uppercase text-slate-700 tracking-tighter leading-none mb-4">{t('matches.dormant_schedule')}</h4>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-800">{t('matches.dormant_desc')}</p>
                                 </div>
                             )
                         }
@@ -206,7 +206,7 @@ export default function Matches() {
 
                 {/* Footer Info */}
                 <div className="mt-16 text-center opacity-20">
-                    <p className="text-[9px] font-black uppercase tracking-[0.5em]">Global Match Matrix Synchronization: Operational</p>
+                    <p className="text-[9px] font-black uppercase tracking-[0.5em]">{t('matches.global_sync_operational')}</p>
                 </div>
             </div>
         </div>

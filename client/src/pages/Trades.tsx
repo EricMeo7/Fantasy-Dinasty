@@ -71,12 +71,12 @@ export default function Trades() {
                                 onClick={() => navigate('/dashboard')}
                                 className="group flex items-center gap-2 text-slate-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-[0.3em] mb-3"
                             >
-                                <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> Return to Dashboard
+                                <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> {t('trades.return_dashboard')}
                             </button>
                             <h1 className="text-3xl md:text-7xl font-black text-white flex flex-col md:flex-row md:items-center gap-1 md:gap-4 tracking-tighter italic uppercase leading-none">
-                                Trade <span className="text-blue-500">Center</span>
+                                {t('trades.page_title')} <span className="text-blue-500">{t('trades.center')}</span>
                             </h1>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">Dynasty Transaction Engine</p>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">{t('trades.description')}</p>
                         </div>
                     </div>
 
@@ -85,14 +85,14 @@ export default function Trades() {
                             onClick={() => setActiveTab('build')}
                             className={`px-10 py-4 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 active:scale-95 ${activeTab === 'build' ? 'bg-blue-600 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] border-t border-white/10' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            <LayoutGrid size={16} /> Negotiator
+                            <LayoutGrid size={16} /> {t('trades.negotiator')}
                         </button>
                         <button
                             onClick={() => setActiveTab('pending')}
                             className={`px-10 py-4 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 active:scale-95 ${activeTab === 'pending' ? 'bg-blue-600 text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] border-t border-white/10' : 'text-slate-500 hover:text-slate-300'}`}
                         >
                             <Inbox size={16} />
-                            Inbox
+                            {t('trades.inbox')}
                             {pendingTrades.length > 0 && (
                                 <span className="bg-red-500 h-5 w-5 rounded-full flex items-center justify-center text-[9px] text-white shadow-lg animate-pulse border border-white/20">
                                     {pendingTrades.length}
@@ -114,10 +114,10 @@ export default function Trades() {
                             {pendingTrades.length === 0 ? (
                                 <EmptyState
                                     icon={Inbox}
-                                    title={t('trades.no_trades_title') || "Inbox Empty"}
-                                    description={t('trades.no_trades_desc') || "You have no pending trade offers at the moment."}
+                                    title={t('trades.no_trades_title')}
+                                    description={t('trades.no_trades_desc')}
                                     action={{
-                                        label: t('trades.start_negotiation') || "Start Negotiation",
+                                        label: t('trades.start_negotiation'),
                                         onClick: () => setActiveTab('build')
                                     }}
                                 />

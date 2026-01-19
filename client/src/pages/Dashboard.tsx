@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 relative overflow-hidden">
-      <SEO title="Dashboard" description="Gestisci la tua squadra, visualizza le partite e il mercato." />
+      <SEO title={t('dashboard.title')} description={t('dashboard.seo_description')} />
 
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
@@ -201,10 +201,6 @@ export default function Dashboard() {
                   className="w-16 h-16 md:w-32 md:h-32 object-cover relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
-                    // Fallback to icon will be handled by logic inside or sibling
-                    // Actually it's easier to just hide and show icon if error, but here I'm replacing image source.
-                    // Let's just keep simple fallback for now or valid image.
-                    // If error, I can swap src to placeholder or let it be blank.
                   }}
                 />
               ) : (
@@ -221,7 +217,7 @@ export default function Dashboard() {
                 <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-amber-500">{t('login.beta_version')} v0.1.1.45</span>
               </div>
               <h2 className="text-3xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">
-                Command <span className="text-blue-500">Central</span>
+                {t('dashboard.command_central')}
               </h2>
               <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[8px] md:text-[10px] mt-2 md:mt-3">{t('dashboard.dynasty_console_experience')}</p>
             </div>
@@ -338,7 +334,7 @@ export default function Dashboard() {
                   </div>
 
                   <h2 className="text-3xl md:text-8xl font-black text-white mb-6 md:mb-10 flex flex-col gap-2 uppercase tracking-tighter italic leading-none">
-                    <span className="text-blue-500">Syndicate</span> Auction
+                    {t('dashboard.syndicate_auction')}
                   </h2>
                   <p className="text-slate-400 max-w-2xl text-lg md:text-2xl leading-relaxed italic font-medium opacity-80">
                     {t('dashboard.auction_description')}
@@ -369,7 +365,7 @@ export default function Dashboard() {
                     {t('dashboard.regular_season_phase')}
                   </div>
                   <h2 className="text-3xl md:text-7xl font-black text-white mb-6 md:mb-10 flex flex-col gap-2 uppercase tracking-tighter italic leading-none">
-                    Open <span className="text-emerald-500">Market</span>
+                    {t('dashboard.open_market')}
                   </h2>
                   <p className="text-slate-500 max-w-xl text-lg md:text-2xl leading-relaxed italic font-bold opacity-80 uppercase tracking-widest">
                     {t('dashboard.market_description')}

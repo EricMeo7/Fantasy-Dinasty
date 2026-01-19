@@ -23,7 +23,12 @@ export const it = {
             "week": "Settimana",
             "out": "OUT",
             "filters": "Filtri Avanzati",
-            "reset": "Reset Filtri"
+            "reset": "Reset Filtri",
+            "processing": "Elaborazione...",
+            "first_page": "Prima Pagina",
+            "last_page": "Ultima Pagina",
+            "next_page": "Pagina Successiva",
+            "prev_page": "Pagina Precedente"
         },
         "error": {
             "generic": "Errore Generico",
@@ -247,6 +252,7 @@ export const it = {
         },
         "dashboard": {
             "title": "Dashboard",
+            "seo_description": "Gestisci la tua squadra, visualizza le partite e il mercato.",
             "daily_score": "Punteggio Giornaliero",
             "weekly_matchup": "Matchup Settimanale",
             "vs": "contro",
@@ -294,6 +300,7 @@ export const it = {
         },
         "market": {
             "title": "Mercato Free Agents",
+            "seo_description": "Cerca free agent e partecipa alle aste.",
             "live_market": "Mercato Live • Aste 24h",
             "search_placeholder": "Cerca giocatore...",
             "auction_live": "ASTA LIVE",
@@ -314,11 +321,19 @@ export const it = {
             "view_scout_report": "Visualizza Report Scout",
             "base": "BASE",
             "fpt": "FPT",
-            "pts": "PTS"
+            "pts": "PTS",
+            "no_results_title": "Nessun Risultato",
+            "no_results_desc": "Non abbiamo trovato giocatori che corrispondono ai criteri.",
+            "clear_search": "Pulisci Ricerca",
+            "filters": "Filtri",
+            "page": "Pagina",
+            "back_to_dashboard": "Dashboard"
         },
         "roster": {
             "title": "Gestione Roster",
+            "seo_description": "Gestisci i giocatori e i contratti del team.",
             "subtitle": "Analizza finanze e gestisci la formazione.",
+            "release_error": "Errore durante il taglio del giocatore",
             "salary_cap": "Salary Cap",
             "available": "Disponibile",
             "active_salary": "Salario Attivo",
@@ -365,7 +380,20 @@ export const it = {
             "year1": "Anno 1",
             "header_player": "Giocatore",
             "header_actions": "Azioni",
-            "pts": "pts"
+            "pts": "pts",
+            "no_players_title": "Nessun Giocatore Trovato",
+            "no_players_desc": "Il tuo roster è vuoto. Vai al mercato per ingaggiare talenti.",
+            "go_to_market": "Vai al Mercato",
+            "return_dashboard": "Torna alla Dashboard",
+            "personnel_roster": "Roster Personale",
+            "squad_entity_config": "Configurazione Entità Squadra & Contratti",
+            "tactical_hub": "Hub Tattico",
+            "manage_lineup": "Gestisci Formazione",
+            "active_unit_roster": "Unità Roster Attiva",
+            "squad_intelligence": "Intelligence Squadra",
+            "personnel_count": "Conteggio Personale",
+            "personnel_sync_operational": "Sincronizzazione Matrice Personale Operativa",
+            "hq_approved": "Approvato dal Quartier Generale"
         },
         "lineup": {
             "title": "Formazione Giornaliera",
@@ -393,6 +421,17 @@ export const it = {
         },
         "matchup": {
             "title": "Matchup",
+            "seo_description": "Gestisci formazioni e punteggi live.",
+            "no_schedule_title": "Calendario Non Presente",
+            "no_schedule_desc": "Nessuna partita in programma per questa settimana.",
+            "return_dashboard": "Torna alla Dashboard",
+            "weekly_recap": "Riepilogo Settimanale",
+            "total": "Totale",
+            "read_only": "Solo Lettura",
+            "insert_player": "Inserisci",
+            "compatible_players_subtitle": "Mostrando giocatori compatibili",
+            "avg": "Media",
+            "others": "Altri",
             "score": "Punteggio",
             "home": "Casa",
             "away": "Ospiti",
@@ -419,37 +458,7 @@ export const it = {
             "bye": "Riposo",
             "vs": "VS"
         },
-        "league": {
-            "title": "Lega",
-            "standings": "Classifica",
-            "members": "Partecipanti",
-            "settings": "Impostazioni",
-            "invite_code": "Codice Invito",
-            "create": "Crea Lega",
-            "join": "Unisciti",
-            "create_new": "Crea Nuova Lega",
-            "join_with_code": "Unisciti con Codice",
-            "fantasy_hub": "FANTASY HUB",
-            "teams_count": "SQUADRE",
-            "rank": "Rank",
-            "team": "Team",
-            "w": "W",
-            "l": "L",
-            "pct": "PCT",
-            "pts": "PTS",
-            "avg": "AVG",
-            "gp": "GP",
-            "standings_title": "CLASSIFICA",
-            "copied": "Copiato!",
-            "copied_msg": "Codice invito copiato negli appunti.",
-            "regular_season": "Regular Season",
-            "team_gm": "Squadra & GM",
-            "record": "Record",
-            "fantasy_points": "Punti Fantasy",
-            "you": "TU",
-            "no_teams": "Nessuna squadra iscritta a questa lega.",
-            "copy_btn_title": "Copia Codice"
-        },
+
         "league_selection": {
             "title": "Fonda una nuova Lega",
             "league_name": "Nome della Lega",
@@ -461,8 +470,14 @@ export const it = {
             "enter_league": "Entra nella Lega",
             "leave_confirm": "Sei sicuro di voler abbandonare questa lega?"
         },
-
         "trades": {
+            "page_title": "Scambi",
+            "center": "Center",
+            "description": "Motore Transazionale Dynasty",
+            "negotiator": "Negoziatore",
+            "no_trades_title": "Nessuna proposta",
+            "no_trades_desc": "Non hai proposte di scambio in sospeso al momento.",
+            "return_dashboard": "Torna alla Dashboard",
             "title": "TRADE CENTER",
             "builder": "Builder",
             "inbox": "Inbox",
@@ -575,10 +590,30 @@ export const it = {
             "gm_tracking": "Tracciamento GM",
             "live_budget_matrix": "Matrice Budget & Roster",
             "roster_limit_exceeded": "Limite Roster Raggiunto",
-            "roster_full_msg": "Non puoi acquistare il giocatore: Supereresti il limite massimo per questo ruolo."
+            "roster_full_msg": "Non puoi acquistare il giocatore: Supereresti il limite massimo per questo ruolo.",
+            "initializing_engine": "Inizializzazione Draft Engine...",
+            "gm_online": "GM ONLINE",
+            "turn_transition": "Transizione Turno",
+            "critical_time": "Tempo Critico",
+            "calculated": "Calcolato",
+            "no_players_acquired": "Nessun giocatore acquistato.",
+            "pause_draft_title": "Pausa Draft?",
+            "pause_draft_msg": "Questo riporterà tutti alla lobby.",
+            "undo_pick_title": "Annulla Ultima Presa?",
+            "undo_pick_msg": "Questo rimuoverà l'ultimo giocatore venduto e rimborserà il budget.",
+            "force_stop_title": "Stop Forzato?",
+            "force_stop_msg": "L'offerta corrente verrà cancellata."
         },
         "matches": {
             "title": "CALENDARIO",
+            "seo_description": "Calendario partite e risultati.",
+            "temporal_navigation": "Navigazione Temporale",
+            "fiscal_week_control": "Controllo Settimanale",
+            "change_week": "Cambia Settimana",
+            "select_week": "Seleziona Settimana",
+            "dormant_schedule": "Pausa",
+            "dormant_desc": "Nessuna partita in programma",
+            "global_sync_operational": "Sincronizzazione Matrice Operativa",
             "update_scores": "Aggiorna Punteggi",
             "force_update_confirm": "Forzare l'aggiornamento dei punteggi? Questo ricaricherà i dati dall'NBA.",
             "data_reloaded": "Dati ricaricati.",
@@ -594,6 +629,49 @@ export const it = {
             "subtitle": "Matrice Stagionale & Storico",
             "status_label": "Stato",
             "live_monitoring": "MONITORAGGIO LIVE"
+        },
+        "league": {
+            "title": "LEGA",
+            "matrix": "MATRIX",
+            "description": "Classifica Competitiva Globale & Asset",
+            "ranking_intel": "Intel Classifica Real-time",
+            "active_season": "Stagione Regolare Ufficiale 2024/2025",
+            "standings": "Classifica",
+            "members": "Partecipanti",
+            "settings": "Impostazioni",
+            "create": "Crea Lega",
+            "join": "Unisciti",
+            "create_new": "Crea Nuova Lega",
+            "join_with_code": "Unisciti con Codice",
+            "fantasy_hub": "FANTASY HUB",
+            "teams_count": "SQUADRE",
+            "w": "W",
+            "l": "L",
+            "avg": "AVG",
+            "gp": "GP",
+            "copied": "Copiato!",
+            "copied_msg": "Codice invito copiato negli appunti.",
+            "retrieving_matrix": "Recupero Matrice Competitiva...",
+            "feed_compromised": "Feed di Lega Compromesso",
+            "request_resync": "Richiedi Re-sync",
+            "return_dashboard": "Torna alla Dashboard",
+            "invite_code": "CODICE INVITO",
+            "copy_btn_title": "Copia negli appunti",
+            "standings_title": "CLASSIFICA UFFICIALE",
+            "regular_season": "Stagione Regolare",
+            "rank": "Rango",
+            "team_gm": "Team / GM",
+            "record": "Record",
+            "fantasy_points": "PT",
+            "pct": "PCT",
+            "you": "TU",
+            "no_teams": "Nessuna squadra ancora in questa lega",
+            "system_parity": "Parità di sistema verificata. Tutte le classifiche sono immutabili fino al prossimo aggiornamento.",
+            "global_leaderboard": "Classifica Globale",
+            "eastern_conference": "Conference Est",
+            "western_conference": "Conference Ovest",
+            "eastern": "Est",
+            "western": "Ovest"
         },
         "login": {
             "title": "Accedi",
@@ -781,26 +859,66 @@ export const it = {
             "scores_recalculated": "Punteggi ricalcolati."
         },
         "landing": {
-            "seo_title": "Fantasy Dynasty NBA Salary Cap Tool | Legacy Hub",
-            "seo_description": "Lo strumento definitivo per leghe Fantasy Basketball Dynasty. Gestisci salari reali NBA, contratti, cap space e luxury tax automaticamente.",
+            "seo_title": "Fanta NBA Manageriale | Fantasy Basketball Salary Cap & Asta Live",
+            "seo_description": "La simulazione manageriale NBA definitiva. Gestisci la tua franchigia con Salary Cap reale, Asta Live e contratti pluriennali. Unisciti alla dinastia.",
             "hero_badge": "L'Evoluzione del Fantasy Basket",
             "hero_title_prefix": "Domina la tua",
             "hero_title_accent": "Lega Dynasty",
             "hero_title_suffix": "con i Salari Reali NBA",
-            "hero_subtitle": "Gestione Contratti, Trade Machine & Calcolatore Cap Space. Porta il realismo del front office nella tua lega fantasy.",
-            "cta_launch": "Avvia App",
-            "cta_learn_more": "Scopri di Più",
-            "feature_1_title": "Gestione Salary Cap",
-            "feature_1_desc": "Sincronizzazione automatica con i contratti reali NBA. Gestisci il salary cap del tuo team, calcola la luxury tax e pianifica le stagioni future con precisione.",
-            "feature_2_title": "Contratti Rookie Scale",
-            "feature_2_desc": "Gestisci senza problemi i contratti rookie scale e le estensioni. Il sistema traccia i draft rights, le rookie exceptions e i two-way contracts.",
-            "feature_3_title": "Free Agency & Trades",
-            "feature_3_desc": "Simula scambi complessi con la nostra Trade Machine. Gestisci le aste Free Agency con aggiornamenti in tempo reale dello spazio salariale.",
+            "hero_subtitle": "Gestisci il Salary Cap, firma contratti pluriennali e sfida gli altri GM in un'Asta Live NBA al cardiopalma. La simulazione definitiva per chi vive di basket.",
+            "cta_launch": "Crea la tua Franchigia Gratis",
+            "cta_learn_more": "Scopri come funziona",
+            "problem_title": "Stanco del solito Fantasy Basketball?",
+            "problem_desc": "Le leghe standard sono noiose: scegli i giocatori, aspetti il punteggio, fine. Qui sei un General Manager. Devi far quadrare i conti, gestire le scadenze e battere i tuoi avversari sul mercato, non solo sul campo.",
+            "problem_item_1": "No Draft statici: Solo Aste Live competitive.",
+            "problem_item_2": "No Budget infiniti: Ogni dollaro del Salary Cap conta.",
+            "problem_item_3": "No Gioco passivo: Gestione franchigia 365 giorni l'anno.",
+            "features": {
+                "dashboard": {
+                    "title": "Dashboard Manageriale",
+                    "desc": "Il tuo centro di comando. Monitora le performance della squadra, le notifiche di infortunio e gli aggiornamenti live della lega in un'unica vista consolidata."
+                },
+                "salary_cap": {
+                    "title": "Gestione Salary Cap",
+                    "desc": "Naviga le complessità finanziarie di una franchigia reale. Gestisci contratti attivi, dead money e spazio salariale per costruire una dinastia sostenibile."
+                },
+                "auction": {
+                    "title": "Interfaccia Asta Live",
+                    "desc": "Il cuore dell'azione. Vivi l'adrenalina delle guerre di offerte in tempo reale contro altri GM per acquisire le tue superstar preferite."
+                },
+                "roster": {
+                    "title": "Roster & Formazioni",
+                    "desc": "Imposta la tua rotazione giornaliera. Prendi decisioni strategiche su titolari e panchinari basandoti sui matchup reali NBA."
+                },
+                "matchup": {
+                    "title": "Matchup Testa-a-Testa",
+                    "desc": "Segui la tua performance settimanale contro i rivali. Aggiornamenti punteggio live e dettagli statistici per ogni battaglia."
+                },
+                "market": {
+                    "title": "Mercato Free Agents",
+                    "desc": "Fai scouting e firma i talenti disponibili. Usa il waiver wire strategicamente per rinforzare la tua squadra durante la stagione."
+                },
+                "standings": {
+                    "title": "Classifica di Lega",
+                    "desc": "Segui la corsa ai playoff. Monitora i ranking di divisione, le serie di vittorie e i punti fatti per assicurarti un posto nella post-season."
+                },
+                "commissioner": {
+                    "title": "Zona Commissioner",
+                    "desc": "Controllo completo. Rule set personalizzati, generazione calendario e strumenti amministrativi per gestire la tua lega privata efficacemente."
+                }
+            },
+            "faq_title": "Tutto quello che devi sapere sulla Gestione Franchigia NBA",
+            "faq_q1": "È gratis giocare?",
+            "faq_a1": "Sì, creare una lega e gestire la tua squadra è completamente gratuito.",
+            "faq_q2": "Come funziona il punteggio?",
+            "faq_a2": "Usiamo un sistema basato sulle prestazioni reali NBA. Ogni assist, rimbalzo o canestro si traduce in punti per il tuo team.",
+            "faq_q3": "Posso fare scambi durante l'anno?",
+            "faq_a3": "Assolutamente. Abbiamo una Trade Machine integrata che verifica la validità salariale di ogni scambio.",
             "footer_headline": "Costruito per",
             "footer_accent": "Hardcore",
-            "footer_suffix": "Commissioners",
-            "footer_text": "Legacy Hub elimina i fogli di calcolo e i conteggi manuali. Offriamo una piattaforma robusta per le Leghe Dynasty che vogliono rispecchiare la complessità e la strategia del vero front office NBA.",
-            "copyright": "Legacy Hub. Fantasy Dynasty NBA."
+            "footer_suffix": "Managers",
+            "footer_text": "Entra nell'élite dei General Manager. Crea la tua lega ora e inizia a scrivere la storia della tua dinastia.",
+            "copyright": "Fantasy Basketball Syndrome."
         },
         "player_stats": {
             "title": "Statistiche Giocatori",

@@ -225,7 +225,7 @@ export default function LiveDraft() {
     if (!draftState) return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-500">
             <Loader2 className="animate-spin mb-6 text-emerald-500" size={48} />
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-400">Inizializzazione Draft Engine...</p>
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-400">{t('draft.initializing_engine')}</p>
         </div>
     );
 
@@ -242,19 +242,19 @@ export default function LiveDraft() {
                     <Shield size={24} />
                 </div>
                 <div>
-                    <h2 className="text-xl font-black uppercase italic tracking-tighter">Draft Lobby</h2>
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{onlineCount} / {totalCount} GM ONLINE</p>
+                    <h2 className="text-xl font-black uppercase italic tracking-tighter">{t('draft.lobby')}</h2>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{onlineCount} / {totalCount} {t('draft.gm_online')}</p>
                 </div>
             </div>
 
             <div className="max-w-4xl w-full">
                 <div className="text-center mb-16">
                     <h1 className="text-6xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none mb-4">
-                        Waiting Room
+                        {t('draft.waiting_room')}
                     </h1>
                     <div className="flex items-center justify-center gap-4">
                         <div className="h-px w-20 bg-slate-800"></div>
-                        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs">Prepare for the auction</p>
+                        <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-xs">{t('draft.prepare_auction')}</p>
                         <div className="h-px w-20 bg-slate-800"></div>
                     </div>
                 </div>
@@ -268,7 +268,7 @@ export default function LiveDraft() {
                                     <div className={`w-3 h-3 rounded-full ${isOnline ? 'bg-emerald-500 shadow-[0_0_15px_#10b981]' : 'bg-slate-700'}`}></div>
                                     <div className="flex-1">
                                         <div className={`font-black uppercase italic tracking-tight ${isOnline ? 'text-white' : 'text-slate-500'}`}>{team.teamName}</div>
-                                        <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{isOnline ? 'CONNECTED' : 'WAITING...'}</div>
+                                        <div className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{isOnline ? t('draft.connected') : t('draft.waiting')}</div>
                                     </div>
                                 </div>
                                 {isOnline && <div className="absolute -right-4 -bottom-4 p-4 opacity-5 text-emerald-500"><Wifi size={40} /></div>}
@@ -283,10 +283,10 @@ export default function LiveDraft() {
                             {isAdmin ? <Mic size={32} className="animate-pulse" /> : <Lock size={32} />}
                         </div>
                         <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter mb-2">
-                            {isAdmin ? 'Ready to launch?' : 'Locked by Commissioner'}
+                            {isAdmin ? t('draft.ready_launch') : t('draft.locked_commissioner')}
                         </h3>
                         <p className="text-slate-500 text-sm font-medium mb-8">
-                            {isAdmin ? "The draft will begin as soon as you press start. Ensure all participants have their rosters ready." : "Please wait while the commissioner prepares the draft board and confirms participants arrivals."}
+                            {isAdmin ? t('draft.start_instructions') : t('draft.wait_instructions')}
                         </p>
 
                         {isAdmin && (
@@ -294,7 +294,7 @@ export default function LiveDraft() {
                                 onClick={handleStartDraft}
                                 className="w-full bg-blue-600 hover:bg-blue-550 border-t border-white/20 text-white font-black py-5 rounded-2xl shadow-[0_20px_40px_rgba(37,99,235,0.4)] transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 text-lg uppercase tracking-tighter italic"
                             >
-                                <PlayCircle size={28} /> Start Final Auction
+                                <PlayCircle size={28} /> {t('draft.start_final_auction')}
                             </button>
                         )}
                     </div>
@@ -376,32 +376,32 @@ export default function LiveDraft() {
             {showAdminPanel && isAdmin && (
                 <div className="mb-4 bg-slate-900/50 backdrop-blur-3xl border-2 border-dashed border-blue-900/30 rounded-[2rem] p-6 animate-in slide-in-from-top-4 duration-500 shadow-2xl relative z-40">
                     <h3 className="text-blue-500 font-black uppercase text-xs tracking-widest mb-4 flex items-center gap-2 italic">
-                        <Shield size={16} /> Supervisor Command Center
+                        <Shield size={16} /> {t('draft.supervisor_center')}
                     </h3>
                     <div className="flex flex-wrap gap-4">
                         <AdminAction
-                            label="Pause Session"
+                            label={t('draft.pause_session')}
                             icon={<Lock size={14} />}
                             onClick={async () => {
-                                if (await showConfirm({ title: "Pause Draft?", message: "This will return everyone to the lobby.", type: "confirm" }))
+                                if (await showConfirm({ title: t('draft.pause_draft_title'), message: t('draft.pause_draft_msg'), type: "confirm" }))
                                     await connection?.invoke("PauseDraft", parseInt(localStorage.getItem('selectedLeagueId')!));
                             }}
                         />
                         <AdminAction
-                            label="Undo Pick"
+                            label={t('draft.undo_pick')}
                             icon={<User size={14} />}
                             onClick={async () => {
-                                if (await showConfirm({ title: "Undo Last Pick?", message: "This will remove the last sold player and refund budget.", type: "confirm" }))
+                                if (await showConfirm({ title: t('draft.undo_pick_title'), message: t('draft.undo_pick_msg'), type: "confirm" }))
                                     await connection?.invoke("RemoveLastPick", parseInt(localStorage.getItem('selectedLeagueId')!));
                             }}
                         />
                         <button
                             onClick={async () => {
-                                if (await showConfirm({ title: "Force Stop?", message: "Current bid will be cancelled.", type: "confirm" }))
+                                if (await showConfirm({ title: t('draft.force_stop_title'), message: t('draft.force_stop_msg'), type: "confirm" }))
                                     await connection?.invoke("ResetCurrentRound", parseInt(localStorage.getItem('selectedLeagueId')!));
                             }}
                             className="bg-red-500/10 hover:bg-red-500 border border-red-500/30 text-red-500 hover:text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ml-auto">
-                            Force Stop & Reset
+                            {t('draft.force_stop')}
                         </button>
                     </div>
                 </div>
@@ -414,7 +414,7 @@ export default function LiveDraft() {
                     onClick={() => setActiveTab('auction')}
                     className={`flex-1 py-3 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all ${activeTab === 'auction' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-900 text-slate-500'}`}
                 >
-                    Auction Floor
+                    {t('draft.auction_floor')}
                 </button>
                 <button
                     onClick={() => setActiveTab('rosters')}
@@ -443,7 +443,7 @@ export default function LiveDraft() {
                             <div className="text-center w-full max-w-3xl animate-in zoom-in duration-500 relative z-10">
                                 <div className="mb-4 md:mb-10">
                                     <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-1 md:px-6 md:py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-2 md:mb-4">
-                                        <Gavel size={12} className="md:w-[14px] md:h-[14px]" /> Bid in Progress
+                                        <Gavel size={12} className="md:w-[14px] md:h-[14px]" /> {t('draft.bid_in_progress')}
                                     </span>
                                     <h2 className="text-3xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl px-2">
                                         {draftState.currentPlayerName}
@@ -451,13 +451,13 @@ export default function LiveDraft() {
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-2 md:gap-6 mb-6 md:mb-12 px-2 md:px-0">
-                                    <AuctionStat label="Current Bid" value={draftState.currentBidTotal.toFixed(1)} sub={`x ${draftState.currentBidYears}Y`} color="emerald" />
-                                    <AuctionStat label="Annual Avg" value={draftState.currentBidYear1.toFixed(1)} sub="Calculated" color="blue" />
-                                    <AuctionStat label="Time Left" value={`${timeLeft}s`} sub="Critical Time" color={timeLeft < 10 ? "red" : "white"} />
+                                    <AuctionStat label={t('draft.current_bid')} value={draftState.currentBidTotal.toFixed(1)} sub={`x ${draftState.currentBidYears}Y`} color="emerald" />
+                                    <AuctionStat label={t('draft.annual_avg')} value={draftState.currentBidYear1.toFixed(1)} sub={t('draft.calculated')} color="blue" />
+                                    <AuctionStat label={t('draft.time_left')} value={`${timeLeft}s`} sub={t('draft.critical_time')} color={timeLeft < 10 ? "red" : "white"} />
                                 </div>
 
                                 <div className="bg-slate-950/80 backdrop-blur-md px-6 py-3 md:px-10 md:py-4 rounded-full inline-flex items-center gap-3 md:gap-4 mb-6 md:mb-12 border border-white/5 shadow-2xl max-w-full mx-auto">
-                                    <span className="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">Winning Bid</span>
+                                    <span className="text-slate-500 text-[9px] md:text-[10px] font-black uppercase tracking-widest whitespace-nowrap">{t('draft.winning_bid')}</span>
                                     <div className="flex items-center gap-2 md:gap-3 min-w-0">
                                         <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shrink-0">
                                             <User size={12} className="md:w-4 md:h-4" />
@@ -500,7 +500,7 @@ export default function LiveDraft() {
                                         disabled={timeLeft <= 0}
                                         className="w-full py-4 md:py-6 bg-emerald-600 hover:bg-emerald-550 border-t border-white/20 active:scale-[0.98] disabled:opacity-30 rounded-xl md:rounded-2xl font-black text-lg md:text-xl uppercase italic tracking-tighter shadow-2xl transition-all"
                                     >
-                                        Place Secure Bid
+                                        {t('draft.place_bid')}
                                     </button>
                                 </div>
                             </div>
@@ -508,7 +508,7 @@ export default function LiveDraft() {
                             <div className="w-full h-full flex flex-col items-center justify-center animate-in fade-in duration-500 max-w-4xl relative z-10">
                                 <div className="text-center mb-2 shrink-0 hidden md:block">
                                     <span className="bg-blue-500/10 text-blue-500 border border-blue-500/20 px-6 py-2 rounded-full text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-2">
-                                        <Timer size={14} /> Turn Transition
+                                        <Timer size={14} /> {t('draft.turn_transition')}
                                     </span>
                                     <h2 className={`text-5xl font-black uppercase italic tracking-tighter leading-none ${isMyTurn ? 'text-white' : 'text-slate-600'}`}>
                                         {isMyTurn ? t('draft.nomination_phase') : t('draft.waiting_scout')}
@@ -583,7 +583,7 @@ export default function LiveDraft() {
                                             </div>
                                             <div className="text-center">
                                                 <p className="text-2xl font-black uppercase italic tracking-tighter text-slate-700">{t('draft.gm_choosing')}</p>
-                                                <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em] mt-2">Scanning Roster Desires...</p>
+                                                <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.3em] mt-2">{t('draft.scanning')}</p>
                                             </div>
                                         </div>
                                     )
@@ -598,9 +598,9 @@ export default function LiveDraft() {
                     <div className="p-8 border-b border-slate-800 bg-slate-800/30">
                         <div className="flex items-center gap-3 mb-1">
                             <Users size={20} className="text-blue-500" />
-                            <h3 className="font-black text-white uppercase italic tracking-tighter text-xl">Gm Tracking</h3>
+                            <h3 className="font-black text-white uppercase italic tracking-tighter text-xl">{t('draft.gm_tracking')}</h3>
                         </div>
-                        <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Live Budget & Roster Matrix</p>
+                        <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">{t('draft.live_budget_matrix')}</p>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
@@ -630,7 +630,7 @@ export default function LiveDraft() {
                                             <div className="bg-slate-950/50 p-4 border-t border-slate-800 mx-2 mb-2 rounded-[1.5rem]">
                                                 {
                                                     team.players.length === 0 ? (
-                                                        <div className="text-slate-700 italic text-[10px] px-2 py-4 text-center">No players acquired yet.</div>
+                                                        <div className="text-slate-700 italic text-[10px] px-2 py-4 text-center">{t('draft.no_players_acquired')}</div>
                                                     ) : (
                                                         <ul className="space-y-2">
                                                             {

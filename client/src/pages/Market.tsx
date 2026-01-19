@@ -125,8 +125,8 @@ export default function Market() {
 
             if (!validation.valid) {
                 showAlert({
-                    title: t('draft.roster_limit_exceeded') || "Roster Limit",
-                    message: validation.reason || t('draft.roster_full_msg') || "Roster Full",
+                    title: t('draft.roster_limit_exceeded'),
+                    message: validation.reason || t('draft.roster_full_msg'),
                     type: "error"
                 });
                 return;
@@ -150,7 +150,7 @@ export default function Market() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-4 md:p-6 text-slate-100 font-sans pb-24">
-            <SEO title="Mercato" description="Cerca free agent e partecipa alle aste." />
+            <SEO title={t('market.title')} description={t('market.seo_description')} />
 
             <PlayerStatsModal player={selectedDetailsPlayer} isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
             <BidModal
@@ -162,7 +162,7 @@ export default function Market() {
 
             <div className="mx-auto max-w-7xl">
                 <button onClick={() => navigate('/dashboard')} className="mb-8 flex items-center text-xs font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white transition group">
-                    <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> Dashboard
+                    <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> {t('market.back_to_dashboard')}
                 </button>
 
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-12">
@@ -188,7 +188,7 @@ export default function Market() {
                             />
                         </div>
                         <button className="flex items-center gap-2 px-6 py-4 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 hover:text-white hover:border-slate-700 transition shadow-xl font-black uppercase text-[10px] tracking-widest">
-                            <Filter size={16} /> Filters
+                            <Filter size={16} /> {t('market.filters')}
                         </button>
                     </div>
                 </div>
@@ -208,10 +208,10 @@ export default function Market() {
                         <div className="col-span-full">
                             <EmptyState
                                 icon={Search}
-                                title={t('market.no_results_title') || "No Players Found"}
-                                description={t('market.no_results_desc') || "We couldn't find any players matching your search criteria."}
+                                title={t('market.no_results_title')}
+                                description={t('market.no_results_desc')}
                                 action={{
-                                    label: t('market.clear_search') || "Clear Search",
+                                    label: t('market.clear_search'),
                                     onClick: () => setSearchTerm('')
                                 }}
                             />
@@ -227,7 +227,7 @@ export default function Market() {
                                 onClick={() => paginate(1)}
                                 disabled={currentPage === 1}
                                 className="p-3 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white disabled:opacity-20 transition"
-                                title="First Page"
+                                title={t('common.first_page')}
                             >
                                 <ChevronsLeft size={20} />
                             </button>
@@ -235,13 +235,13 @@ export default function Market() {
                                 onClick={() => paginate(currentPage - 1)}
                                 disabled={currentPage === 1}
                                 className="p-3 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white disabled:opacity-20 transition"
-                                title="Previous Page"
+                                title={t('common.prev_page')}
                             >
                                 <ChevronLeft size={20} />
                             </button>
 
                             <div className="flex items-center gap-3 px-4 border-l border-r border-white/5 mx-2">
-                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest hidden sm:inline">Page</span>
+                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest hidden sm:inline">{t('market.page')}</span>
                                 <input
                                     type="text"
                                     inputMode="numeric"
@@ -276,7 +276,7 @@ export default function Market() {
                                 onClick={() => paginate(currentPage + 1)}
                                 disabled={currentPage === totalPages}
                                 className="p-3 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white disabled:opacity-20 transition"
-                                title="Next Page"
+                                title={t('common.next_page')}
                             >
                                 <ChevronRight size={20} />
                             </button>
@@ -284,7 +284,7 @@ export default function Market() {
                                 onClick={() => paginate(totalPages)}
                                 disabled={currentPage === totalPages}
                                 className="p-3 rounded-xl hover:bg-white/5 text-slate-500 hover:text-white disabled:opacity-20 transition"
-                                title="Last Page"
+                                title={t('common.last_page')}
                             >
                                 <ChevronsRight size={20} />
                             </button>

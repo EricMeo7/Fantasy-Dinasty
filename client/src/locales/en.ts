@@ -38,7 +38,12 @@ export const en = {
             "proposer_cannot_accept": "The proposer cannot accept their own offer (it's implicitly accepted)",
             "out": "OUT",
             "filters": "Advanced Filters",
-            "reset": "Reset Filters"
+            "reset": "Reset Filters",
+            "processing": "Processing...",
+            "first_page": "First Page",
+            "last_page": "Last Page",
+            "next_page": "Next Page",
+            "prev_page": "Previous Page"
         },
         "success": {
             "player_released": "Player released. Cap penalties applied",
@@ -228,6 +233,7 @@ export const en = {
         },
         "dashboard": {
             "title": "Dashboard",
+            "seo_description": "Manage your team, view matches and the market.",
             "daily_score": "Daily Score",
             "weekly_matchup": "Weekly Matchup",
             "vs": "vs",
@@ -275,6 +281,7 @@ export const en = {
         },
         "market": {
             "title": "Free Agents Market",
+            "seo_description": "Search for free agents and participate in auctions.",
             "live_market": "Live Market • 24h Auctions",
             "search_placeholder": "Search player...",
             "auction_live": "LIVE AUCTION",
@@ -295,11 +302,19 @@ export const en = {
             "view_scout_report": "View Scout Report",
             "base": "BASE",
             "fpt": "FPT",
-            "pts": "PTS"
+            "pts": "PTS",
+            "no_results_title": "No Results Found",
+            "no_results_desc": "We couldn't find any players matching your search criteria.",
+            "clear_search": "Clear Search",
+            "filters": "Filters",
+            "page": "Page",
+            "back_to_dashboard": "Dashboard"
         },
         "roster": {
             "title": "Roster Management",
+            "seo_description": "Manage team players and contracts.",
             "subtitle": "Analyze finances and manage your lineup.",
+            "release_error": "Error releasing player",
             "salary_cap": "Salary Cap",
             "available": "Available",
             "active_salary": "Active Salary",
@@ -346,7 +361,20 @@ export const en = {
             "year1": "Year 1",
             "header_player": "Player",
             "header_actions": "Actions",
-            "pts": "pts"
+            "pts": "pts",
+            "no_players_title": "No Players Found",
+            "no_players_desc": "Your roster is empty. Go to the market to sign talent.",
+            "go_to_market": "Go to Market",
+            "return_dashboard": "Return to Dashboard",
+            "personnel_roster": "Personnel Roster",
+            "squad_entity_config": "Squad Entity Configuration & Contracts",
+            "tactical_hub": "Tactical Hub",
+            "manage_lineup": "Manage Lineup",
+            "active_unit_roster": "Active Unit Roster",
+            "squad_intelligence": "Squad Intelligence",
+            "personnel_count": "Personnel Count",
+            "personnel_sync_operational": "Personnel Matrix Real-time Synchronization Operational",
+            "hq_approved": "Syndicate HQ Approved"
         },
         "lineup": {
             "title": "Daily Lineup",
@@ -373,6 +401,17 @@ export const en = {
         },
         "matchup": {
             "title": "Matchup",
+            "seo_description": "Manage lineups and live scores.",
+            "no_schedule_title": "Schedule Not Present",
+            "no_schedule_desc": "No games scheduled for this week.",
+            "return_dashboard": "Return to Dashboard",
+            "weekly_recap": "Weekly Recap",
+            "total": "Total",
+            "read_only": "Read Only",
+            "insert_player": "Insert",
+            "compatible_players_subtitle": "Showing compatible players",
+            "avg": "Avg",
+            "others": "Others",
             "score": "Score",
             "home": "Home",
             "away": "Away",
@@ -399,37 +438,7 @@ export const en = {
             "bye": "Bye",
             "vs": "VS"
         },
-        "league": {
-            "title": "League",
-            "standings": "Standings",
-            "members": "Members",
-            "settings": "Settings",
-            "invite_code": "Invite Code",
-            "create": "Create League",
-            "join": "Join League",
-            "create_new": "Create New League",
-            "join_with_code": "Join with Code",
-            "fantasy_hub": "FANTASY HUB",
-            "teams_count": "TEAMS",
-            "rank": "Rank",
-            "team": "Team",
-            "w": "W",
-            "l": "L",
-            "pct": "PCT",
-            "pts": "PTS",
-            "avg": "AVG",
-            "gp": "GP",
-            "standings_title": "STANDINGS",
-            "copied": "Copied!",
-            "copied_msg": "Invite code copied to clipboard.",
-            "regular_season": "Regular Season",
-            "team_gm": "Team & GM",
-            "record": "Record",
-            "fantasy_points": "Fantasy Points",
-            "you": "YOU",
-            "no_teams": "No teams enrolled in this league.",
-            "copy_btn_title": "Copy Code"
-        },
+
         "league_selection": {
             "title": "Found a New League",
             "league_name": "League Name",
@@ -495,7 +504,15 @@ export const en = {
             "receiving_label": "Receiving",
             "propose_trade": "Propose Trade",
             "remove_team": "Remove Team",
-            "no_partners_placeholder": "Use the selector above to add teams to the negotiation table"
+            "no_partners_placeholder": "Use the selector above to add teams to the negotiation table",
+            "page_title": "Trade",
+            "center": "Center",
+            "description": "Dynasty Transaction Engine",
+            "negotiator": "Negotiator",
+
+            "no_trades_title": "Inbox Empty",
+            "no_trades_desc": "You have no pending trade offers at the moment.",
+            "return_dashboard": "Return to Dashboard"
         },
         "draft": {
             "live_draft": "LIVE DRAFT",
@@ -556,11 +573,31 @@ export const en = {
             "gm_tracking": "GM Tracking",
             "live_budget_matrix": "Live Budget & Roster Matrix",
             "roster_limit_exceeded": "Roster Limit Reached",
-            "roster_full_msg": "Cannot acquire player: Roster limits for this role would be exceeded."
+            "roster_full_msg": "Cannot acquire player: Roster limits for this role would be exceeded.",
+            "initializing_engine": "Initializing Draft Engine...",
+            "gm_online": "GM ONLINE",
+            "turn_transition": "Turn Transition",
+            "critical_time": "Critical Time",
+            "calculated": "Calculated",
+            "no_players_acquired": "No players acquired yet.",
+            "pause_draft_title": "Pause Draft?",
+            "pause_draft_msg": "This will return everyone to the lobby.",
+            "undo_pick_title": "Undo Last Pick?",
+            "undo_pick_msg": "This will remove the last sold player and refund budget.",
+            "force_stop_title": "Force Stop?",
+            "force_stop_msg": "Current bid will be cancelled."
         },
 
         "matches": {
             "title": "SCHEDULE",
+            "seo_description": "Game schedule and results.",
+            "temporal_navigation": "Temporal Navigation",
+            "fiscal_week_control": "Fiscal Week Control",
+            "change_week": "Change Week",
+            "select_week": "Select Week",
+            "dormant_schedule": "Dormant Schedule",
+            "dormant_desc": "No match documents initialized",
+            "global_sync_operational": "Global Match Matrix Synchronization: Operational",
             "update_scores": "Update Scores",
             "force_update_confirm": "Force score update? This will reload data from NBA.",
             "data_reloaded": "Data reloaded.",
@@ -576,6 +613,49 @@ export const en = {
             "subtitle": "Season Matrix & Historical Records",
             "status_label": "Status",
             "live_monitoring": "LIVE_MONITORING"
+        },
+        "league": {
+            "title": "LEAGUE",
+            "matrix": "MATRIX",
+            "description": "Global Competitive Standings & Assets",
+            "ranking_intel": "Real-time Ranking Intel",
+            "active_season": "Official 2024/2025 Regular Season",
+            "standings": "Standings",
+            "members": "Members",
+            "settings": "Settings",
+            "create": "Create League",
+            "join": "Join League",
+            "create_new": "Create New League",
+            "join_with_code": "Join with Code",
+            "fantasy_hub": "FANTASY HUB",
+            "teams_count": "TEAMS",
+            "w": "W",
+            "l": "L",
+            "avg": "AVG",
+            "gp": "GP",
+            "copied": "Copied!",
+            "copied_msg": "Invite code copied to clipboard.",
+            "retrieving_matrix": "Retrieving Competitive Matrix...",
+            "feed_compromised": "League Feed Compromised",
+            "request_resync": "Request Re-sync",
+            "return_dashboard": "Return to Dashboard",
+            "invite_code": "INVITE CODE",
+            "copy_btn_title": "Copy to clipboard",
+            "standings_title": "OFFICIAL RANKING",
+            "regular_season": "Regular Season",
+            "rank": "Rank",
+            "team_gm": "Team / GM",
+            "record": "Record",
+            "fantasy_points": "FP",
+            "pct": "PCT",
+            "you": "YOU",
+            "no_teams": "No teams yet in this league",
+            "system_parity": "System parity verified. All rankings immutable until next update.",
+            "global_leaderboard": "Global Leaderboard",
+            "eastern_conference": "Eastern Conference",
+            "western_conference": "Western Conference",
+            "eastern": "Eastern",
+            "western": "Western"
         },
         "login": {
             "title": "Login",
@@ -763,26 +843,66 @@ export const en = {
             "scores_recalculated": "Scores recalculated."
         },
         "landing": {
-            "seo_title": "Fantasy Dynasty NBA Salary Cap Tool | Legacy Hub",
-            "seo_description": "The ultimate tool for Fantasy Basketball Dynasty leagues. Manage real NBA salaries, contracts, cap space, and luxury tax automatically.",
-            "hero_badge": "Fantasy Basketball Evolved",
-            "hero_title_prefix": "Master your",
+            "seo_title": "NBA Manager & Dynasty Simulator Game | Salary Cap & Live Auction",
+            "seo_description": "The ultimate NBA managerial simulation. Lead your franchise with real Salary Cap, Live Auctions, and multi-year contracts. Build your dynasty today.",
+            "hero_badge": "The Evolution of Fantasy Basketball",
+            "hero_title_prefix": "Dominate Your",
             "hero_title_accent": "Dynasty League",
             "hero_title_suffix": "with Real NBA Salaries",
-            "hero_subtitle": "Contract Management, Trade Machine & Cap Space Calculator. Bring the realism of the front office to your fantasy league.",
-            "cta_launch": "Launch App",
-            "cta_learn_more": "Learn More",
-            "feature_1_title": "Salary Cap Management",
-            "feature_1_desc": "Automatic data synchronization with real NBA contracts. Manage your team's salary cap, calculate luxury tax implications, and plan for future seasons with precision.",
-            "feature_2_title": "Rookie Scale Contracts",
-            "feature_2_desc": "Seamlessly handle rookie scale contracts and extensions. Our system tracks draft rights, rookie exceptions, and two-way contracts efficiently.",
-            "feature_3_title": "Free Agency & Trades",
-            "feature_3_desc": "Simulate complex trades with our Trade Machine. Manage Free Agency bidding wars with live cap space updates and automated contract rules.",
+            "hero_subtitle": "Manage the Salary Cap, sign multi-year contracts, and challenge other GMs in heart-pounding Live NBA Auctions. The ultimate simulation for true basketball fans.",
+            "cta_launch": "Create Your Franchise For Free",
+            "cta_learn_more": "See How It Works",
+            "problem_title": "Tired of the Same Old Fantasy Basketball?",
+            "problem_desc": "Standard leagues are boring: pick players, wait for the score, done. Here, you are a General Manager. You must balance the books, manage deadlines, and beat your opponents in the market, not just on the court.",
+            "problem_item_1": "No Static Drafts: Only competitive Live Auctions.",
+            "problem_item_2": "No Infinite Budgets: Every Salary Cap dollar counts.",
+            "problem_item_3": "No Passive Play: 365-day franchise management.",
+            "features": {
+                "dashboard": {
+                    "title": "Managerial Dashboard",
+                    "desc": "Your command center. Monitor team performance, injury notifications, and live league updates in one consolidated view."
+                },
+                "salary_cap": {
+                    "title": "Salary Cap Management",
+                    "desc": "Navigate the financial complexities of a real franchise. Manage active contracts, dead money, and cap space to build a sustainable dynasty."
+                },
+                "auction": {
+                    "title": "Live Auction Interface",
+                    "desc": "The heart of the action. Experience the adrenaline of real-time bidding wars against other GMs to acquire your favorite superstars."
+                },
+                "roster": {
+                    "title": "Roster & Lineups",
+                    "desc": "Set your daily rotation. Make strategic decisions on starters and bench players based on real-time NBA matchups."
+                },
+                "matchup": {
+                    "title": "Head-to-Head Matchups",
+                    "desc": "Track your weekly performance against rivals. Live scoring updates and detailed stat breakdowns for every battle."
+                },
+                "market": {
+                    "title": "Free Agents Market",
+                    "desc": "Scout and sign available talent. Use the waiver wire strategically to bolster your squad during the season."
+                },
+                "standings": {
+                    "title": "League Standings",
+                    "desc": "Track the race for the playoffs. Monitor division rankings, win streaks, and points-for to secure your post-season spot."
+                },
+                "commissioner": {
+                    "title": "Commissioner Zone",
+                    "desc": "Complete control. Custom rule sets, schedule generation, and administrative tools to manage your private league effectively."
+                }
+            },
+            "faq_title": "Everything You Need to Know About NBA Franchise Management",
+            "faq_q1": "Is it free to play?",
+            "faq_a1": "Yes, creating a league and managing your team is completely free.",
+            "faq_q2": "How does scoring work?",
+            "faq_a2": "We use a system based on real NBA performance. Every assist, rebound, or bucket translates into points for your team.",
+            "faq_q3": "Can I make trades during the year?",
+            "faq_a3": "Absolutely. We have a built-in Trade Machine that verifies the salary validity of every transaction.",
             "footer_headline": "Built for",
             "footer_accent": "Hardcore",
-            "footer_suffix": "Commissioners",
-            "footer_text": "Legacy Hub eliminates the spreadsheets and manual calculations. We provide a robust platform for Dynasty Leagues that want to mirror the complexity and strategy of the real NBA front office.",
-            "copyright": "Legacy Hub. Fantasy Dynasty NBA."
+            "footer_suffix": "Managers",
+            "footer_text": "Join the elite General Managers. Create your league now and start writing your dynasty's history.",
+            "copyright": "Fantasy Basketball Syndrome."
         },
         "player_stats": {
             "title": "Player Statistics",

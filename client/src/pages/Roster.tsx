@@ -50,7 +50,7 @@ export default function Roster() {
         if (!releaseTarget) return;
         setIsReleasing(true);
 
-        const toastId = toast.loading(t('common.processing') || 'Processing...');
+        const toastId = toast.loading(t('common.processing'));
 
         releasePlayer(releaseTarget.id, {
             onSuccess: () => {
@@ -60,7 +60,7 @@ export default function Roster() {
             },
             onError: (error: any) => {
                 console.error("Errore taglio:", error);
-                const msg = error.response?.data?.message || error.response?.data || t('roster.loading_error') || 'Error releasing player';
+                const msg = error.response?.data?.message || error.response?.data || t('roster.release_error');
                 toast.error(msg, { id: toastId });
                 setIsReleasing(false);
             }
@@ -76,7 +76,7 @@ export default function Roster() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-4 md:p-12 text-slate-100 font-sans pb-32 relative overflow-hidden">
-            <SEO title="Roster" description="Gestisci i giocatori e i contratti del team." />
+            <SEO title={t('roster.header_player')} description={t('roster.seo_description')} />
 
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
@@ -133,17 +133,17 @@ export default function Roster() {
                                 onClick={() => navigate('/dashboard')}
                                 className="group flex items-center gap-2 text-slate-600 hover:text-white transition-all text-[9px] font-black uppercase tracking-[0.3em] mb-3"
                             >
-                                <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> Return to Dashboard
+                                <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> {t('roster.return_dashboard')}
                             </button>
                             <div className="flex items-center gap-4">
                                 <h1 className="text-3xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
-                                    {myTeam?.name || "Personnel"} <span className="text-blue-500">Roster</span>
+                                    {myTeam?.name || t('roster.personnel_roster')} <span className="text-blue-500">{t('roster.title').split(' ')[1]}</span>
                                 </h1>
                                 <button onClick={() => setIsSettingsOpen(true)} className="p-2 md:p-3 rounded-full bg-slate-900/50 border border-white/10 text-slate-500 hover:text-white hover:bg-slate-800 transition-all hover:scale-105" title={t('team_settings.title')}>
                                     <Settings size={20} />
                                 </button>
                             </div>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">Squad Entity Configuration & Contracts</p>
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">{t('roster.squad_entity_config')}</p>
                         </div>
                     </div>
 
@@ -152,8 +152,8 @@ export default function Roster() {
                         className="group flex items-center gap-4 px-8 py-4 rounded-3xl bg-slate-900/50 backdrop-blur-xl border border-white/5 text-slate-400 hover:text-white transition-all shadow-2xl hover:border-blue-500/30 w-full md:w-auto justify-between md:justify-start"
                     >
                         <div className="flex flex-col text-right">
-                            <span className="text-[8px] font-black uppercase tracking-[0.3em]">Tactical Hub</span>
-                            <span className="text-[11px] font-black uppercase tracking-widest">Manage Lineup</span>
+                            <span className="text-[8px] font-black uppercase tracking-[0.3em]">{t('roster.tactical_hub')}</span>
+                            <span className="text-[11px] font-black uppercase tracking-widest">{t('roster.manage_lineup')}</span>
                         </div>
                         <div className="p-2 bg-slate-800 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg"><LayoutDashboard size={20} /></div>
                     </button>
@@ -168,7 +168,7 @@ export default function Roster() {
                 <div className="relative">
                     <div className="absolute -top-10 left-4 md:left-8 px-6 py-2 bg-slate-950 border border-slate-800 rounded-t-2xl border-b-0 inline-flex items-center gap-3 z-20">
                         <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse"></div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Unit Roster</span>
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('roster.active_unit_roster')}</span>
                     </div>
 
                     <div className="bg-slate-900/40 backdrop-blur-3xl rounded-[2rem] md:rounded-[3rem] border border-white/5 overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.5)] animate-in fade-in slide-in-from-bottom-8 duration-1000 relative">
@@ -177,13 +177,13 @@ export default function Roster() {
                         <div className="px-6 py-6 md:px-10 md:py-8 border-b border-white/5 bg-slate-950/40 flex justify-between items-center">
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-blue-600/10 rounded-2xl border border-blue-500/20 text-blue-500"><Users size={24} /></div>
-                                <h3 className="font-black text-white uppercase tracking-tighter text-2xl italic leading-none">Squad Intelligence</h3>
+                                <h3 className="font-black text-white uppercase tracking-tighter text-2xl italic leading-none">{t('roster.squad_intelligence')}</h3>
                             </div>
                             <div className="flex items-center gap-4">
                                 <div className="h-8 w-px bg-slate-800"></div>
                                 <div className="flex flex-col items-end">
                                     <span className="text-xl font-black text-white italic tabular-nums leading-none">{players.length} <span className="text-[10px] text-slate-700">/ 15</span></span>
-                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">Personnel Count</span>
+                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">{t('roster.personnel_count')}</span>
                                 </div>
                             </div>
                         </div>
@@ -196,10 +196,10 @@ export default function Roster() {
                             ) : players.length === 0 ? (
                                 <EmptyState
                                     icon={Shirt}
-                                    title={t('roster.no_players_title') || "No Players Found"}
-                                    description={t('roster.no_players_desc') || "Your roster is currently empty. Head to the market to sign some talent."}
+                                    title={t('roster.no_players_title')}
+                                    description={t('roster.no_players_desc')}
                                     action={{
-                                        label: t('roster.go_to_market') || "Go to Market",
+                                        label: t('roster.go_to_market'),
                                         onClick: () => navigate('/market')
                                     }}
                                 />
@@ -235,11 +235,11 @@ export default function Roster() {
                 <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-8 px-10 opacity-30 group">
                     <div className="flex items-center gap-4">
                         <Activity size={18} className="text-blue-500" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Personnel Matrix Real-time Synchronization Operational</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">{t('roster.personnel_sync_operational')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <Sparkles size={14} className="group-hover:text-blue-500 transition-colors" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">Syndicate HQ Approved</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">{t('roster.hq_approved')}</span>
                     </div>
                 </div>
             </div>
