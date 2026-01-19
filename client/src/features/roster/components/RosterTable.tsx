@@ -58,7 +58,7 @@ export const RosterTable = ({ players, onRelease, onOpenStats }: Props) => {
                                             {player.injuryStatus && (
                                                 <span className="text-[9px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider"
                                                     title={`${player.injuryBodyPart || ''} - ${player.injuryReturnDate || ''}`}>
-                                                    {player.injuryStatus === 'Out' ? 'OUT' : player.injuryStatus}
+                                                    {player.injuryStatus === 'Out' ? t('common.out') : player.injuryStatus}
                                                 </span>
                                             )}
                                         </div>

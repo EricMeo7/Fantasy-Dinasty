@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, ArrowRight, Loader2, Globe, Sparkles, User, BadgeDollarSign, Activity } from 'lucide-react';
+import { ArrowRight, Loader2, Globe, Sparkles, User, BadgeDollarSign, Activity } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { useAllRosters } from '../features/league/api/useAllRosters';
 import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModal';
 import SEO from '../components/SEO/SEO';
+import LogoAvatar from '../components/LogoAvatar';
+import { CONFIG } from '../config';
 
 export default function LeagueRosters() {
   const navigate = useNavigate();
@@ -145,11 +147,14 @@ export default function LeagueRosters() {
                   {/* Team Header Panel */}
                   <div className="p-6 md:p-12 bg-slate-950/40 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-end gap-10" >
                     <div className="flex items-center gap-6">
-                      <div className="p-3 md:p-5 bg-slate-900 border border-emerald-500/20 rounded-3xl text-emerald-500 shadow-2xl relative">
-                        <Shield size={48} className="relative z-10 hidden md:block" />
-                        <Shield size={32} className="relative z-10 md:hidden" />
-                        <div className="absolute inset-0 bg-emerald-500/5 blur-2xl rounded-full"></div>
-                      </div>
+                      <LogoAvatar
+                        src={`${CONFIG.API_BASE_URL}/team/${currentTeam.id}/logo?t=${new Date().getTime()}`}
+                        alt={currentTeam.teamName}
+                        size="lg"
+                        shape="square"
+                        className="bg-slate-900 border-emerald-500/20 shadow-2xl"
+                        fallbackType="team"
+                      />
                       <div>
                         <div className="inline-flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 px-3 py-1 rounded-full mb-3 shadow-inner">
                           <Sparkles size={12} className="text-emerald-500" />

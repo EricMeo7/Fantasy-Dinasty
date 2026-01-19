@@ -76,12 +76,14 @@ public class DraftHub : Hub
         if (leagueId == 0) return;
 
         var userId = Context.UserIdentifier;
-        var user = await _context.Users.FindAsync(userId);
-        string userName = user?.UserName ?? "Unknown";
+        var teamName = await _context.Teams
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => t.Name)
+            .FirstOrDefaultAsync() ?? "Unknown Team";
 
         try
         {
-            await _draftService.NominatePlayerAsync(leagueId, playerId, playerName, amount, years, userId, userName);
+            await _draftService.NominatePlayerAsync(leagueId, playerId, playerName, amount, years, userId, teamName);
         }
         catch (Exception ex)
         {
@@ -95,12 +97,14 @@ public class DraftHub : Hub
         if (leagueId == 0) return;
 
         var userId = Context.UserIdentifier;
-        var user = await _context.Users.FindAsync(userId);
-        string userName = user?.UserName ?? "Unknown";
+        var teamName = await _context.Teams
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => t.Name)
+            .FirstOrDefaultAsync() ?? "Unknown Team";
 
         try
         {
-            await _draftService.PlaceBidAsync(leagueId, totalAmount, years, userId, userName);
+            await _draftService.PlaceBidAsync(leagueId, totalAmount, years, userId, teamName);
         }
         catch (Exception ex)
         {
@@ -138,13 +142,12 @@ public class DraftHub : Hub
         // --- CHECK ONLINE PRESENCE ---
         // Verifica che TUTTI i manager siano connessi
         var currentState = _draftService.GetState(leagueId);
-        var onlineUsers = currentState.OnlineParticipants; // Questo proviene dal LiveService tracking
-        
+        var onlineUsers = currentState.OnlineParticipants; 
+
         var offlineUsers = leagueUserIds.Except(onlineUsers).ToList();
         
         if (offlineUsers.Any())
         {
-             // Opzionale: Permetti override se l'admin insiste? Per ora STRICT come richiesto.
              // "Aspettare che tutti gli utenti siano collegati prima di far partire l'asta draft."
              await Clients.Caller.SendAsync("Error", $"Impossibile avviare: {offlineUsers.Count} manager sono offline. Attendere tutti i partecipanti.");
              return;

@@ -88,7 +88,7 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, myTeamId, onS
                 : (myRoster.userId || String(myRoster.id));
 
             if (!toTeamId) {
-                showAlert({ title: t('common.error'), message: 'Please add a trade partner first', type: 'error' });
+                showAlert({ title: t('common.error'), message: t('trades.add_partner_error'), type: 'error' });
                 return;
             }
 
@@ -189,16 +189,16 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, myTeamId, onS
                                 </div>
                             </div>
                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                {myRoster.players.length} Players
+                                {t('trades.units_count', { count: myRoster.players.length })}
                             </div>
                         </div>
 
                         {/* Column Headers */}
                         <div className="flex items-center gap-3 px-4 py-2 text-[9px] font-bold text-slate-600 uppercase tracking-wider border-b border-white/5 bg-slate-950/40">
                             <div className="h-8 w-8 shrink-0"></div> {/* Avatar space */}
-                            <div className="flex-1">Player</div>
-                            <div className="shrink-0 w-[40px] text-center">Pos</div>
-                            <div className="shrink-0 w-[45px] text-right">FP</div>
+                            <div className="flex-1">{t('trades.header_player')}</div>
+                            <div className="shrink-0 w-[40px] text-center">{t('trades.header_pos')}</div>
+                            <div className="shrink-0 w-[45px] text-right">{t('trades.header_fp')}</div>
                             <div className="shrink-0 flex items-center gap-1 text-right">
                                 <span className="text-white">Y1</span>
                                 <span className="text-slate-700">/</span>
@@ -244,7 +244,7 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, myTeamId, onS
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                                            {team.players.length} Players
+                                            {t('trades.units_count', { count: team.players.length })}
                                         </div>
                                         <button
                                             onClick={() => removeTarget(team.userId || String(team.id))}
@@ -259,9 +259,9 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, myTeamId, onS
                                 {/* Column Headers */}
                                 <div className="flex items-center gap-3 px-4 py-2 text-[9px] font-bold text-slate-600 uppercase tracking-wider border-b border-white/5 bg-slate-950/40">
                                     <div className="h-8 w-8 shrink-0"></div> {/* Avatar space */}
-                                    <div className="flex-1">Player</div>
-                                    <div className="shrink-0 w-[40px] text-center">Pos</div>
-                                    <div className="shrink-0 w-[45px] text-right">FP</div>
+                                    <div className="flex-1">{t('trades.header_player')}</div>
+                                    <div className="shrink-0 w-[40px] text-center">{t('trades.header_pos')}</div>
+                                    <div className="shrink-0 w-[45px] text-right">{t('trades.header_fp')}</div>
                                     <div className="shrink-0 flex items-center gap-1 text-right">
                                         <span className="text-white">Y1</span>
                                         <span className="text-slate-700">/</span>

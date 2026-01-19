@@ -56,7 +56,7 @@ export const PlayerCard = ({ player, onRelease, onOpenStats }: Props) => {
                         <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{player.nbaTeam}</p>
                         {player.injuryStatus && (
                             <span className="text-[9px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider" title={player.injuryBodyPart}>
-                                {player.injuryStatus === 'Out' ? 'OUT' : player.injuryStatus}
+                                {player.injuryStatus === 'Out' ? t('common.out') : player.injuryStatus}
                             </span>
                         )}
                     </div>

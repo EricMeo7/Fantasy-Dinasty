@@ -116,7 +116,6 @@ export default function PlayerPool() {
         return infinitData?.pages.flatMap(page => page.players) ?? [];
     }, [infinitData]);
 
-    const totalCount = infinitData?.pages[0]?.totalCount ?? 0;
 
     const { data: seasons = [] } = useSeasons();
 
@@ -444,15 +443,6 @@ export default function PlayerPool() {
                             <p className="font-black uppercase tracking-[0.3em] text-sm">{t('market.no_players')}</p>
                         </div>
                     )}
-                </div>
-
-                {/* Footer info */}
-                <div className="flex justify-between items-center px-6 py-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">
-                    <span>{players.length} / {totalCount} Data Nodes</span>
-                    <span className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                        Real-time Feed Active
-                    </span>
                 </div>
 
             </div>

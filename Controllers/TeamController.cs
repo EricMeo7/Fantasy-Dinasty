@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using FantasyBasket.API.Common;
 
 namespace FantasyBasket.API.Controllers;
 
@@ -94,7 +95,7 @@ public class TeamController : ControllerBase
         var team = await _context.Teams
             .FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
 
-        if (team == null) return NotFound("Non hai un team in questa lega");
+        if (team == null) return NotFound(ErrorCodes.TEAM_NOT_FOUND);
 
         return Ok(team);
     }
@@ -110,8 +111,8 @@ public class TeamController : ControllerBase
     [HttpPost("{id}/logo")]
     public async Task<IActionResult> UploadLogo(int id, IFormFile file)
     {
-        if (file == null || file.Length == 0) return BadRequest("No file uploaded.");
-        if (file.Length > 5 * 1024 * 1024) return BadRequest("File too large (Max 5MB).");
+        if (file == null || file.Length == 0) return BadRequest(ErrorCodes.NO_FILE_UPLOADED);
+        if (file.Length > 5 * 1024 * 1024) return BadRequest(ErrorCodes.FILE_TOO_LARGE);
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var team = await _context.Teams.FindAsync(id);
@@ -141,7 +142,7 @@ public class TeamController : ControllerBase
 
         if (team == null || team.LogoData == null)
         {
-            return NotFound("No logo found");
+            return NotFound(ErrorCodes.NOT_FOUND);
         }
 
         Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");

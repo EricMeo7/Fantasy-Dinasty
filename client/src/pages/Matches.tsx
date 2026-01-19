@@ -204,10 +204,6 @@ export default function Matches() {
                     </div>
                 </div>
 
-                {/* Footer Info */}
-                <div className="mt-16 text-center opacity-20">
-                    <p className="text-[9px] font-black uppercase tracking-[0.5em]">{t('matches.global_sync_operational')}</p>
-                </div>
             </div>
         </div>
     );

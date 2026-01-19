@@ -1,6 +1,7 @@
 ﻿using FantasyBasket.API.Data;
 using FantasyBasket.API.Models;
 using Microsoft.EntityFrameworkCore;
+using FantasyBasket.API.Common;
 
 namespace FantasyBasket.API.Services;
 
@@ -28,7 +29,7 @@ public class ScheduleService
     {
         var league = await _context.Leagues.Include(l => l.Teams).FirstOrDefaultAsync(l => l.Id == leagueId);
         if (league == null || league.Teams.Count < 2)
-            throw new Exception("Servono almeno 2 squadre per generare il calendario.");
+            throw new Exception(ErrorCodes.NOT_ENOUGH_TEAMS);
 
         // FETCH PLAYOFF SETTINGS
         var settings = await _context.LeagueSettings.FirstOrDefaultAsync(s => s.LeagueId == leagueId);

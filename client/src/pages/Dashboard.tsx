@@ -17,6 +17,7 @@ import api from '../services/api';
 import { CONFIG } from '../config';
 import LineupTimer from '../components/LineupTimer';
 import SEO from '../components/SEO/SEO';
+import LogoAvatar from '../components/LogoAvatar';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -90,9 +91,14 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center justify-between gap-2 md:gap-4 relative z-10">
                   <div className="flex flex-col flex-1">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-950/80 border border-slate-800 mb-4 overflow-hidden shadow-lg self-start">
-                      <img src={`${CONFIG.API_BASE_URL}/team/${currentMatch.homeTeamId}/logo?t=${new Date().getTime()}`} alt={currentMatch.homeTeam} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
-                    </div>
+                    <LogoAvatar
+                      src={`${CONFIG.API_BASE_URL}/team/${currentMatch.homeTeamId}/logo?t=${new Date().getTime()}`}
+                      alt={currentMatch.homeTeam}
+                      size="md"
+                      shape="square"
+                      className="mb-4"
+                      fallbackType="team"
+                    />
                     <div className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 ${currentMatch.homeScore > currentMatch.homeScore ? "text-blue-400" : "text-slate-600"}`}>
                       {currentMatch.homeScore > currentMatch.awayScore && t('dashboard.winning')}
                     </div>
@@ -100,13 +106,18 @@ export default function Dashboard() {
                     <span className="text-3xl md:text-5xl font-black text-blue-500 italic mt-2 md:mt-2 tracking-tighter tabular-nums">{currentMatch.homeScore.toFixed(1)}</span>
                   </div>
                   <div className="px-2 md:px-4 flex flex-col items-center pt-10">
-                    <div className="text-slate-800 text-[10px] font-black tracking-[0.3em] italic">VS</div>
+                    <div className="text-slate-800 text-[10px] font-black tracking-[0.3em] italic">{t('matchup.vs')}</div>
                     <div className="h-8 md:h-12 w-px bg-gradient-to-b from-transparent via-slate-800 to-transparent mt-2 md:mt-4"></div>
                   </div>
                   <div className="flex flex-col flex-1 text-right items-end">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-slate-950/80 border border-slate-800 mb-4 overflow-hidden shadow-lg">
-                      <img src={`${CONFIG.API_BASE_URL}/team/${currentMatch.awayTeamId}/logo?t=${new Date().getTime()}`} alt={currentMatch.awayTeam} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
-                    </div>
+                    <LogoAvatar
+                      src={`${CONFIG.API_BASE_URL}/team/${currentMatch.awayTeamId}/logo?t=${new Date().getTime()}`}
+                      alt={currentMatch.awayTeam}
+                      size="md"
+                      shape="square"
+                      className="mb-4"
+                      fallbackType="team"
+                    />
                     <div className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest mb-1 ${currentMatch.awayScore > currentMatch.homeScore ? "text-emerald-400" : "text-slate-600"}`}>
                       {
                         currentMatch.awayScore > currentMatch.homeScore && t('dashboard.leading')}
@@ -161,7 +172,9 @@ export default function Dashboard() {
                           </div>
                           <div className="flex flex-col items-end">
                             <div className="bg-red-600/10 px-3 py-1 rounded-lg border border-red-500/20 text-center">
-                              <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">{p.injuryStatus}</span>
+                              <span className="text-[9px] font-black text-red-400 uppercase tracking-widest">
+                                {p.injuryStatus === 'Out' ? t('common.out') : p.injuryStatus}
+                              </span>
                             </div>
                             {p.injuryBodyPart && (p.injuryBodyPart !== 'TBD') && (
                               <span className="text-[8px] font-bold text-red-500/60 uppercase tracking-widest mt-1 mr-1">{p.injuryBodyPart}</span>
@@ -193,29 +206,15 @@ export default function Dashboard() {
         {/* Header Benvenuto */}
         <div className="mb-8 md:mb-12 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
           <div className="flex items-center gap-4 md:gap-8">
-            <div className="p-3 md:p-5 bg-slate-900 border border-white/5 rounded-2xl md:rounded-3xl shadow-2xl relative text-blue-500 overflow-hidden group">
-              {myTeam?.id ? (
-                <img
-                  src={`${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}`}
-                  alt={myTeam.name}
-                  className="w-16 h-16 md:w-32 md:h-32 object-cover relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <>
-                  <Activity size={32} className="relative z-10 animate-in zoom-in-50 duration-1000 hidden md:block" />
-                  <Activity size={24} className="relative z-10 animate-in zoom-in-50 duration-1000 md:hidden" />
-                </>
-              )}
-              <div className="absolute inset-0 bg-blue-500/5 blur-xl rounded-full"></div>
-            </div>
+            <LogoAvatar
+              src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}` : undefined}
+              alt={myTeam?.name || 'Team'}
+              size="xl"
+              shape="square"
+              className="relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700 bg-transparent border-none"
+              fallbackType="team"
+            />
             <div>
-              <div className="flex items-center gap-2 mb-2 md:mb-4 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-xl w-fit cursor-default animate-pulse">
-                <Sparkles size={14} className="text-amber-500" />
-                <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-amber-500">{t('login.beta_version')} v0.1.1.45</span>
-              </div>
               <h2 className="text-3xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">
                 {t('dashboard.command_central')}
               </h2>

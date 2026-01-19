@@ -147,6 +147,25 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
 
                 double minBid = Math.Max(1, Math.Round(baseVal, MidpointRounding.AwayFromZero));
 
+                // STAT FALLBACK LOGIC
+                var prevStat = p.SeasonStats.FirstOrDefault(s => s.Season == prevSeason);
+                
+                // If player has played 0 games this season, fallback to previous season averages
+                bool useFallback = p.AvgPoints == 0 && p.AvgRebounds == 0 && p.AvgAssists == 0 && prevStat != null;
+
+                double displayPts = useFallback ? prevStat!.AvgPoints : p.AvgPoints;
+                double displayReb = useFallback ? prevStat!.AvgRebounds : p.AvgRebounds;
+                double displayAst = useFallback ? prevStat!.AvgAssists : p.AvgAssists;
+                double displayFpt = currentFpt;
+
+                if (useFallback)
+                {
+                    // Recalculate FPT based on previous season stats using CURRENT league weights
+                    displayFpt = Math.Round(
+                        (prevStat!.AvgPoints * wP) + (prevStat!.AvgRebounds * wR) + (prevStat!.AvgAssists * wA) +
+                        (prevStat!.AvgSteals * wS) + (prevStat!.AvgBlocks * wB), 1);
+                }
+
                 result.Add(new FreeAgentDto
                 {
                    Id = p.Id,
@@ -155,10 +174,11 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                    LastName = p.LastName,
                    NbaTeam = p.NbaTeam,
                    Position = p.Position,
-                   AvgPoints = p.AvgPoints,
-                   AvgFantasyPoints = currentFpt, // Use Calculated Value
-                   AvgRebounds = p.AvgRebounds,
-                   AvgAssists = p.AvgAssists,
+                   AvgPoints = displayPts,
+                   AvgFantasyPoints = displayFpt,
+                   AvgRebounds = displayReb,
+                   AvgAssists = displayAst,
+                   FgPercent = p.FgPercent,
                    InjuryStatus = p.InjuryStatus,
                    InjuryBodyPart = p.InjuryBodyPart,
                    HasActiveAuction = auction != null,

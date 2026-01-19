@@ -12,6 +12,7 @@ public class FreeAgentDto
     public double AvgFantasyPoints { get; set; }
     public double AvgRebounds { get; set; }
     public double AvgAssists { get; set; }
+    public double FgPercent { get; set; }
     public string? InjuryStatus { get; set; }
     public string? InjuryBodyPart { get; set; }
     

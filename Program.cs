@@ -284,7 +284,6 @@ builder.Services.AddSignalR();
 
 builder.Services.AddHostedService<ScoreUpdateService>();
 builder.Services.AddHealthChecks();
-builder.Services.AddHostedService<KeepAliveWorker>();
 
 // ==========================================
 // 2. BUILD DELL'APP

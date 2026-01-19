@@ -3,15 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Users, LogOut, ArrowRight, Loader2, Sparkles, LayoutGrid, Globe } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { useTranslation } from 'react-i18next';
+import { useErrorTranslation } from '../hooks/useErrorTranslation';
 import { useMyLeagues, type LeagueListMember } from '../features/league/api/useMyLeagues';
 import { useCreateLeague } from '../features/league/api/useCreateLeague';
 import { useJoinLeague } from '../features/league/api/useJoinLeague';
 import { useLeaveLeague } from '../features/league/api/useLeaveLeague';
 import { CONFIG } from '../config';
 import SEO from '../components/SEO/SEO';
+import LogoAvatar from '../components/LogoAvatar';
 
 export default function LeagueSelection() {
   const { t } = useTranslation();
+  const { translateError } = useErrorTranslation();
   const [view, setView] = useState<'list' | 'create' | 'join'>('list');
 
   // Form States
@@ -42,7 +45,8 @@ export default function LeagueSelection() {
       setLeagueName('');
       setTeamName('');
     } catch (err: any) {
-      showAlert({ title: t('common.error'), message: err.response?.data || t('success.creation_error'), type: 'error' });
+      const msg = translateError(err.response?.data || t('success.creation_error'));
+      showAlert({ title: t('common.error'), message: msg, type: 'error' });
     }
   };
 
@@ -55,7 +59,8 @@ export default function LeagueSelection() {
       setInviteCode('');
       setTeamName('');
     } catch (err: any) {
-      showAlert({ title: t('common.error'), message: err.response?.data || t('success.join_error'), type: 'error' });
+      const msg = translateError(err.response?.data || t('success.join_error'));
+      showAlert({ title: t('common.error'), message: msg, type: 'error' });
     }
   };
 
@@ -115,17 +120,14 @@ export default function LeagueSelection() {
                   className="group relative bg-slate-900/50 backdrop-blur-xl border border-white/5 hover:border-emerald-500/50 p-8 rounded-[3rem] cursor-pointer transition-all hover:-translate-y-2 hover:shadow-[0_40px_80px_rgba(0,0,0,0.5)] flex flex-col"
                 >
                   <div className="flex justify-between items-start mb-10">
-                    <div className="w-20 h-20 bg-slate-950 rounded-[1.5rem] border border-slate-800 overflow-hidden flex items-center justify-center relative group-hover:border-emerald-500/30 transition-colors shadow-inner">
-                      <img
-                        src={`${CONFIG.API_BASE_URL}/league/${league.leagueId}/logo?t=${new Date().getTime()}`}
-                        alt={league.leagueName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>';
-                        }}
-                      />
-                    </div>
+                    <LogoAvatar
+                      src={`${CONFIG.API_BASE_URL}/league/${league.leagueId}/logo?t=${new Date().getTime()}`}
+                      alt={league.leagueName}
+                      size="md"
+                      shape="square"
+                      className="mb-0 shadow-inner"
+                      fallbackType="league"
+                    />
                     {league.isAdmin && (
                       <span className="text-[9px] font-black bg-blue-500/10 text-blue-400 px-4 py-1.5 rounded-full border border-blue-500/20 uppercase tracking-widest flex items-center gap-2">
                         <Sparkles size={10} /> Commissioner

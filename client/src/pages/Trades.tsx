@@ -11,6 +11,7 @@ import SEO from '../components/SEO/SEO';
 import { useTranslation } from 'react-i18next';
 import { CardSkeleton } from '../components/SkeletonLoaders';
 import { EmptyState } from '../components/EmptyState';
+import LogoAvatar from '../components/LogoAvatar';
 
 export default function Trades() {
     const { t } = useTranslation();
@@ -38,7 +39,7 @@ export default function Trades() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-6 md:p-12 text-slate-100 font-sans relative overflow-hidden">
-            <SEO title="Scambi" description="Negozia scambi di giocatori." />
+            <SEO title={t('trades.page_title')} description={t('trades.description')} />
 
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
@@ -51,15 +52,13 @@ export default function Trades() {
                     <div className="flex items-center gap-8">
                         <div className="p-5 bg-slate-900 border border-white/5 rounded-3xl shadow-2xl relative text-blue-500 overflow-hidden group">
                             {myTeam?.id ? (
-                                <img
+                                <LogoAvatar
                                     src={`${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}`}
                                     alt={myTeam.name}
-                                    className="w-16 h-16 object-cover relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).parentElement!.className += ' flex items-center justify-center';
-                                        (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="relative z-10 animate-in spin-in-180 duration-1000"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
-                                    }}
+                                    size="md"
+                                    shape="square"
+                                    className="relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700"
+                                    fallbackType="team"
                                 />
                             ) : (
                                 <RefreshCcw size={40} className="relative z-10 animate-in spin-in-180 duration-1000" />

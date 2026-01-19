@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { CONFIG } from '../config';
 import api from '../services/api';
 import SEO from '../components/SEO/SEO';
+import LogoAvatar from '../components/LogoAvatar';
 
 // Features / API
 import { useMatchDetails } from '../features/league/api/useMatchDetails';
@@ -381,28 +382,28 @@ export default function Matchup() {
                             onClick={() => setViewingTeamId(matchup.homeTeamId)}
                             className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${viewingTeamId === matchup.homeTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950/50 flex-shrink-0">
-                                <img
-                                    src={`${CONFIG.API_BASE_URL}/team/${matchup.homeTeamId}/logo?t=${new Date().getTime()}`}
-                                    alt={matchup.homeTeam}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-                                />
-                            </div>
+                            <LogoAvatar
+                                src={`${CONFIG.API_BASE_URL}/team/${matchup.homeTeamId}/logo?t=${new Date().getTime()}`}
+                                alt={matchup.homeTeam}
+                                size="sm"
+                                shape="square"
+                                className="bg-slate-950/50"
+                                fallbackType="team"
+                            />
                             <span>{matchup.homeTeam} {myTeam?.id === matchup.homeTeamId && ` (${t('league.you')})`}</span>
                         </button>
                         <button
                             onClick={() => setViewingTeamId(matchup.awayTeamId)}
                             className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${viewingTeamId === matchup.awayTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950/50 flex-shrink-0">
-                                <img
-                                    src={`${CONFIG.API_BASE_URL}/team/${matchup.awayTeamId}/logo?t=${new Date().getTime()}`}
-                                    alt={matchup.awayTeam}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
-                                />
-                            </div>
+                            <LogoAvatar
+                                src={`${CONFIG.API_BASE_URL}/team/${matchup.awayTeamId}/logo?t=${new Date().getTime()}`}
+                                alt={matchup.awayTeam}
+                                size="sm"
+                                shape="square"
+                                className="bg-slate-950/50"
+                                fallbackType="team"
+                            />
                             <span>{matchup.awayTeam} {myTeam?.id === matchup.awayTeamId && ` (${t('league.you')})`}</span>
                         </button>
                     </div>
@@ -563,6 +564,7 @@ export default function Matchup() {
 }
 
 function CourtPlayerCard({ slot, player, onSelect, onRemove, onStats, isReadOnly }: any) {
+    const { t } = useTranslation();
     if (!player) {
         return (
             <button onClick={!isReadOnly ? onSelect : undefined} className={`w-28 h-28 flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-700 bg-slate-800/20 transition-all group ${!isReadOnly ? 'hover:bg-blue-600/10 hover:border-blue-500 hover:scale-110 shadow-lg hover:shadow-blue-500/10' : 'opacity-40 cursor-default'}`}>
@@ -591,8 +593,8 @@ function CourtPlayerCard({ slot, player, onSelect, onRemove, onStats, isReadOnly
                                 <span className="text-slate-500 font-mono tracking-tighter">{player.gameTime}</span>
                             )}
                         </>
-                    ) : <span className="text-slate-600 italic">No Game</span>}
-                    {player.injuryStatus === 'Out' && <span className="ml-1 text-[8px] bg-red-600 text-white px-1 rounded font-black">OUT</span>}
+                    ) : <span className="text-slate-600 italic">{t('matchup.no_game')}</span>}
+                    {player.injuryStatus === 'Out' && <span className="ml-1 text-[8px] bg-red-600 text-white px-1 rounded font-black">{t('common.out')}</span>}
                 </div>
             </div>
             {!isReadOnly && (
@@ -622,8 +624,8 @@ function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, to
                     <div className="text-sm font-black text-slate-200 truncate uppercase italic">{p.name} <span className="text-[10px] text-slate-600 font-bold not-italic">({p.position})</span></div>
                     <div className="flex items-center gap-2 text-[10px] mt-1 font-black uppercase">
                         <span className="text-slate-500">{p.nbaTeam}</span>
-                        {p.hasGame ? <span className="text-blue-400 bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/20">{p.opponent}</span> : <span className="text-slate-700 italic">No Game</span>}
-                        {p.injuryStatus === 'Out' && <span className="text-red-500 bg-red-500/5 px-2 py-0.5 rounded border border-red-500/20">OUT</span>}
+                        {p.hasGame ? <span className="text-blue-400 bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/20">{p.opponent}</span> : <span className="text-slate-700 italic">{t('matchup.no_game')}</span>}
+                        {p.injuryStatus === 'Out' && <span className="text-red-500 bg-red-500/5 px-2 py-0.5 rounded border border-red-500/20">{t('common.out')}</span>}
                     </div>
                 </div>
             </div>
@@ -670,7 +672,7 @@ function WeeklyRecapModal({ isOpen, onClose, players, teamName }: any) {
                             </div>
                             <div className="text-right">
                                 <div className="text-sm font-black text-emerald-400">{p.weeklyScore?.toFixed(1) || '0.0'}</div>
-                                <div className="text-[8px] font-bold text-slate-600 uppercase tracking-wider">PTS</div>
+                                <div className="text-[8px] font-bold text-slate-600 uppercase tracking-wider">{t('matchup.score')}</div>
                             </div>
                         </div>
                     ))}

@@ -4,6 +4,7 @@ import { useModal } from '../context/ModalContext';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 import { CONFIG } from '../config';
+import LogoAvatar from './LogoAvatar';
 
 interface Props {
     isOpen: boolean;
@@ -113,15 +114,21 @@ export default function TeamSettingsModal({ isOpen, onClose }: Props) {
                         </div>
                     ) : (
                         <>
-                            <div className="flex justify-center">
-                                <div className="w-32 h-32 rounded-3xl bg-slate-950 border-2 border-dashed border-slate-800 overflow-hidden flex items-center justify-center relative group cursor-pointer hover:border-blue-500 transition-colors">
-                                    {logoPreview ? (
-                                        <img src={logoPreview} alt="Preview" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Image className="text-slate-700 group-hover:text-blue-500 transition-colors" size={32} />
-                                    )}
-                                    <input type="file" accept="image/*" onChange={handleLogoChange} className="absolute inset-0 opacity-0 cursor-pointer" />
-                                    <div className="absolute bottom-0 left-0 w-full bg-black/60 text-[8px] text-center py-1 font-bold uppercase tracking-widest text-white opacity-0 group-hover:opacity-100 transition-opacity">{t('modals.team_settings.upload_logo')}</div>
+                            <div className="relative group cursor-pointer">
+                                <LogoAvatar
+                                    src={logoPreview || undefined}
+                                    alt="Team Logo"
+                                    size="xl"
+                                    shape="square"
+                                    className="border-2 border-dashed border-slate-800 group-hover:border-blue-500 transition-colors"
+                                    fallbackType="team"
+                                />
+                                <input type="file" accept="image/*" onChange={handleLogoChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none">
+                                    <div className="flex flex-col items-center">
+                                        <Image className="text-white mb-2" size={24} />
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-white">{t('modals.team_settings.upload_logo')}</span>
+                                    </div>
                                 </div>
                             </div>
 

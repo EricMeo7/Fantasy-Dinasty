@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, ArrowRight, Shirt, LayoutDashboard, Sparkles, Activity, Settings } from 'lucide-react';
+import { Users, ArrowRight, Shirt, LayoutDashboard, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useMyRoster } from '../features/roster/api/useMyRoster';
 import { useTeamBudget } from '../features/team/api/useTeamBudget';
@@ -19,6 +19,7 @@ import SEO from '../components/SEO/SEO';
 import { toast } from 'react-hot-toast';
 import { TableSkeleton } from '../components/SkeletonLoaders';
 import { EmptyState } from '../components/EmptyState';
+import LogoAvatar from '../components/LogoAvatar';
 
 export default function Roster() {
     const { t } = useTranslation();
@@ -108,26 +109,14 @@ export default function Roster() {
                 {/* Header Navigation */}
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-8 md:mb-16">
                     <div className="flex items-center gap-4 md:gap-8">
-                        <div className="p-3 md:p-5 bg-slate-900 border border-white/5 rounded-2xl md:rounded-3xl shadow-2xl relative text-blue-500 overflow-hidden group">
-                            {myTeam?.id ? (
-                                <img
-                                    src={`${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}`}
-                                    alt={myTeam.name}
-                                    className="w-16 h-16 md:w-32 md:h-32 object-cover relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700"
-                                    onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).parentElement!.className += ' flex items-center justify-center';
-                                        (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="relative z-10 animate-in bounce-in duration-1000 hidden md:block"><path d="M20.38 3.4a2 2 0 0 0-2-1H5.62a2 2 0 0 0-2 1L2 22h20l-1.62-18.6Z"/><path d="M12 12v10"/><path d="M16 12v10"/><path d="M8 12v10"/><path d="M12 2v2"/><path d="M9 2v2"/><path d="M15 2v2"/></svg>';
-                                    }}
-                                />
-                            ) : (
-                                <>
-                                    <Shirt size={32} className="relative z-10 animate-in bounce-in duration-1000 md:hidden" />
-                                    <Shirt size={40} className="relative z-10 animate-in bounce-in duration-1000 hidden md:block" />
-                                </>
-                            )}
-                            <div className="absolute inset-0 bg-blue-500/5 blur-xl rounded-full"></div>
-                        </div>
+                        <LogoAvatar
+                            src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}` : undefined}
+                            alt={myTeam?.name || 'Team'}
+                            size="xl"
+                            shape="square"
+                            className="bg-transparent border-none scale-110 group-hover:scale-125 transition-transform duration-700"
+                            fallbackType="team"
+                        />
                         <div>
                             <button
                                 onClick={() => navigate('/dashboard')}
@@ -145,7 +134,7 @@ export default function Roster() {
                             </div>
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">{t('roster.squad_entity_config')}</p>
                         </div>
-                    </div>
+                    </div >
 
                     <button
                         onClick={() => navigate('/lineup')}
@@ -157,15 +146,15 @@ export default function Roster() {
                         </div>
                         <div className="p-2 bg-slate-800 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg"><LayoutDashboard size={20} /></div>
                     </button>
-                </div>
+                </div >
 
                 {/* Budget Section */}
-                <div className="mb-8 md:mb-16 animate-in fade-in slide-in-from-top-6 duration-700">
+                < div className="mb-8 md:mb-16 animate-in fade-in slide-in-from-top-6 duration-700" >
                     {finance && <BudgetOverview finance={finance} />}
-                </div>
+                </div >
 
                 {/* Roster Container */}
-                <div className="relative">
+                < div className="relative" >
                     <div className="absolute -top-10 left-4 md:left-8 px-6 py-2 bg-slate-950 border border-slate-800 rounded-t-2xl border-b-0 inline-flex items-center gap-3 z-20">
                         <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse"></div>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('roster.active_unit_roster')}</span>
@@ -229,20 +218,9 @@ export default function Roster() {
                             )
                         }
                     </div>
-                </div>
+                </div >
 
-                {/* Footer Info */}
-                <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-8 px-10 opacity-30 group">
-                    <div className="flex items-center gap-4">
-                        <Activity size={18} className="text-blue-500" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">{t('roster.personnel_sync_operational')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Sparkles size={14} className="group-hover:text-blue-500 transition-colors" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">{t('roster.hq_approved')}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

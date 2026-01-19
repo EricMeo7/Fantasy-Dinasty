@@ -233,13 +233,6 @@ export default function LandingPage() {
                     </div>
                 </section>
 
-                {/* Footer */}
-                <footer className="w-full py-12 border-t border-slate-800 bg-slate-950 relative z-10 text-center">
-                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">
-                        © {new Date().getFullYear()} {t('landing.copyright')}
-                    </p>
-                </footer>
-
             </div>
         </>
     );

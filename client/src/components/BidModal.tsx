@@ -3,13 +3,15 @@ import { X, Gavel, DollarSign, Calendar, AlertCircle, CheckCircle2, User } from 
 import { useTranslation } from 'react-i18next';
 import { type BidRequest } from '../services/api';
 import { usePlaceBid } from '../features/market/api/usePlaceBid';
+import { useErrorTranslation } from '../hooks/useErrorTranslation';
 
 // Interfaccia flessibile per accettare sia il DTO della lista che il PlayerFull
 interface Props {
     player: any | null;
     isOpen: boolean;
     onClose: () => void;
-    onSuccess: () => void; // Callback per ricaricare la lista dopo l'offerta
+    onSuccess?: () => void; // Optional for LiveDraft
+    maxBid?: number; // Optional budget constraint
 }
 
 export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) {
@@ -21,6 +23,7 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
     const { mutateAsync: placeBid, isPending: loading } = usePlaceBid();
+    const { translateError } = useErrorTranslation();
 
     // --- LOGICA DI CALCOLO MINIMUM BID ---
     const getMinTotalBid = (targetYears: number) => {
@@ -124,22 +127,20 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
             setSuccessMsg(t('modals.bid.success'));
             // Chiudiamo dopo breve delay per far leggere il messaggio
             setTimeout(() => {
-                onSuccess(); // Ricarica i dati nella pagina padre
+                if (onSuccess) onSuccess(); // Ricarica i dati nella pagina padre
                 onClose();
             }, 1000);
         } catch (err: any) {
             // Gestione errori dal backend
-            let msg = err.response?.data?.message || err.response?.data || t('modals.bid.error_fetch');
-            if (msg.includes("BID_TOO_LOW")) {
-                msg = t('modals.bid.too_low_msg', { years, min: minBidForSelectedYears });
-            }
-            setError(msg);
+            const rawError = err.response?.data?.message || err.response?.data || "";
+            const translatedMsg = rawError ? translateError(rawError) : t('modals.bid.error_fetch');
+            setError(translatedMsg);
         }
     };
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm p-2 md:p-4 animate-in fade-in duration-200">
+            <div className="relative w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
 
                 {/* Header */}
                 <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-6 border-b border-slate-700">

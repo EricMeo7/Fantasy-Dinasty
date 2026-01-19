@@ -6,6 +6,7 @@ using FantasyBasket.API.Hubs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
+using FantasyBasket.API.Common;
 
 namespace FantasyBasket.API.Services;
 
@@ -81,6 +82,12 @@ public class LiveDraftService
         {
             onlineSet.Add(userId);
         }
+
+        // Fix: Force refresh every time a user connects to ensure the Team List is up to date with DB.
+        // This solves the issue where UI shows 1/1 but DB has 2 teams (Stale State).
+        var state = GetState(leagueId);
+        await RefreshTeamSummariesInternal(leagueId, state);
+
         await BroadcastState(leagueId);
     }
 
@@ -118,40 +125,42 @@ public class LiveDraftService
         await BroadcastState(leagueId);
     }
 
-    // Refactored optimized method (to call inside locks)
     private async Task RefreshTeamSummariesInternal(int leagueId, DraftState state)
     {
         using (var scope = _scopeFactory.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // 1. Recupera la Lega per il Cap
+            // 1. Recupera la Lega per il Cap (Cruciale: Fallback consistente con AuctionService)
             var league = await context.Leagues.FindAsync(leagueId);
-            double cap = league?.SalaryCap ?? 200.0;
-            string currentSeason = league?.CurrentSeason ?? "2025-26";
+            if (league == null) return;
+
+            double cap = league.SalaryCap;
+            string currentSeason = league.CurrentSeason; 
 
             // 2. Recupera i Teams di QUESTA lega
             var teams = await context.Teams
                 .Where(t => t.LeagueId == leagueId)
-                .Include(t => t.User)
                 .AsNoTracking()
                 .ToListAsync();
 
-            // 3. BULK LOADING: Carica TUTTI i contratti della lega in una volta
+            var teamIds = teams.Select(t => t.Id).ToList();
+            var teamUserIds = teams.Select(t => t.UserId).ToList();
+
+            // 3. BULK LOADING: Carica contratti solo di QUESTI team (Fix join parity)
             var allContracts = await context.Contracts
-                .Where(c => c.Team.LeagueId == leagueId)
+                .Where(c => teamIds.Contains(c.TeamId))
                 .Include(c => c.Player)
                 .AsNoTracking()
                 .ToListAsync();
 
-            // 4. BULK LOADING: Carica TUTTI i DeadCaps della lega (per UserId delle squadre)
-            var teamUserIds = teams.Select(t => t.UserId).ToList();
+            // 4. BULK LOADING: Carica Dead Money (Stessa logica di AuctionService.GetTeamCapSpace)
             var allDeadCaps = await context.DeadCaps
-                .Where(d => teamUserIds.Contains(d.TeamId) && d.LeagueId == leagueId && d.Season == currentSeason)
+                .Where(d => d.LeagueId == leagueId && d.Season == currentSeason && teamUserIds.Contains(d.TeamId))
                 .AsNoTracking()
                 .ToListAsync();
 
-            // 5. BULK LOADING: Carica TUTTE le aste attive nel mercato per questa lega
+            // 5. BULK LOADING: Carica TUTTE le aste attive nel mercato (Per allineamento con Roster page)
             var allMarketAuctions = await context.Auctions
                 .Where(a => a.LeagueId == leagueId && a.IsActive)
                 .AsNoTracking()
@@ -162,36 +171,32 @@ public class LiveDraftService
             foreach (var team in teams)
             {
                 // Filtra in memoria
-                var contracts = allContracts.Where(c => c.TeamId == team.Id).ToList();
-                var deadMoney = allDeadCaps.Where(d => d.TeamId == team.UserId).Sum(d => d.Amount);
+                var teamContracts = allContracts.Where(c => c.TeamId == team.Id).ToList();
+                double committedSalaries = teamContracts.Sum(c => c.SalaryYear1);
+                
+                double deadMoney = allDeadCaps.Where(d => d.TeamId == team.UserId).Sum(d => d.Amount);
 
-                double committedSalaries = contracts.Sum(c => c.SalaryYear1);
+                // Soldi congelati nell'asta LIVE corrente (Se sei l'attuale vincitore)
+                double frozenLiveBid = (state.HighBidderId == team.UserId) ? state.CurrentBidYear1 : 0;
 
-                // Soldi congelati nell'asta corrente (Se sei l'attuale vincitore, quella cifra conta come spesa)
-                double frozenBid = (state.HighBidderId == team.UserId) ? state.CurrentBidYear1 : 0;
-
-                // Soldi congelati nel mercato normale (Free Agency)
+                // Soldi congelati nel MERCATO (Aggiunto per allineamento con Roster.tsx / useTeamBudget)
                 double frozenMarketBid = allMarketAuctions.Where(a => a.HighBidderId == team.UserId).Sum(a => a.CurrentYear1Amount);
                 
-                // NOTA IMPORTANTE: Il 'RemainingBudget' per l'UI mostra quanto ti resta per rilanciare,
-                // quindi DEVE sottrarre il 'frozenBid'.
-                // Se NON stai vincendo, frozenBid è 0, quindi hai tutto il budget reale.
-                // Se STAI vincendo, hai meno soldi perché alcuni sono impegnati.
-
                 summaries.Add(new TeamDraftSummaryDto
                 {
                     UserId = team.UserId,
                     TeamName = team.Name,
-                    RemainingBudget = cap - (committedSalaries + deadMoney + frozenBid + frozenMarketBid),
-                    RosterCount = contracts.Count,
-                    Players = contracts.OrderByDescending(c => c.SalaryYear1)
-                                       .Select(c => new DraftPlayerDto
-                                       {
-                                           Name = c.Player.LastName,
-                                           Salary = c.SalaryYear1,
-                                           Position = c.Player.Position
-                                       })
-                                       .ToList()
+                    // Calcolo identico a AuctionService.GetTeamCapSpace
+                    RemainingBudget = cap - (committedSalaries + deadMoney + frozenLiveBid + frozenMarketBid),
+                    RosterCount = teamContracts.Count,
+                    Players = teamContracts.OrderByDescending(c => c.SalaryYear1)
+                                           .Select(c => new DraftPlayerDto
+                                           {
+                                               Name = c.Player.LastName,
+                                               Salary = c.SalaryYear1,
+                                               Position = c.Player.Position
+                                           })
+                                           .ToList()
                 });
             }
 
@@ -209,11 +214,11 @@ public class LiveDraftService
 
             // Controllo turno
             if (state.Participants.Count > 0 && state.Participants[state.CurrentTurnIndex] != userId)
-                throw new Exception("Non è il tuo turno.");
+                throw new Exception(ErrorCodes.NOT_YOUR_TURN);
             
             // Controllo se un'asta è già in corso (Double Check Locking)
             if (state.CurrentPlayerId != null)
-                 throw new Exception("Un'asta è già in corso per " + state.CurrentPlayerName);
+                 throw new Exception(ErrorCodes.AUCTION_IN_PROGRESS);
 
             double year1 = Math.Floor(amount / years);
             
@@ -229,11 +234,11 @@ public class LiveDraftService
                 
                 if (amount < minBid)
                 {
-                    throw new Exception($"L'offerta minima per {state.CurrentPlayerName} è {minBid}M (Regole di Lega).");
+                    throw new Exception(ErrorCodes.MIN_BID_NOT_MET);
                 }
             }
 
-            if (currentAvailable < year1) throw new Exception("Budget insufficiente per nominare a questa cifra.");
+            if (currentAvailable < year1) throw new Exception(ErrorCodes.INSUFFICIENT_BUDGET);
 
             state.CurrentPlayerId = playerId;
             state.CurrentPlayerName = playerName;
@@ -262,7 +267,7 @@ public class LiveDraftService
         try
         {
             var state = GetState(leagueId);
-            if (state.CurrentPlayerId == null) throw new Exception("Nessun giocatore in asta.");
+            if (state.CurrentPlayerId == null) throw new Exception(ErrorCodes.AUCTION_NOT_FOUND);
 
             double newYear1 = Math.Floor(totalAmount / years);
 
@@ -274,7 +279,7 @@ public class LiveDraftService
             if (newYear1 > state.CurrentBidYear1) isValid = true;
             else if (newYear1 == state.CurrentBidYear1 && years > state.CurrentBidYears) isValid = true;
 
-            if (!isValid) throw new Exception($"Offerta non valida. L'offerta attuale è {state.CurrentBidYear1}M ({state.CurrentBidYears}Y)");
+            if (!isValid) throw new Exception(ErrorCodes.BID_TOO_LOW);
 
             // --- STRICT CAP ENFORCEMENT ---
             var bidderTeam = state.Teams.FirstOrDefault(t => t.UserId == userId);
@@ -293,7 +298,7 @@ public class LiveDraftService
             if (bankBalance < newYear1) 
             {
                 // FAIL
-                throw new Exception($"Budget insufficiente. Hai {bankBalance}M disponibili, serve {newYear1}M.");
+                throw new Exception(ErrorCodes.INSUFFICIENT_BUDGET);
             }
 
             state.CurrentBidTotal = totalAmount;
@@ -453,20 +458,22 @@ public class LiveDraftService
             var state = GetState(leagueId);
             state.IsActive = false; // Torna in Lobby
             
-            // Se c'era un'asta in corso, la annulla? O la congela?
-            // Requisito: Pause Session. Di solito si ferma tutto.
-            // Opzione: Reset del round corrente per sicurezza se c'era un bid.
+            // Fix: Completamente resetta l'asta corrente per liberare il budget congelato
             if (state.CurrentPlayerId != null) 
             {
-                // ResetSoft: Mantiene i soldi ma annulla il player
-                state.CurrentPlayerId = null; 
-                state.CurrentPlayerName = "";
-                state.CurrentBidTotal = 0;
+                // Usa ResetRoundInternal per pulire anche HighBidderId e CurrentBidYear1
+                ResetRoundInternal(leagueId);
+                
+                // Opzionale: Ricalcola subito i budget per riflettere lo sblocco
+                await RefreshTeamSummariesInternal(leagueId, state);
             }
-
-            if (_leagueTimers.TryRemove(leagueId, out var timer))
+            else
             {
-                timer.Dispose();
+                // Se non c'era asta, comunque assicuriamoci che il timer sia spento
+                if (_leagueTimers.TryRemove(leagueId, out var timer))
+                {
+                    timer.Dispose();
+                }
             }
         }
         finally

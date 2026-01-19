@@ -158,14 +158,6 @@ export default function League() {
                     </div>
                 </div>
 
-                {/* Footer Passive Text */}
-                <div className="mt-16 flex flex-col md:flex-row justify-between items-center gap-8 px-10 opacity-20">
-                    <div className="flex items-center gap-4">
-                        <Activity size={18} className="text-amber-500" />
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em]">{t('league.system_parity')}</span>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.3em]">{t('league.global_leaderboard')}</span>
-                </div>
             </div>
         </div>
     );

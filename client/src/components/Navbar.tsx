@@ -3,12 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { CONFIG } from '../config';
 import {
-    User, ChevronDown, LogOut,
-    Trophy, RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard, Book, Activity
+    ChevronDown, LogOut,
+    RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard, Book, Activity
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import TwoFactorSetupModal from './TwoFactorSetupModal';
+import LogoAvatar from './LogoAvatar';
 
 interface UserLega {
     leagueId: number;
@@ -22,8 +23,6 @@ export default function Navbar() {
     const [userLeagues, setUserLeagues] = useState<UserLega[]>([]);
     const [userName, setUserName] = useState<string>("");
     const [myTeamId, setMyTeamId] = useState<number | null>(null);
-    const [leagueLogoError, setLeagueLogoError] = useState(false);
-    const [teamLogoError, setTeamLogoError] = useState(false);
 
     // Restore missing state
     const [pendingTrades, setPendingTrades] = useState(0);
@@ -131,8 +130,8 @@ export default function Navbar() {
                         onClick={() => navigate('/dashboard')}
                         className="flex items-center gap-3 cursor-pointer group"
                     >
-                        <div className="p-2 bg-blue-600/20 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.3)] group-hover:scale-110 transition-transform backdrop-blur-sm border border-blue-500/30">
-                            <img src="/logo.png" alt="Fantasy Dynasty" className="w-10 h-10 object-contain shadow-none" />
+                        <div className="p-1 bg-blue-600/20 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.3)] group-hover:scale-110 transition-transform backdrop-blur-sm border border-blue-500/30">
+                            <LogoAvatar src="/logo.png" alt="Fantasy Dynasty" size="sm" shape="square" className="bg-transparent border-none p-0 shadow-none" />
                         </div>
                         <div className="flex-col hidden md:flex">
                             <span className="text-xl font-black text-white italic tracking-tighter leading-none">
@@ -148,18 +147,13 @@ export default function Navbar() {
                                 onClick={() => setIsLeagueMenuOpen(!isLeagueMenuOpen)}
                                 className="flex items-center gap-2 md:gap-3 bg-slate-900/50 hover:bg-slate-900 border border-slate-800 px-3 md:px-4 py-2 rounded-2xl transition-all shadow-inner group"
                             >
-                                <div className="w-5 h-5 md:w-6 md:h-6 rounded-lg overflow-hidden flex items-center justify-center bg-slate-800">
-                                    {!leagueLogoError ? (
-                                        <img
-                                            src={`${CONFIG.API_BASE_URL}/league/${currentLeague.leagueId}/logo?t=${new Date().getTime()}`}
-                                            alt="League Logo"
-                                            className="w-full h-full object-cover"
-                                            onError={() => setLeagueLogoError(true)}
-                                        />
-                                    ) : (
-                                        <Trophy size={14} className="text-amber-500 shrink-0" />
-                                    )}
-                                </div>
+                                <LogoAvatar
+                                    src={`${CONFIG.API_BASE_URL}/league/${currentLeague.leagueId}/logo?t=${new Date().getTime()}`}
+                                    alt="League Logo"
+                                    size="xs"
+                                    shape="square"
+                                    fallbackType="league"
+                                />
                                 <span className="text-[10px] md:text-[11px] font-black text-slate-300 uppercase italic tracking-tight max-w-[100px] md:max-w-none truncate group-hover:text-white transition-colors">{currentLeague.leagueName}</span>
                                 <ChevronDown size={14} className={`text-slate-600 transition-transform shrink-0 ${isLeagueMenuOpen ? 'rotate-180 text-blue-500' : ''}`} />
                             </button>
@@ -177,18 +171,13 @@ export default function Navbar() {
                                                 className={`w-full text-left p-4 rounded-2xl flex items-center justify-between group transition-all mb-1 ${l.leagueId.toString() === currentLeagueId ? 'bg-blue-600 shadow-lg shadow-blue-500/20' : 'hover:bg-white/5'}`}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-800 border border-white/10 flex-shrink-0">
-                                                        <img
-                                                            src={`${CONFIG.API_BASE_URL}/league/${l.leagueId}/logo?t=${new Date().getTime()}`}
-                                                            alt={l.leagueName}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => {
-                                                                (e.target as HTMLImageElement).style.display = 'none';
-                                                                (e.target as HTMLImageElement).parentElement!.innerText = l.leagueName.substring(0, 2).toUpperCase();
-                                                                (e.target as HTMLImageElement).parentElement!.className += " flex items-center justify-center text-[10px] font-black text-slate-500";
-                                                            }}
-                                                        />
-                                                    </div>
+                                                    <LogoAvatar
+                                                        src={`${CONFIG.API_BASE_URL}/league/${l.leagueId}/logo?t=${new Date().getTime()}`}
+                                                        alt={l.leagueName}
+                                                        size="xs"
+                                                        shape="square"
+                                                        fallbackType="league"
+                                                    />
                                                     <div>
                                                         <div className={`text-sm font-black italic uppercase tracking-tight ${l.leagueId.toString() === currentLeagueId ? 'text-white' : 'text-slate-200 group-hover:text-blue-400'}`}>{l.leagueName}</div>
                                                         <div className={`text-[10px] font-bold ${l.leagueId.toString() === currentLeagueId ? 'text-blue-200' : 'text-slate-500'}`}>{l.myTeamName}</div>
@@ -263,21 +252,13 @@ export default function Navbar() {
                                     <div className="text-[11px] font-black text-white italic uppercase tracking-tight leading-none truncate max-w-[120px]">{userName}</div>
                                     <div className="text-[8px] text-slate-600 font-black uppercase mt-1 tracking-widest group-hover:text-blue-500 transition-colors">{t('navbar.general_manager')}</div>
                                 </div>
-                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center shadow-lg overflow-hidden">
-                                    {myTeamId && !teamLogoError ? (
-                                        <img
-                                            src={`${CONFIG.API_BASE_URL}/team/${myTeamId}/logo?t=${new Date().getTime()}`}
-                                            alt="Team Logo"
-                                            className="w-full h-full object-cover"
-                                            onError={() => setTeamLogoError(true)}
-                                        />
-                                    ) : (
-                                        <>
-                                            <User size={16} className="text-slate-400 md:hidden" />
-                                            <User size={20} className="text-slate-400 hidden md:block" />
-                                        </>
-                                    )}
-                                </div>
+                                <LogoAvatar
+                                    src={myTeamId ? `${CONFIG.API_BASE_URL}/team/${myTeamId}/logo?t=${new Date().getTime()}` : undefined}
+                                    alt="Team Logo"
+                                    size="sm"
+                                    shape="circle"
+                                    fallbackType="team"
+                                />
                             </button>
 
                             {isProfileOpen && (

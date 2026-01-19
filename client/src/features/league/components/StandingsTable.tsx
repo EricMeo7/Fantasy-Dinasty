@@ -1,6 +1,7 @@
 import { Crown, ShieldCheck, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { CONFIG } from '../../../config';
+import LogoAvatar from '../../../components/LogoAvatar';
 
 interface Standing {
     teamId: number;
@@ -65,17 +66,13 @@ export const StandingsTable = ({ standings, title, icon, color = "text-yellow-50
                                 </td>
                                 <td className="px-8 py-5">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-950 border border-slate-700 md:w-12 md:h-12 shrink-0">
-                                            <img
-                                                src={`${CONFIG.API_BASE_URL}/team/${team.teamId}/logo?t=${new Date().getTime()}`}
-                                                alt={team.fantasyTeamName}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                    (e.target as HTMLImageElement).parentElement!.className += ' hidden';
-                                                }}
-                                            />
-                                        </div>
+                                        <LogoAvatar
+                                            src={`${CONFIG.API_BASE_URL}/team/${team.teamId}/logo?t=${new Date().getTime()}`}
+                                            alt={team.fantasyTeamName}
+                                            size="sm"
+                                            shape="square"
+                                            fallbackType="team"
+                                        />
                                         <div className="flex flex-col">
                                             <div className="font-black text-white uppercase italic tracking-tight flex items-center gap-2 group-hover:text-blue-400 transition-colors">
                                                 {team.fantasyTeamName}

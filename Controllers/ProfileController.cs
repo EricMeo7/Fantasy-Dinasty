@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using FantasyBasket.API.Common;
 
 namespace FantasyBasket.API.Controllers;
 
@@ -30,7 +31,7 @@ public class ProfileController : ControllerBase
         if (string.IsNullOrEmpty(email)) return Unauthorized();
 
         var user = await _userManager.FindByEmailAsync(email);
-        if (user == null) return NotFound("Utente non trovato.");
+        if (user == null) return NotFound(ErrorCodes.USER_NOT_FOUND);
 
         // Mappa l'utente nel DTO
         return Ok(new UserProfileDto

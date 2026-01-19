@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 
 interface PlayerRowProps {
@@ -27,6 +28,7 @@ export const PlayerRow: React.FC<PlayerRowProps> = ({
     onSelect,
     disabled = false
 }) => {
+    const { t } = useTranslation();
     return (
         <button
             onClick={onSelect}
@@ -65,7 +67,7 @@ export const PlayerRow: React.FC<PlayerRowProps> = ({
 
             {/* Fantasy Points */}
             <div className="text-xs font-bold text-emerald-400 shrink-0 min-w-[45px] text-right">
-                {player.fantasyPoints?.toFixed(1)} FP
+                {player.fantasyPoints?.toFixed(1)} {t('trades.header_fp')}
             </div>
 
             {/* Salary - Always show all 3 years */}
@@ -86,7 +88,7 @@ export const PlayerRow: React.FC<PlayerRowProps> = ({
             {/* Injury Badge - Top-left to avoid checkbox overlap */}
             {player.injuryStatus && (
                 <div className="absolute top-2 left-2 text-[9px] font-bold text-white bg-red-600 px-1.5 py-0.5 rounded uppercase shadow-lg z-10">
-                    {player.injuryStatus}
+                    {player.injuryStatus === 'Out' ? t('common.out') : player.injuryStatus}
                 </div>
             )}
 

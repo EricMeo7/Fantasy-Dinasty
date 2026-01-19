@@ -19,7 +19,7 @@ export const useErrorTranslation = () => {
         }
 
         // Map error code to translation key
-        const translationKey = `errors.${code.toLowerCase()}`;
+        const translationKey = `api_errors.${code.toLowerCase()}`;
 
         // Check if translation exists, otherwise return the code itself
         const translation = t(translationKey, params);

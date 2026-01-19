@@ -1,15 +1,19 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
+import BidModal from '../components/BidModal';
+import NominationModal from '../components/NominationModal';
 import api from '../services/api';
 import { CONFIG } from '../config';
 import { useNavigate } from 'react-router-dom';
 import { Gavel, User, Mic, PlayCircle, Loader2, DollarSign, Users, ChevronDown, Lock, Shield, Wifi, Timer, Activity, TrendingUp, Search } from 'lucide-react';
 import { useModal } from '../context/ModalContext';
 import { useTranslation } from 'react-i18next';
+import { useErrorTranslation } from '../hooks/useErrorTranslation';
 import SEO from '../components/SEO/SEO';
 import { PremiumSelect } from '../components/PremiumSelect';
 import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
 import { RosterValidator } from '../utils/RosterValidator';
+import LogoAvatar from '../components/LogoAvatar';
 
 const HUB_URL = `${CONFIG.HUB_BASE_URL}/drafthub`;
 
@@ -46,6 +50,7 @@ interface DraftState {
 
 export default function LiveDraft() {
     const { t } = useTranslation();
+    const { translateError } = useErrorTranslation();
     const [connection, setConnection] = useState<HubConnection | null>(null);
     const [draftState, setDraftState] = useState<DraftState | null>(null);
     const [freeAgents, setFreeAgents] = useState<any[]>([]);
@@ -59,7 +64,13 @@ export default function LiveDraft() {
     // New Features State
     const [searchTerm, setSearchTerm] = useState("");
     const [positionFilter, setPositionFilter] = useState("");
+    const [sortBy, setSortBy] = useState<string>("avgPoints");
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const [hideUnaffordable, setHideUnaffordable] = useState(false);
     const [activeTab, setActiveTab] = useState<'auction' | 'rosters'>('auction'); // Mobile Tab State
+    const [selectedPlayerForNomination, setSelectedPlayerForNomination] = useState<any>(null);
+    const [isNominationModalOpen, setIsNominationModalOpen] = useState(false);
+    const [isBidModalOpen, setIsBidModalOpen] = useState(false);
 
     const navigate = useNavigate();
     const { showAlert, showConfirm } = useModal();
@@ -126,7 +137,7 @@ export default function LiveDraft() {
             });
 
             connection.on('PlayerSold', (data: any) => showAlert({ title: t('draft.sold'), message: `${data.playerName} ${t('draft.sold_to')} ${data.winner}`, type: 'success' }));
-            connection.on('Error', (msg: string) => showAlert({ title: t('common.error'), message: msg, type: 'error' }));
+            connection.on('Error', (msg: string) => showAlert({ title: t('common.error'), message: translateError(msg), type: 'error' }));
             connection.on('RefreshList', () => {
                 api.getFreeAgents().then((res: any) => setFreeAgents(res.data));
             });
@@ -149,7 +160,53 @@ export default function LiveDraft() {
         }
     }, [isMyTurn, draftState?.currentPlayerId]);
 
+    const myTeam = draftState?.teams.find(t => t.userId === myId);
+    const maxAvailableBid = myTeam ? myTeam.remainingBudget : 0;
+
+    const filteredFreeAgents = useMemo(() => {
+        return freeAgents
+            .filter(p => {
+                const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
+                const matchesSearch = searchTerm === "" || fullName.includes(searchTerm.toLowerCase());
+                const matchesPos = positionFilter === "" || p.position === positionFilter;
+                const basePrice = Math.max(1, p.minBid || Math.round(p.avgPoints || 1));
+                const isAffordable = basePrice <= maxAvailableBid;
+
+                if (hideUnaffordable && !isAffordable) return false;
+                return matchesSearch && matchesPos;
+            })
+            .map(p => {
+                const basePrice = Math.max(1, p.minBid || Math.round(p.avgPoints || 1));
+                const isAffordable = basePrice <= maxAvailableBid;
+                return { ...p, basePrice, isAffordable };
+            })
+            .sort((a, b) => {
+                let valA: any, valB: any;
+
+                if (sortBy === 'name') {
+                    valA = `${a.firstName} ${a.lastName}`.toLowerCase();
+                    valB = `${b.firstName} ${b.lastName}`.toLowerCase();
+                } else {
+                    valA = a[sortBy] || 0;
+                    valB = b[sortBy] || 0;
+                }
+
+                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            });
+    }, [freeAgents, searchTerm, positionFilter, hideUnaffordable, maxAvailableBid, sortBy, sortOrder]);
+
+    // Limit visible players to 200 for initial performance, or use virtualization principles
+    const visibleFreeAgents = filteredFreeAgents.slice(0, 200);
+
     const handleNominate = async (player: any) => {
+        setSelectedPlayerForNomination(player);
+        setIsNominationModalOpen(true);
+    };
+
+    const handleConfirmNomination = async (player: any) => {
+        setIsNominationModalOpen(false);
         // Validation: Can I fit this player?
         if (leagueSettings) {
             const myTeam = draftState?.teams.find(t => t.userId === getMyIdFromToken());
@@ -238,9 +295,14 @@ export default function LiveDraft() {
             <SEO title="Draft Lobby" description="Sala d'attesa per l'asta live." />
             {/* Header / Stats Overlay */}
             <div className="absolute top-8 left-8 flex items-center gap-4">
-                <div className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center text-blue-500">
-                    <Shield size={24} />
-                </div>
+                <LogoAvatar
+                    src={`${CONFIG.API_BASE_URL}/league/${localStorage.getItem('selectedLeagueId')}/logo?t=${new Date().getTime()}`}
+                    alt="League Logo"
+                    size="sm"
+                    shape="square"
+                    className="bg-slate-900 border-slate-800 shadow-2xl"
+                    fallbackType="league"
+                />
                 <div>
                     <h2 className="text-xl font-black uppercase italic tracking-tighter">{t('draft.lobby')}</h2>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{onlineCount} / {totalCount} {t('draft.gm_online')}</p>
@@ -305,22 +367,9 @@ export default function LiveDraft() {
 
     // LIVE DRAFT VIEW
     const auctionRunning = draftState.currentPlayerId !== null;
-    const myTeam = draftState.teams.find(t => t.userId === myId);
-    const maxAvailableBid = myTeam ? myTeam.remainingBudget : 0;
-
-    const filteredFreeAgents = freeAgents.filter(p => {
-        const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-        const matchesSearch = searchTerm === "" || fullName.includes(searchTerm.toLowerCase());
-        const matchesPos = positionFilter === "" || p.position === positionFilter;
-        return matchesSearch && matchesPos;
-    }).map(p => {
-        const basePrice = Math.max(1, p.minBid || Math.round(p.avgPoints || 1));
-        const isAffordable = basePrice <= maxAvailableBid;
-        return { ...p, basePrice, isAffordable };
-    });
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-4 flex flex-col h-screen overflow-hidden font-sans">
+        <div className="min-h-screen bg-slate-950 text-white p-2 md:p-4 flex flex-col font-sans pb-10">
             <SEO title="Asta Live" description="Partecipa all'asta in tempo reale." />
 
             {/* NEW PREMIUM HEADER */}
@@ -424,10 +473,10 @@ export default function LiveDraft() {
                 </button>
             </div>
 
-            <div className={`flex flex-1 gap-6 overflow-hidden ${auctionRunning ? '' : 'flex-col lg:flex-row'}`}>
+            <div className={`flex flex-1 gap-6 ${auctionRunning ? '' : 'flex-col lg:flex-row'}`}>
                 {/* LEFT: MAIN ACTION AREA */}
-                <div className={`flex-[3] flex flex-col gap-6 min-h-0 ${activeTab === 'auction' ? 'flex' : 'hidden lg:flex'}`}>
-                    <div className={`relative flex-1 bg-slate-900 border rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center p-6 md:p-12 transition-all duration-700 overflow-hidden
+                <div className={`flex-[3] flex flex-col gap-6 ${activeTab === 'auction' ? 'flex' : 'hidden lg:flex'}`}>
+                    <div className={`relative bg-slate-900 border rounded-[3rem] shadow-[0_40px_100px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center p-4 md:p-8 transition-all duration-700
                         ${timeLeft < 10 && auctionRunning ? 'border-red-500/40' : 'border-white/5'}`}>
 
                         {/* THE COURT / BACKGROUND LOGO */}
@@ -445,7 +494,7 @@ export default function LiveDraft() {
                                     <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-1 md:px-6 md:py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-2 md:mb-4">
                                         <Gavel size={12} className="md:w-[14px] md:h-[14px]" /> {t('draft.bid_in_progress')}
                                     </span>
-                                    <h2 className="text-3xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl px-2">
+                                    <h2 className="text-3xl md:text-6xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl px-2">
                                         {draftState.currentPlayerName}
                                     </h2>
                                 </div>
@@ -470,15 +519,15 @@ export default function LiveDraft() {
 
                                 <div className="bg-slate-950/90 backdrop-blur-3xl p-4 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-white/5 max-w-xl mx-auto shadow-2xl">
                                     <div className="flex flex-col md:flex-row gap-2 md:gap-4 mb-4 md:mb-6">
-                                        <div className="relative flex-1 group">
-                                            <div className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-black p-1.5 md:p-2 bg-emerald-500/10 rounded-lg">
+                                        <div className="relative flex-1 flex items-center">
+                                            <div className="absolute left-3 md:left-4 z-10 text-emerald-500 font-black p-1.5 md:p-2 bg-emerald-500/10 rounded-lg">
                                                 <DollarSign size={16} className="md:w-5 md:h-5" />
                                             </div>
                                             <input
                                                 type="number"
                                                 value={myBidAmount}
                                                 onChange={e => setMyBidAmount(Number(e.target.value))}
-                                                className="w-full bg-slate-900 border border-slate-800 group-hover:border-emerald-500/30 transition-colors rounded-xl md:rounded-2xl py-3 md:py-6 pl-12 md:pl-16 pr-4 md:pr-6 text-xl md:text-2xl text-white font-black italic focus:outline-none shadow-inner"
+                                                className="w-full bg-slate-900 border border-slate-800 group-hover:border-emerald-500/30 transition-colors rounded-xl md:rounded-2xl h-14 md:h-20 pl-12 md:pl-16 pr-4 md:pr-6 text-xl md:text-2xl text-white font-black italic focus:outline-none shadow-inner leading-none flex items-center"
                                             />
                                         </div>
                                         <div className="flex flex-row md:flex-col gap-2">
@@ -521,9 +570,17 @@ export default function LiveDraft() {
                                             <div className="p-4 md:p-6 border-b border-slate-800 flex flex-col gap-4 shrink-0">
                                                 <div className="flex justify-between items-center">
                                                     <h4 className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">{t('draft.available_free_agents')}</h4>
-                                                    <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-1 rounded">
-                                                        {filteredFreeAgents.length} {t('draft.found')}
-                                                    </span>
+                                                    <div className="flex items-center gap-4">
+                                                        <label className="flex items-center gap-2 cursor-pointer group">
+                                                            <div className={`w-8 h-4 rounded-full p-0.5 transition-colors ${hideUnaffordable ? 'bg-emerald-600' : 'bg-slate-800'}`} onClick={() => setHideUnaffordable(!hideUnaffordable)}>
+                                                                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${hideUnaffordable ? 'translate-x-4' : 'translate-x-0'}`} />
+                                                            </div>
+                                                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300 transition-colors">{t('draft.hide_unaffordable')}</span>
+                                                        </label>
+                                                        <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-1 rounded">
+                                                            {filteredFreeAgents.length} {t('draft.found')}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <div className="relative flex-1">
@@ -550,26 +607,83 @@ export default function LiveDraft() {
                                                         />
                                                     </div>
                                                 </div>
+
+                                                <div className="grid grid-cols-12 px-4 text-[9px] font-black text-slate-600 uppercase tracking-widest pt-2">
+                                                    <div className="col-span-4 flex items-center gap-1 cursor-pointer hover:text-slate-400" onClick={() => { setSortBy('name'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                                                        {t('draft.name')} {sortBy === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                                    </div>
+                                                    <div className="col-span-1 text-center flex items-center justify-center gap-1 cursor-pointer hover:text-slate-400" onClick={() => { setSortBy('position'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                                                        {t('draft.role')} {sortBy === 'position' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                                    </div>
+                                                    <div className="col-span-1 text-center flex items-center justify-center gap-1 cursor-pointer hover:text-slate-400" onClick={() => { setSortBy('basePrice'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                                                        PRICE {sortBy === 'basePrice' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                                    </div>
+                                                    <div className="col-span-1 text-center flex items-center justify-center gap-1 cursor-pointer hover:text-slate-400" onClick={() => { setSortBy('avgPoints'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                                                        PTS {sortBy === 'avgPoints' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                                    </div>
+                                                    <div className="col-span-1 text-center flex items-center justify-center gap-1 cursor-pointer hover:text-slate-400" onClick={() => { setSortBy('avgRebounds'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                                                        REB {sortBy === 'avgRebounds' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                                    </div>
+                                                    <div className="col-span-1 text-center flex items-center justify-center gap-1 cursor-pointer hover:text-slate-400" onClick={() => { setSortBy('avgAssists'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                                                        AST {sortBy === 'avgAssists' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                                    </div>
+                                                    <div className="col-span-3 text-right flex items-center justify-end gap-1 cursor-pointer hover:text-slate-400" onClick={() => { setSortBy('avgFantasyPoints'); setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc'); }}>
+                                                        FPTS {sortBy === 'avgFantasyPoints' && (sortOrder === 'asc' ? '↑' : '↓')}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-0">
+                                            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar min-h-0">
                                                 {
-                                                    filteredFreeAgents.map(p => (
-                                                        <div key={p.id} className={`group relative flex items-center justify-between p-3 gap-3 border transition-all rounded-2xl shadow-lg ${p.isAffordable ? 'bg-slate-900/50 border-transparent hover:border-blue-500/30 hover:bg-slate-900' : 'bg-slate-900/20 border-slate-800/50 opacity-50 grayscale'}`}>
-                                                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-[10px] shrink-0 transition-all ${p.isAffordable ? 'bg-slate-800 text-blue-500 group-hover:bg-blue-600 group-hover:text-white' : 'bg-slate-800/50 text-slate-600'}`}>{p.position}</div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="font-black text-white uppercase italic tracking-tight text-sm md:text-lg leading-none truncate">{p.firstName} {p.lastName}</div>
-                                                                    <div className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-0.5 md:mt-1 truncate">{p.nbaTeam} <span className="text-slate-700 mx-1">•</span> <span className={p.isAffordable ? 'text-emerald-500' : 'text-red-500'}>Base: {p.basePrice} M</span></div>
+                                                    visibleFreeAgents.map((p: any) => (
+                                                        <button
+                                                            key={p.id}
+                                                            onClick={() => {
+                                                                if (p.isAffordable) {
+                                                                    handleNominate(p);
+                                                                } else {
+                                                                    showAlert({ title: t('common.error'), message: t('common.insufficient_cap', { available: maxAvailableBid, needed: p.basePrice }), type: 'error' });
+                                                                }
+                                                            }}
+                                                            className={`w-full group relative grid grid-cols-12 items-center p-3 gap-2 border transition-all rounded-xl ${p.isAffordable ? 'bg-slate-900/40 border-slate-800/50 hover:border-blue-500/30 hover:bg-slate-900 shadow-md' : 'bg-slate-950 border-slate-900 opacity-40 grayscale pointer-events-auto'}`}
+                                                        >
+                                                            <div className="col-span-4 flex items-center gap-3 min-w-0">
+                                                                <div className="min-w-0 flex-1 text-left">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="font-black text-white uppercase italic tracking-tight text-xs leading-none truncate">{p.firstName} {p.lastName}</div>
+                                                                        {p.injuryStatus && p.injuryStatus !== 'Active' && (
+                                                                            <span className="shrink-0 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.8)]" title={p.injuryStatus}></span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-[8px] text-slate-600 font-bold uppercase tracking-widest mt-1 truncate">{p.nbaTeam}</div>
                                                                 </div>
                                                             </div>
-                                                            <button
-                                                                onClick={() => p.isAffordable && handleNominate(p)}
-                                                                disabled={!p.isAffordable}
-                                                                className={`font-black px-4 py-2 shrink-0 rounded-lg text-[9px] uppercase tracking-widest shadow-xl transition-all ${p.isAffordable ? 'bg-blue-600 hover:bg-blue-550 text-white cursor-pointer' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}
-                                                            >
-                                                                {p.isAffordable ? t('draft.nominate') : t('draft.too_expensive')}
-                                                            </button>
-                                                        </div>
+                                                            <div className="col-span-1 flex justify-center">
+                                                                <div className={`w-7 h-7 rounded bg-slate-800 flex items-center justify-center font-black text-[9px] text-slate-400 transition-all ${p.isAffordable ? 'group-hover:bg-blue-600 group-hover:text-white' : ''}`}>
+                                                                    {p.position || '-'}
+                                                                </div>
+                                                            </div>
+                                                            <div className="col-span-1 text-center">
+                                                                <span className={`text-[10px] font-mono font-black ${p.isAffordable ? 'text-emerald-500' : 'text-slate-600'}`}>{p.basePrice}M</span>
+                                                            </div>
+                                                            <div className="col-span-1 text-center">
+                                                                <span className="text-[10px] font-black text-slate-400">{p.avgPoints?.toFixed(1) || '0.0'}</span>
+                                                            </div>
+                                                            <div className="col-span-1 text-center">
+                                                                <span className="text-[10px] font-black text-slate-400">{p.avgRebounds?.toFixed(1) || '0.0'}</span>
+                                                            </div>
+                                                            <div className="col-span-1 text-center">
+                                                                <span className="text-[10px] font-black text-slate-400">{p.avgAssists?.toFixed(1) || '0.0'}</span>
+                                                            </div>
+                                                            <div className="col-span-3 text-right">
+                                                                <span className="text-[10px] font-black text-white">{p.avgFantasyPoints?.toFixed(1) || '0.0'}</span>
+                                                            </div>
+
+                                                            {!p.isAffordable && (
+                                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                                    <span className="bg-red-600/90 text-white text-[8px] font-black uppercase px-2 py-1 rounded-full shadow-lg">Budget insufficiente</span>
+                                                                </div>
+                                                            )}
+                                                        </button>
                                                     ))
                                                 }
                                             </div>
@@ -656,6 +770,22 @@ export default function LiveDraft() {
                     </div>
                 </div >
             </div >
+            {draftState.currentPlayerId && (
+                <BidModal
+                    isOpen={isBidModalOpen}
+                    player={freeAgents.find(p => p.id === draftState.currentPlayerId)}
+                    onClose={() => setIsBidModalOpen(false)}
+                    onSuccess={() => { }}
+                    maxBid={maxAvailableBid}
+                />
+            )}
+
+            <NominationModal
+                isOpen={isNominationModalOpen}
+                player={selectedPlayerForNomination}
+                onClose={() => setIsNominationModalOpen(false)}
+                onConfirm={handleConfirmNomination}
+            />
         </div >
     );
 }

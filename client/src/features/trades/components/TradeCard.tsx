@@ -5,6 +5,7 @@ import { useAcceptTrade } from '../api/useAcceptTrade';
 import { useRejectTrade } from '../api/useRejectTrade';
 import { CONFIG } from '../../../config';
 import { CheckCircle2, Clock, Loader2, ArrowRight, ShieldAlert, Sparkles, XCircle } from 'lucide-react';
+import LogoAvatar from '../../../components/LogoAvatar';
 
 interface TradeCardProps {
     trade: Trade;
@@ -77,12 +78,26 @@ export const TradeCard: React.FC<TradeCardProps> = ({ trade }) => {
                                 <div className="space-y-1.5">
                                     <div className="flex items-center gap-2 bg-slate-900 px-2.5 py-1 rounded-lg w-fit border border-white/5">
                                         <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{t('trades.from')}</span>
-                                        <div className="w-4 h-4 rounded bg-slate-800 overflow-hidden"><img src={`${CONFIG.API_BASE_URL}/team/${off.fromTeamId}/logo?t=${new Date().getTime()}`} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLElement).style.display = 'none'} /></div>
+                                        <LogoAvatar
+                                            src={`${CONFIG.API_BASE_URL}/team/${off.fromTeamId}/logo?t=${new Date().getTime()}`}
+                                            alt={off.fromTeamName}
+                                            size="xs"
+                                            shape="square"
+                                            className="bg-slate-800"
+                                            fallbackType="team"
+                                        />
                                         <span className="text-[9px] font-black text-white uppercase truncate max-w-[100px]">{off.fromTeamName}</span>
                                     </div>
                                     <div className="flex items-center gap-2 bg-blue-600/10 px-2.5 py-1 rounded-lg w-fit border border-blue-500/20">
                                         <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest">{t('trades.towards')}</span>
-                                        <div className="w-4 h-4 rounded bg-slate-800 overflow-hidden"><img src={`${CONFIG.API_BASE_URL}/team/${off.toTeamId}/logo?t=${new Date().getTime()}`} className="w-full h-full object-cover" onError={(e) => (e.target as HTMLElement).style.display = 'none'} /></div>
+                                        <LogoAvatar
+                                            src={`${CONFIG.API_BASE_URL}/team/${off.toTeamId}/logo?t=${new Date().getTime()}`}
+                                            alt={off.toTeamName}
+                                            size="xs"
+                                            shape="square"
+                                            className="bg-slate-800"
+                                            fallbackType="team"
+                                        />
                                         <span className="text-[9px] font-black text-blue-400 uppercase truncate max-w-[100px]">{off.toTeamName}</span>
                                     </div>
                                 </div>
