@@ -1,4 +1,3 @@
-
 interface Env {
     DISCORD_WEBHOOK_URL: string;
 }
@@ -9,9 +8,14 @@ interface ContactRequest {
     message: string;
 }
 
-export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+// We use "any" for context to be absolutely sure it compiles in any TS environment
+// Cloudflare Pages will pass the context object correctly regardless of the explicit type name
+export const onRequestPost = async (context: any) => {
+    const { request, env } = context;
+
     try {
-        const { name, type, message } = await request.json<ContactRequest>();
+        const body = await request.json() as ContactRequest;
+        const { name, type, message } = body;
 
         if (!message) {
             return new Response(JSON.stringify({ error: 'Message is required' }), {
@@ -23,7 +27,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         const webhookUrl = env.DISCORD_WEBHOOK_URL;
 
         if (!webhookUrl) {
-            return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+            console.error("Missing DISCORD_WEBHOOK_URL in environment");
+            return new Response(JSON.stringify({
+                error: 'Server configuration error: Missing Webhook URL',
+                debug: "Ensure DISCORD_WEBHOOK_URL is set in Pages > Settings > Functions > Environment variables."
+            }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -74,7 +82,9 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         });
 
         if (!discordResponse.ok) {
-            throw new Error('Discord Webhook failed');
+            const errorText = await discordResponse.text();
+            console.error("Discord API Error:", errorText);
+            throw new Error(`Discord Webhook failed: ${discordResponse.status} ${errorText}`);
         }
 
         return new Response(JSON.stringify({ success: true }), {
@@ -83,9 +93,13 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
         });
 
     } catch (err: any) {
-        return new Response(JSON.stringify({ error: err.message }), {
+        console.error("Contact Function Error:", err);
+        return new Response(JSON.stringify({
+            error: err.message || "Unknown error",
+            debug: "Check Cloudflare Functions logs for details."
+        }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });
     }
-}
+};
