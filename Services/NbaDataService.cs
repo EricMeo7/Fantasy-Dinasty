@@ -89,11 +89,15 @@ public class NbaDataService : INbaDataService
         await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, bioMap);
 
         // 3. Processa storico (Aggiorna tabella PlayerSeasonStats per gli ultimi 5 anni)
-        foreach (var season in historySeasons)
+        // OTTIMIZZAZIONE: Esegui solo il 1° del mese per risparmiare bandwidth
+        if (DateTime.UtcNow.Day == 1)
         {
-            _logger.LogInformation($"Sync Storico: {season}...");
-            await ProcessSeasonAsync(context, season, isCurrentSeason: false, bioMap);
-            await Task.Delay(5000); // 5s delay to avoid Rate Limiting / IP excessive usage
+            foreach (var season in historySeasons)
+            {
+                _logger.LogInformation($"Sync Storico: {season}...");
+                await ProcessSeasonAsync(context, season, isCurrentSeason: false, bioMap);
+                await Task.Delay(5000); // 5s delay to avoid Rate Limiting / IP excessive usage
+            }
         }
 
         return 1;
@@ -524,15 +528,14 @@ public class NbaDataService : INbaDataService
             try 
             {
                 // STEP 2: Reset tutti i giocatori ad "Active" prima dell'update
-            var allPlayers = await context.Players.ToListAsync();
-            foreach (var player in allPlayers)
-            {
-                player.InjuryStatus = "Active";
-                player.InjuryBodyPart = null;
-                player.InjuryReturnDate = null;
-            }
+            // STEP 2: Reset tutti i giocatori ad "Active" prima dell'update
+            // OPTIMIZATION: Use ExecuteUpdateAsync to reset without unnecessary fetching
+            await context.Players.ExecuteUpdateAsync(s => s
+                .SetProperty(p => p.InjuryStatus, "Active")
+                .SetProperty(p => p.InjuryBodyPart, (string?)null)
+                .SetProperty(p => p.InjuryReturnDate, (string?)null));
 
-            _logger.LogInformation($"✅ Reset {allPlayers.Count} giocatori ad Active");
+            _logger.LogInformation($"✅ Reset giocatori ad Active (ExecuteUpdateAsync)");
 
             // STEP 3: FALLBACK - Se commonallplayers non ha injury data, usa team rosters
             if (idxInjuryStatus == -1)
@@ -555,7 +558,7 @@ public class NbaDataService : INbaDataService
                     
                     if (injuryStatus != "Active" && injuryStatus != "")
                     {
-                        var player = allPlayers.FirstOrDefault(p => p.ExternalId == externalId);
+                        var player = await context.Players.FirstOrDefaultAsync(p => p.ExternalId == externalId);
                         if (player != null)
                         {
                             player.InjuryStatus = injuryStatus;
