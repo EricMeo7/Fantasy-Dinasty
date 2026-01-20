@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Send, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, Send, AlertCircle, CheckCircle, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from '../components/LanguageSwitcher';
@@ -112,10 +112,13 @@ export default function Contact() {
                                     onChange={handleChange}
                                     className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
                                 >
-                                    <option value="Bug">{t('contact.types.bug', '🪲 Bug')}</option>
+                                    <option value="Bug">{t('contact.types.bug', '🐛 Bug')}</option>
                                     <option value="Consiglio">{t('contact.types.suggestion', '💡 Consiglio')}</option>
                                     <option value="Altro">{t('contact.types.other', '💬 Altro')}</option>
                                 </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                    <ChevronDown size={18} />
+                                </div>
                             </div>
                         </div>
 

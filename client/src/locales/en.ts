@@ -807,7 +807,7 @@ export const en = {
             "send_btn": "Send Report",
             "sending": "Sending...",
             "types": {
-                "bug": "🪲 Bug",
+                "bug": "🐛 Bug",
                 "suggestion": "💡 Suggestion",
                 "other": "💬 Other"
             }

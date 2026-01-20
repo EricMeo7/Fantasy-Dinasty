@@ -824,7 +824,7 @@ export const it = {
             "send_btn": "Invia Segnalazione",
             "sending": "Invio in corso...",
             "types": {
-                "bug": "🪲 Bug",
+                "bug": "🐛 Bug",
                 "suggestion": "💡 Consiglio",
                 "other": "💬 Altro"
             }
