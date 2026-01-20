@@ -16,6 +16,14 @@ public class ScoreUpdateService : BackgroundService
     private DateTime _lastPlayerSync = DateTime.MinValue;
     private DateTime _lastFullScheduleUpdate = DateTime.MinValue;
 
+    // Cache per activePlayerIds (evita query Contracts ogni 2 minuti)
+    private List<int> _cachedActivePlayerIds = new();
+    private DateTime _lastContractRefresh = DateTime.MinValue;
+    
+    // Throttling NBA Logic
+    private DateTime _lastNbaUpdate = DateTime.MinValue;
+    private bool _areGamesLive = false;
+
     public ScoreUpdateService(IServiceProvider serviceProvider, ILogger<ScoreUpdateService> logger, IHubContext<FantasyBasket.API.Hubs.MatchupHub> hubContext)
     {
         _serviceProvider = serviceProvider;
@@ -49,123 +57,136 @@ public class ScoreUpdateService : BackgroundService
         // ==============================================================================
         while (!stoppingToken.IsCancellationRequested)
         {
-            int delayMinutes = 15; // Default: modalità risparmio (nessuna partita)
-
+            // 1. PROCESSA ASTE (Sempre, ogni minuto)
+            // Questo deve essere veloce e indipendente dagli aggiornamenti NBA
             try
             {
                 using (var scope = _serviceProvider.CreateScope())
                 {
-                    var nbaService = scope.ServiceProvider.GetRequiredService<INbaDataService>();
-                    var matchupService = scope.ServiceProvider.GetRequiredService<MatchupService>();
-                    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                     var auctionService = scope.ServiceProvider.GetRequiredService<AuctionService>();
-                    var injuryService = scope.ServiceProvider.GetRequiredService<OfficialInjuryService>();
-
-                    var today = DateTime.UtcNow.Date;
-
-                    // 1. CONTROLLO PARTITE LIVE (Query leggera al DB)
-                    // Nota: Status contiene testo grezzo API (es. "Final", "7:00 pm ET", "Q4 10:00").
-                    // Una partita è LIVE se NON è "Final" e NON contiene l'orario (che indica futuro).
-                    bool areGamesLive = await context.NbaGames
-                        .AnyAsync(g => g.GameDate == today && 
-                                       g.Status != "Final" && 
-                                       !g.Status.Contains("pm") && 
-                                       !g.Status.Contains("am") &&
-                                       !g.Status.Contains("ET"), 
-                                  stoppingToken);
-
-                    // ==================================================================
-                    // LOGICA DI AGGIORNAMENTO
-                    // ==================================================================
-
-                    if (areGamesLive)
-                    {
-                        // --- MODALITÀ LIVE ---
-                        // Aggiorniamo frequentemente perché si sta giocando
-                        delayMinutes = 2; 
-                        // _logger.LogInformation("Partite in corso: aggiornamento LIVE attivo.");
-
-                        // A. Scarica punteggi (SOLO di oggi per velocità)
-                        var activePlayerIds = await context.Contracts.Select(c => c.PlayerId).Distinct().ToListAsync(stoppingToken);
-                        if (activePlayerIds.Any())
-                        {
-                            await nbaService.GetFantasyPointsByDate(today, activePlayerIds);
-                        }
-
-                        // B. Aggiorna i totali delle Leghe e Notifica via SignalR
-                        var leagueIds = await context.Leagues.Select(l => l.Id).ToListAsync(stoppingToken);
-                        foreach (var leagueId in leagueIds)
-                        {
-                            await matchupService.UpdateLiveScores(leagueId);
-                            if (_hubContext != null)
-                                await _hubContext.Clients.Group($"League_{leagueId}").SendAsync("ReceiveScoreUpdate", stoppingToken);
-                        }
-
-                        // C. Aggiorna stato partite (per sapere quando finiscono)
-                        await nbaService.UpdateDailyNbaSchedule(today);
-                    }
-                    else
-                    {
-                        // --- MODALITÀ MANUTENZIONE (Off-hours) ---
-                        // Nessuna partita live. Facciamo manutenzione o controlliamo aste.
-                        
-                        delayMinutes = 5; 
-
-                        // Aggiorniamo calendario e infortuni solo ogni 6 ore (o 4 volte al giorno)
-                        if (DateTime.UtcNow > _lastFullScheduleUpdate.AddHours(6))
-                        {
-                            _logger.LogInformation("Esecuzione manutenzione periodica (6h) (Calendario/Infortuni/Giocatori).");
-                            
-                            // Sync Giocatori (Sempre quando scatta la manutenzione delle 6 ore)
-                            await nbaService.SyncPlayersAsync();
-                            _lastPlayerSync = DateTime.UtcNow;
-
-                            // Update Calendario completo
-                            await nbaService.UpdateDailyNbaSchedule(today.AddDays(-1));
-                            await nbaService.UpdateDailyNbaSchedule(today);
-                            await nbaService.UpdateDailyNbaSchedule(today.AddDays(1));
-
-                            // Update Infortuni
-                            await injuryService.UpdateInjuriesFromOfficialReportAsync();
-
-                            // Scarichiamo punteggi finali di ieri (per sicurezza) e oggi
-                            var activePlayerIds = await context.Contracts.Select(c => c.PlayerId).Distinct().ToListAsync(stoppingToken);
-                             if (activePlayerIds.Any())
-                             {
-                                 await nbaService.GetFantasyPointsByDate(today.AddDays(-1), activePlayerIds);
-                                 // Rigeneriamo anche oggi anche se non live, magari qualcuno è passato a Final
-                                 await nbaService.GetFantasyPointsByDate(today, activePlayerIds);
-                             }
-                            
-                            // Aggiorna anche i totali leghe un'ultima volta per i Final scores
-                            var leagueIds = await context.Leagues.Select(l => l.Id).ToListAsync(stoppingToken);
-                            foreach (var leagueId in leagueIds)
-                            {
-                                await matchupService.UpdateLiveScores(leagueId);
-                            }
-
-                            // --- FIX: FINALIZZA MATCHUP SCADUTI E AGGIORNA CLASSIFICHE ---
-                            _logger.LogInformation("Verifica e finalizzazione matchup conclusi...");
-                            await matchupService.ProcessCompletedMatchups(stoppingToken);
-                            // -------------------------------------------------------------
-
-                            _lastFullScheduleUpdate = DateTime.UtcNow;
-                        }
-                    }
-
-                    // 2. PROCESSA ASTE (Sempre, ogni ciclo)
-                    // È un'operazione DB locale veloce, non costa API esterne
                     await auctionService.ProcessExpiredAuctionsAsync(stoppingToken);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Errore nel ciclo Smart Worker.");
-                delayMinutes = 5; // In caso di errore riprova tra 5 min
+                _logger.LogError(ex, "Errore nel processamento aste.");
             }
 
-            // Attesa dinamica
-            await Task.Delay(TimeSpan.FromMinutes(delayMinutes), stoppingToken);
+            // 2. NBA LOGIC (Throttled: Se live RUN, altrimenti ogni 5 min)
+            try
+            {
+                // Esegui se partite live (già attive) OR se passati 5 min (check periodico)
+                if (_areGamesLive || DateTime.UtcNow > _lastNbaUpdate.AddMinutes(5))
+                {
+                    using (var scope = _serviceProvider.CreateScope())
+                    {
+                        var nbaService = scope.ServiceProvider.GetRequiredService<INbaDataService>();
+                        var matchupService = scope.ServiceProvider.GetRequiredService<MatchupService>();
+                        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                        var injuryService = scope.ServiceProvider.GetRequiredService<OfficialInjuryService>();
+
+                        // FIX Timezone: Usiamo -12h per gestire partite notturne che a UTC sono il giorno dopo
+                        var today = DateTime.UtcNow.AddHours(-12).Date;
+
+                        // 1. CONTROLLO PARTITE LIVE
+                        // Nota: Status contiene testo grezzo API. Se contiene "pm/am/ET" è futuro. Se NON è Final e non orario => LIVE/HalfTime/Qx
+                        bool checkLive = await context.NbaGames
+                            .AnyAsync(g => g.GameDate == today && 
+                                           g.Status != "Final" && 
+                                           !g.Status.Contains("pm") && 
+                                           !g.Status.Contains("am") &&
+                                           !g.Status.Contains("ET"), 
+                                      stoppingToken);
+                        
+                        // Aggiorniamo stato interno
+                        _areGamesLive = checkLive;
+
+                        if (_areGamesLive)
+                        {
+                            // --- MODALITÀ LIVE ---
+                            // _logger.LogInformation("Partite in corso: aggiornamento LIVE attivo.");
+
+                            // A. Scarica punteggi
+                            // OPTIMIZATION: Cache activePlayerIds for 15 minutes to reduce DB reads
+                            if (!_cachedActivePlayerIds.Any() || DateTime.UtcNow > _lastContractRefresh.AddMinutes(15))
+                            {
+                                _cachedActivePlayerIds = await context.Contracts.Select(c => c.PlayerId).Distinct().ToListAsync(stoppingToken);
+                                _lastContractRefresh = DateTime.UtcNow;
+                            }
+
+                            if (_cachedActivePlayerIds.Any())
+                            {
+                                await nbaService.GetFantasyPointsByDate(today, _cachedActivePlayerIds);
+                            }
+
+                            // B. Aggiorna i totali delle Leghe e Notifica via SignalR
+                            var leagueIds = await context.Leagues.Select(l => l.Id).ToListAsync(stoppingToken);
+                            foreach (var leagueId in leagueIds)
+                            {
+                                await matchupService.UpdateLiveScores(leagueId);
+                                if (_hubContext != null)
+                                    await _hubContext.Clients.Group($"League_{leagueId}").SendAsync("ReceiveScoreUpdate", stoppingToken);
+                            }
+
+                            // C. Aggiorna stato partite (per sapere quando finiscono)
+                            await nbaService.UpdateDailyNbaSchedule(today);
+                        }
+                        else
+                        {
+                            // --- MODALITÀ MANUTENZIONE (Off-hours) ---
+                            // Eseguiamo ogni volta che entriamo qui (quindi ogni 5 min circa)
+
+                            // Aggiorniamo calendario e infortuni solo ogni 6 ore
+                            if (DateTime.UtcNow > _lastFullScheduleUpdate.AddHours(6))
+                            {
+                                _logger.LogInformation("Esecuzione manutenzione periodica (6h) (Calendario/Infortuni/Giocatori).");
+                                
+                                // Sync Giocatori
+                                await nbaService.SyncPlayersAsync();
+                                _lastPlayerSync = DateTime.UtcNow;
+
+                                // Update Calendario completo
+                                await nbaService.UpdateDailyNbaSchedule(today.AddDays(-1));
+                                await nbaService.UpdateDailyNbaSchedule(today);
+                                await nbaService.UpdateDailyNbaSchedule(today.AddDays(1));
+
+                                // Update Infortuni
+                                await injuryService.UpdateInjuriesFromOfficialReportAsync();
+
+                                // Scarichiamo punteggi finali di ieri (per sicurezza) e oggi
+                                var activePlayerIds = await context.Contracts.Select(c => c.PlayerId).Distinct().ToListAsync(stoppingToken);
+                                if (activePlayerIds.Any())
+                                {
+                                     await nbaService.GetFantasyPointsByDate(today.AddDays(-1), activePlayerIds);
+                                     await nbaService.GetFantasyPointsByDate(today, activePlayerIds);
+                                }
+                                
+                                // Aggiorna totali leghe e finalizza matchup
+                                var leagueIds = await context.Leagues.Select(l => l.Id).ToListAsync(stoppingToken);
+                                foreach (var leagueId in leagueIds)
+                                {
+                                    await matchupService.UpdateLiveScores(leagueId);
+                                }
+
+                                _logger.LogInformation("Verifica e finalizzazione matchup conclusi...");
+                                await matchupService.ProcessCompletedMatchups(stoppingToken);
+
+                                _lastFullScheduleUpdate = DateTime.UtcNow;
+                            }
+                        }
+
+                        // Aggiorniamo timestamp esecuzione
+                        _lastNbaUpdate = DateTime.UtcNow;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Errore nel ciclo NBA Smart Worker.");
+            }
+
+            // CRITICAL: Loop sempre di 1 minuto per garantire reattività Aste
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
     }
 }
