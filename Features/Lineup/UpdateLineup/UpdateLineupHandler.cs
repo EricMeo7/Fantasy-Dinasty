@@ -71,18 +71,26 @@ public class UpdateLineupHandler : IRequestHandler<UpdateLineupCommand, Result<b
         {
             if (starterMap.TryGetValue(l.PlayerId, out var slot))
             {
-                l.IsStarter = true;
-                l.Slot = slot; // Persist the chosen Slot
-                l.BenchOrder = 0;
+                // Feature: Support explicit Bench slots (e.g. BN-G, BN-F)
+                if (slot.StartsWith("BN-"))
+                {
+                    l.IsStarter = false;
+                    l.Slot = slot; // Persist the explicit bench slot
+                    // Can optionally set order based on request.Bench list if present
+                    int order = request.Bench.IndexOf(l.PlayerId);
+                    l.BenchOrder = order != -1 ? order + 1 : 99;
+                }
+                else
+                {
+                    l.IsStarter = true;
+                    l.Slot = slot; 
+                    l.BenchOrder = 0;
+                }
             }
             else
             {
                 l.IsStarter = false;
-                // Preserve original position for Bench or set to "BN"?
-                // Let's reset slot to empty or keep "BN"?
-                // Ideally bench players don't have a specific slot, but we can store their primary pos or "BN".
-                // Model default is string.Empty. 
-                // Let's set it to "BN" to be clear.
+                // Default fallback
                 l.Slot = "BN"; 
                 
                 int order = request.Bench.IndexOf(l.PlayerId);

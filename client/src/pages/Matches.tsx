@@ -83,8 +83,8 @@ export default function Matches() {
                             >
                                 <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> {t('matches.return_dashboard')}
                             </button>
-                            <h1 className="text-5xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
-                                {t('matches.match')} <span className="text-blue-500">{t('matches.grid')}</span>
+                            <h1 className="text-3xl md:text-7xl font-black text-white flex flex-wrap items-center gap-2 md:gap-4 tracking-tighter italic uppercase leading-none break-words">
+                                {t('matches.title')}
                             </h1>
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">{t('matches.subtitle')}</p>
                         </div>

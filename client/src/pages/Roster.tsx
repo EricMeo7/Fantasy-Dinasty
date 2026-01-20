@@ -125,7 +125,7 @@ export default function Roster() {
                                 <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> {t('roster.return_dashboard')}
                             </button>
                             <div className="flex items-center gap-4">
-                                <h1 className="text-3xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
+                                <h1 className="text-3xl md:text-7xl font-black text-white flex flex-wrap items-center gap-2 md:gap-4 tracking-tighter italic uppercase leading-none break-words">
                                     {myTeam?.name || t('roster.personnel_roster')} <span className="text-blue-500">{t('roster.title').split(' ')[1]}</span>
                                 </h1>
                                 <button onClick={() => setIsSettingsOpen(true)} className="p-2 md:p-3 rounded-full bg-slate-900/50 border border-white/10 text-slate-500 hover:text-white hover:bg-slate-800 transition-all hover:scale-105" title={t('team_settings.title')}>

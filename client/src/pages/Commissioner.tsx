@@ -24,7 +24,7 @@ export default function Commissioner() {
                                 <Sparkles size={12} className="text-red-400" />
                                 <span className="text-[10px] font-black uppercase tracking-widest text-red-400">Authority Level: Admin</span>
                             </div>
-                            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase italic leading-none">
+                            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tighter uppercase italic leading-none break-words">
                                 Commissioner <span className="text-red-500">Zone</span>
                             </h2>
                             <p className="text-slate-500 mt-2 font-bold uppercase tracking-widest text-xs">Advanced league configuration & management hub</p>

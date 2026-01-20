@@ -225,17 +225,16 @@ export default function Matchup() {
             }
         });
 
-        // Priority 2: Auto-fill logic for legacy/fallback (Only if slot is empty or invalid)
-        // This is tricky. If we rely on explicit slot, we should trust it. 
-        // If data comes freshly with empty slots (fallback), we might auto-assign.
-        // But auto-assignment needs to update the ROSTER state so we can save it explicitly.
-        // For now, let's trust explicit slot. If missing, maybe they show up in bench or weird state?
-        // Let's implement a "Healing" pass? 
-        // No, let's keep it simple: If p.isStarter but p.slot is valid, trust it.
-        // If p.isStarter but p.slot is invalid/missing, try to auto-assign for DISPLAY but likely won't save correctly unless moved.
-        // Let's rely on explicit slot.
+        // Feature: Also track explicit Bench assignments to avoid Limbo
+        // We don't put them in "assigned" map (which drives the COURT view), 
+        // but we need to know they have a "home" so they aren't treated as generic limbo benchers.
+        // Actually, assignedMap is used for COURT PLAYER CARDS. Bench players are handled separately.
+        // So this map should ONLY contain Starters.
+
         return assigned;
     }, [roster]);
+
+
 
     const saveLineup = async (newRoster: DailyPlayer[]) => {
         if (isReadOnly || !selectedDate) return;
@@ -244,8 +243,14 @@ export default function Matchup() {
 
         // Build explicit Slot Map
         const starterSlots: Record<string, number> = {};
-        newRoster.filter(p => p.isStarter).forEach(p => {
-            if (p.slot) starterSlots[p.slot] = p.playerId;
+        newRoster.forEach(p => {
+            if (p.isStarter) {
+                // Regular Starter
+                if (p.slot) starterSlots[p.slot] = p.playerId;
+            } else if (p.slot && p.slot.startsWith('BN-')) {
+                // Explicit Bench Slot (Feature: Manual Bench Assignment)
+                starterSlots[p.slot] = p.playerId;
+            }
         });
 
         const bench = newRoster.filter(p => !p.isStarter)
@@ -311,6 +316,15 @@ export default function Matchup() {
 
         const starters = roster.filter(p => p.isStarter);
         saveLineup([...starters, ...bench]);
+    };
+
+    const handleSwitchRole = (player: DailyPlayer, targetRole: string) => {
+        if (isReadOnly) return;
+        const targetSlot = `BN-${targetRole}`;
+        const newRoster = roster.map(p =>
+            p.playerId === player.playerId ? { ...p, slot: targetSlot } : p
+        );
+        saveLineup(newRoster);
     };
 
     const handleOpenStats = (p: DailyPlayer) => {
@@ -480,6 +494,16 @@ export default function Matchup() {
 
                             // Helper to push to buckets
                             const bucketPlayer = (p: typeof roster[0]) => {
+                                // Priority: Explicit Bench Slot
+                                if (p.slot && p.slot.startsWith('BN-')) {
+                                    const role = p.slot.split('-')[1];
+                                    if (role === 'G') guards.push(p);
+                                    else if (role === 'F') forwards.push(p);
+                                    else if (role === 'C') centers.push(p);
+                                    else others.push(p);
+                                    return;
+                                }
+
                                 const pos = p.position.toUpperCase();
                                 if (pos.includes('G')) guards.push(p);
                                 else if (pos.includes('F')) forwards.push(p);
@@ -520,6 +544,7 @@ export default function Matchup() {
                                                         onMoveUp={() => !isLimbo && handleReorderBench(p, 'up')}
                                                         onMoveDown={() => !isLimbo && handleReorderBench(p, 'down')}
                                                         onStats={handleOpenStats}
+                                                        onSwitchRole={(role: string) => handleSwitchRole(p, role)}
                                                         isReadOnly={isReadOnly}
                                                         isLimbo={isLimbo}
                                                     />
@@ -605,8 +630,33 @@ function CourtPlayerCard({ slot, player, onSelect, onRemove, onStats, isReadOnly
 }
 
 
-function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, totalBench, isReadOnly, isLimbo }: any) {
+function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, onSwitchRole, totalBench, isReadOnly, isLimbo }: any) {
     const { t } = useTranslation();
+
+    // Determine available roles for switching
+    const availableRoles = useMemo(() => {
+        const roles: string[] = [];
+        const pos = p.position.toUpperCase();
+        if (pos.includes('G')) roles.push('G');
+        if (pos.includes('F')) roles.push('F');
+        if (pos.includes('C')) roles.push('C');
+
+        // Only specific primary/secondary logic or simplistic?
+        // Logic: if multiple roles, allow switching.
+        // Clean duplicates
+        return Array.from(new Set(roles));
+    }, [p.position]);
+
+    const activeRole = useMemo(() => {
+        if (p.slot && p.slot.startsWith('BN-')) return p.slot.split('-')[1];
+        // Default inference
+        const pos = p.position.toUpperCase();
+        if (pos.includes('G')) return 'G';
+        if (pos.includes('F')) return 'F';
+        if (pos.includes('C')) return 'C';
+        return '?';
+    }, [p.slot, p.position]);
+
     return (
         <div className={`bg-slate-900 border ${isLimbo ? 'border-amber-500/50 bg-amber-500/5' : 'border-slate-800'} p-4 rounded-[1.5rem] flex items-center gap-4 transition-all hover:border-slate-600 group shadow-lg`}>
             {!isReadOnly && (
@@ -621,7 +671,23 @@ function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, to
                     <img src={`https://cdn.nba.com/headshots/nba/latest/260x190/${p.externalId}.png`} className="w-full h-full object-cover object-top" />
                 </div>
                 <div className="truncate">
-                    <div className="text-sm font-black text-slate-200 truncate uppercase italic">{p.name} <span className="text-[10px] text-slate-600 font-bold not-italic">({p.position})</span></div>
+                    <div className="flex items-center gap-2">
+                        <div className="text-sm font-black text-slate-200 truncate uppercase italic">{p.name} <span className="text-[10px] text-slate-600 font-bold not-italic">({p.position})</span></div>
+                        {!isReadOnly && availableRoles.length > 1 && (
+                            <div className="flex bg-slate-950 rounded-lg p-0.5 border border-slate-800" onClick={(e) => e.stopPropagation()}>
+                                {availableRoles.map(role => (
+                                    <button
+                                        key={role}
+                                        onClick={() => onSwitchRole(role)}
+                                        className={`px-1.5 py-0.5 text-[8px] font-black rounded ${activeRole === role ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                                    >
+                                        {role}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex items-center gap-2 text-[10px] mt-1 font-black uppercase">
                         <span className="text-slate-500">{p.nbaTeam}</span>
                         {p.hasGame ? <span className="text-blue-400 bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/20">{p.opponent}</span> : <span className="text-slate-700 italic">{t('matchup.no_game')}</span>}

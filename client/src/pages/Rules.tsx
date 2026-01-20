@@ -1,6 +1,10 @@
+import { Link } from 'react-router-dom';
 import { Book, Trophy, Sparkles, Shield, DollarSign, Users, Calendar, RefreshCcw, ChartBar } from 'lucide-react';
 import SEO from '../components/SEO/SEO';
 import { useTranslation, Trans } from 'react-i18next';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+
+import { useMyTeamInfo } from '../features/team/api/useMyTeamInfo';
 
 const RuleCard = ({ icon, title, children, color }: any) => (
     <div className={`bg-slate-900/50 border border-slate-800 rounded-3xl p-6 hover:border-${color}-500/50 transition-all duration-300 group`}>
@@ -16,6 +20,8 @@ const RuleCard = ({ icon, title, children, color }: any) => (
 
 const Rules = () => {
     const { t } = useTranslation();
+    const { data: myTeam } = useMyTeamInfo();
+    const backLink = myTeam ? '/dashboard' : '/';
 
     return (
         <>
@@ -27,6 +33,13 @@ const Rules = () => {
             <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-24">
 
                 {/* HEADER */}
+                <div className="mb-6 flex items-center justify-between">
+                    <Link to={backLink} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-medium">
+                        ← {t('footer.back_to_home', 'Back to Home')}
+                    </Link>
+                    <LanguageSwitcher />
+                </div>
+
                 <div className="text-center space-y-4 mb-12">
                     <div className="inline-flex flex-col md:flex-row items-center gap-2 bg-blue-600/10 text-blue-400 px-4 py-3 md:py-1.5 rounded-3xl md:rounded-full border border-blue-500/20 shadow-[0_0_20px_rgba(37,99,235,0.2)]">
                         <div className="flex items-center gap-2">

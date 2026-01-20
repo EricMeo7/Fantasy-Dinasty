@@ -10,12 +10,15 @@ export interface TeamInfo {
 }
 
 export const useMyTeamInfo = () => {
+    const token = localStorage.getItem('token');
     return useQuery({
-        queryKey: ['my-team', localStorage.getItem('token')],
+        queryKey: ['my-team', token],
         queryFn: async () => {
             const { data } = await api.team.getMyTeam();
             return data as TeamInfo;
         },
         staleTime: Infinity,
+        enabled: !!token,
+        retry: false
     });
 };

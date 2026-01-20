@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Sparkles, ShieldCheck, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Loader2, Sparkles, ShieldCheck, Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import SEO from '../components/SEO/SEO';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, googleProvider } from '../services/firebase';
@@ -14,6 +14,7 @@ export default function Login() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [gmName, setGmName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +32,11 @@ export default function Login() {
       if (showTwoFactor) {
         // 2FA LOGIN
         const response = await api.post('/auth/login-2fa', { email, code: twoFactorCode, rememberMe });
-        const { token, email: userEmail } = response.data;
+        const { token, email: userEmail, deviceToken } = response.data;
+
+        if (deviceToken) {
+          localStorage.setItem('deviceToken', deviceToken);
+        }
 
         localStorage.setItem('token', token);
         localStorage.setItem('userEmail', userEmail);
@@ -51,7 +56,8 @@ export default function Login() {
         const idToken = await userCredential.user.getIdToken();
 
         // 2. Exchange token with Backend
-        const response = await api.post('/auth/firebase', { token: idToken });
+        const deviceToken = localStorage.getItem('deviceToken');
+        const response = await api.post('/auth/firebase', { token: idToken, deviceToken });
 
         if (response.data.requiresTwoFactor || response.data.RequiresTwoFactor) {
           setShowTwoFactor(true);
@@ -174,7 +180,8 @@ export default function Login() {
 
                     // 2. Send token to Backend to get App JWT
                     // Use a specific Firebase auth endpoint or adapt existing one
-                    const response = await api.post('/auth/firebase', { token: idToken });
+                    const deviceToken = localStorage.getItem('deviceToken');
+                    const response = await api.post('/auth/firebase', { token: idToken, deviceToken });
 
                     if (response.data.requiresTwoFactor || response.data.RequiresTwoFactor) {
                       setShowTwoFactor(true);
@@ -231,15 +238,16 @@ export default function Login() {
                           autoFocus
                         />
                       </div>
-                      <div className="flex items-center gap-3 px-1">
-                        <input
-                          type="checkbox"
-                          id="rememberMe"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                          className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20"
-                        />
-                        <label htmlFor="rememberMe" className="text-xs text-slate-400 font-bold uppercase tracking-wide cursor-pointer select-none">{t('login.remember_30_days')}</label>
+                      <div className="flex items-center px-1">
+                        <label className="flex items-center gap-3 cursor-pointer group select-none py-2">
+                          <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500/20 cursor-pointer accent-emerald-500"
+                          />
+                          <span className="text-xs text-slate-400 font-bold uppercase tracking-wide group-hover:text-white transition-colors">{t('login.remember_30_days')}</span>
+                        </label>
                       </div>
                     </div>
                   ) : (
@@ -287,14 +295,21 @@ export default function Login() {
                             <Lock size={18} />
                           </div>
                           <input
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             placeholder={t('login.password_placeholder')}
-                            className="w-full rounded-xl bg-slate-950/50 border border-slate-700/50 p-4 pl-12 text-white font-bold italic tracking-tight focus:border-emerald-500/50 outline-none transition-all placeholder-slate-700 shadow-inner"
+                            className="w-full rounded-xl bg-slate-950/50 border border-slate-700/50 p-4 pl-12 pr-12 text-white font-bold italic tracking-tight focus:border-emerald-500/50 outline-none transition-all placeholder-slate-700 shadow-inner"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             minLength={6}
                           />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
                         </div>
                         <div className="text-right pt-1">
                           <button

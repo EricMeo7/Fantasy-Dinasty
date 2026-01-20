@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Trophy, Calendar, ShoppingCart, Gavel,
-  PlayCircle, Loader2, Search, ArrowLeftRight,
-  Activity, ArrowUpRight, Sparkles, TrendingUp, ArrowRight
+  /* Users, Trophy, etc removed from import */
+  Trophy, ShoppingCart, Gavel,
+  PlayCircle, Loader2, ArrowUpRight, Sparkles, ArrowRight,
+  Calendar, Activity, TrendingUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 // Hooks
-import { useMyTrades } from '../features/trades/api/useMyTrades';
 import { useLeagueStatus } from '../features/admin/api/useLeagueStatus';
 import { useMatchDetails } from '../features/league/api/useMatchDetails';
 import { useMyRoster } from '../features/roster/api/useMyRoster';
@@ -27,7 +27,6 @@ export default function Dashboard() {
   const { data: statusData, isLoading: loadingStatus } = useLeagueStatus();
   const { data: currentMatch, isLoading: loadingMatch } = useMatchDetails();
   const { data: roster = [], isLoading: loadingRoster } = useMyRoster();
-  const { data: trades = [] } = useMyTrades();
   const { data: myTeam } = useMyTeamInfo(); // NEW
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -37,7 +36,7 @@ export default function Dashboard() {
   });
 
   const leagueStatus = statusData ?? 0;
-  const pendingTradesCount = trades.filter(t => !t.isMeProposer && !t.didIAccept).length;
+  // pendingTradesCount removed
   const injuredPlayers = roster.filter((p: any) => p.injuryStatus && p.injuryStatus !== 'Active');
   const hasTeam = roster.length > 0;
 
@@ -61,6 +60,33 @@ export default function Dashboard() {
       </div>
 
       <main className="container mx-auto p-4 md:p-12 max-w-7xl relative z-10">
+
+        {/* Header Benvenuto */}
+        <div className="mb-8 md:mb-12 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
+          <div className="flex items-center gap-4 md:gap-8">
+            <LogoAvatar
+              src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}` : undefined}
+              alt={myTeam?.name || 'Team'}
+              size="xl"
+              shape="square"
+              className="relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700 bg-transparent border-none"
+              fallbackType="team"
+            />
+            <div>
+              <h2 className="text-3xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-none break-words">
+                {t('dashboard.command_central')}
+              </h2>
+              <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[8px] md:text-[10px] mt-2 md:mt-3">{t('dashboard.dynasty_console_experience')}</p>
+            </div>
+          </div>
+
+          <div className="hidden xl:flex items-center gap-4 bg-slate-900/40 p-2 rounded-[2rem] border border-white/5">
+            <div className="px-6 py-2">
+              <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{t('dashboard.active_assets')}</div>
+              <div className="text-xl font-black text-white italic mt-1">{roster.length} <span className="text-[9px] text-slate-800 italic">{t('dashboard.units')}</span></div>
+            </div>
+          </div>
+        </div>
 
         {/* 1. SEZIONE RIEPILOGO ALERTS (Se ci sono novità importanti) */}
         {hasTeam && (currentMatch || injuredPlayers.length > 0) && (
@@ -203,116 +229,9 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Header Benvenuto */}
-        <div className="mb-8 md:mb-12 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
-          <div className="flex items-center gap-4 md:gap-8">
-            <LogoAvatar
-              src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}` : undefined}
-              alt={myTeam?.name || 'Team'}
-              size="xl"
-              shape="square"
-              className="relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700 bg-transparent border-none"
-              fallbackType="team"
-            />
-            <div>
-              <h2 className="text-3xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-none">
-                {t('dashboard.command_central')}
-              </h2>
-              <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[8px] md:text-[10px] mt-2 md:mt-3">{t('dashboard.dynasty_console_experience')}</p>
-            </div>
-          </div>
 
-          <div className="hidden xl:flex items-center gap-4 bg-slate-900/40 p-2 rounded-[2rem] border border-white/5">
-            <div className="px-6 py-2">
-              <div className="text-[8px] font-black text-slate-600 uppercase tracking-widest">{t('dashboard.active_assets')}</div>
-              <div className="text-xl font-black text-white italic mt-1">{roster.length} <span className="text-[9px] text-slate-800 italic">{t('dashboard.units')}</span></div>
-            </div>
-          </div>
-        </div>
 
-        {/* Griglia Navigazione Principale */}
-        <div className="grid grid-cols-1 gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mb-8 md:mb-16 animate-in slide-in-from-bottom-6 duration-700">
 
-          {/* Card: IL MIO ROSTER */}
-          <button onClick={() => navigate('/roster')} className="group relative text-left outline-none bg-transparent">
-            <div className="absolute inset-0 bg-blue-600 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-10 transition-opacity"></div>
-            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-slate-900/60 backdrop-blur-3xl p-6 md:p-8 h-full shadow-2xl group-hover:border-blue-500/50 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between min-h-[160px]">
-              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-blue-500"><Users size={120} /></div>
-              <div className="p-3 md:p-4 bg-blue-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(37,99,235,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Users size={24} /></div>
-              <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-blue-500 transition-colors">{t('dashboard.personnel')}</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.squad_roster')}</h3>
-              </div>
-            </div>
-          </button>
-
-          {/* Card: TUTTI I ROSTER (Esplora Lega) */}
-          <button onClick={() => navigate('/league-rosters')} className="group relative text-left outline-none transition-transform active:scale-95 bg-transparent">
-            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-slate-900/60 backdrop-blur-3xl p-6 md:p-8 h-full shadow-2xl group-hover:border-emerald-500/50 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between min-h-[160px]">
-              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-emerald-500"><Search size={120} /></div>
-              <div className="p-3 md:p-4 bg-emerald-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(16,185,129,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Search size={24} /></div>
-              <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-emerald-500 transition-colors">{t('dashboard.intelligence')}</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.franchise_hq')}</h3>
-              </div>
-            </div>
-          </button>
-
-          {/* Card: SCAMBI (Trade Center) */}
-          <button onClick={() => navigate('/trades')} className="group relative text-left outline-none bg-transparent">
-            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-slate-900/60 backdrop-blur-3xl p-6 md:p-8 h-full shadow-2xl group-hover:border-purple-500/50 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between min-h-[160px]">
-              {
-                pendingTradesCount > 0 && (
-                  <div className="absolute top-6 right-6 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-2xl z-20 animate-bounce border border-white/20">
-                    {pendingTradesCount} {t('dashboard.alerts')}
-                  </div>
-                )
-              }
-              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-purple-500"><ArrowLeftRight size={120} /></div>
-              <div className="p-3 md:p-4 bg-purple-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(147,51,234,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><ArrowLeftRight size={24} /></div>
-              <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-purple-500 transition-colors">{t('dashboard.transaction')}</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.trade_hub')}</h3>
-              </div>
-            </div>
-          </button>
-
-          {/* Card: CLASSIFICA LEGA */}
-          <button onClick={() => navigate('/league')} className="group relative text-left outline-none bg-transparent">
-            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-slate-900/60 backdrop-blur-3xl p-6 md:p-8 h-full shadow-2xl group-hover:border-amber-500/50 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between min-h-[160px]">
-              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-amber-500"><Trophy size={120} /></div>
-              <div className="p-3 md:p-4 bg-amber-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(245,158,11,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Trophy size={24} /></div>
-              <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-amber-500 transition-colors">{t('dashboard.competitive')}</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.standings')}</h3>
-              </div>
-            </div>
-          </button>
-
-          {/* Card: CALENDARIO */}
-          <button onClick={() => navigate('/matches')} className="group relative text-left outline-none bg-transparent">
-            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-slate-900/60 backdrop-blur-3xl p-6 md:p-8 h-full shadow-2xl group-hover:border-indigo-500/50 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between min-h-[160px]">
-              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-indigo-500"><Calendar size={120} /></div>
-              <div className="p-3 md:p-4 bg-indigo-600 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(79,70,229,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Calendar size={24} /></div>
-              <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-indigo-500 transition-colors">{t('dashboard.operations')}</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('dashboard.matrix_grid')}</h3>
-              </div>
-            </div>
-          </button>
-
-          {/* Card: STATISTICHE (Player Pool) */}
-          <button onClick={() => navigate('/pool')} className="group relative text-left outline-none bg-transparent">
-            <div className="relative overflow-hidden rounded-[2rem] md:rounded-[2.5rem] border border-white/5 bg-slate-900/60 backdrop-blur-3xl p-6 md:p-8 h-full shadow-2xl group-hover:border-blue-400/50 group-hover:-translate-y-2 transition-all duration-500 flex flex-col justify-between min-h-[160px]">
-              <div className="absolute top-0 right-0 p-8 opacity-0 group-hover:opacity-10 group-hover:scale-125 transition-all duration-1000 text-blue-400"><Activity size={120} /></div>
-              <div className="p-3 md:p-4 bg-blue-500 rounded-2xl w-fit text-white shadow-[0_10px_20px_rgba(59,130,246,0.3)] mb-6 md:mb-10 transition-transform group-hover:rotate-12"><Activity size={24} /></div>
-              <div>
-                <p className="text-[9px] md:text-[10px] text-slate-600 font-black uppercase tracking-[0.4em] mb-1 group-hover:text-blue-400 transition-colors">{t('dashboard.intelligence')}</p>
-                <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-tighter leading-none">{t('navbar.player_stats')}</h3>
-              </div>
-            </div>
-          </button>
-        </div>
 
         {/* --- SEZIONE DINAMICA: ASTA LIVE O MERCATO FREE AGENTS --- */}
 

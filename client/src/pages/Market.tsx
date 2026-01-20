@@ -167,7 +167,7 @@ export default function Market() {
 
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 mb-12">
                     <div className="flex-1">
-                        <h1 className="text-3xl md:text-5xl font-black text-white flex items-center gap-4 tracking-tighter uppercase italic leading-none">
+                        <h1 className="text-3xl md:text-5xl font-black text-white flex flex-wrap items-center gap-2 md:gap-4 tracking-tighter uppercase italic leading-none break-words">
                             <Users className="text-emerald-500" size={48} /> {t('market.title')}
                         </h1>
                         <div className="flex items-center gap-4 mt-3">

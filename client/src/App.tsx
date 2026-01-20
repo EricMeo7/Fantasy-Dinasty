@@ -27,6 +27,7 @@ const Commissioner = lazy(() => import('./pages/Commissioner'));
 const Rules = lazy(() => import('./pages/Rules'));
 const PlayerPool = lazy(() => import('./pages/PlayerPool'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Contact = lazy(() => import('./pages/Contact'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -77,7 +78,7 @@ function AppContent() {
   }, [location.pathname]);
 
   // Definiamo le rotte dove NON vogliamo vedere la Navbar
-  const noNavbarRoutes = ['/login', '/leagues', '/', '/forgot-password', '/reset-password'];
+  const noNavbarRoutes = ['/login', '/leagues', '/', '/forgot-password', '/reset-password', '/rules', '/contact'];
   const shouldHideNavbar = noNavbarRoutes.includes(location.pathname);
 
   // Definiamo le rotte dove NON vogliamo vedere il Footer globale (es. Login ha già il suo footer)
@@ -132,6 +133,7 @@ function AppContent() {
             <Route path="/pool" element={<PlayerPool />} />
             {/* Dashboard Landing Page (Public) */}
             <Route path="/" element={<LandingPage />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
         </Suspense>
       </div>

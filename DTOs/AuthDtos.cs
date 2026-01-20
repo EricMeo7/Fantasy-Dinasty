@@ -32,6 +32,8 @@ public class AuthResponseDto
     public bool IsSetupComplete { get; set; }
     [System.Text.Json.Serialization.JsonPropertyName("requiresTwoFactor")]
     public bool RequiresTwoFactor { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("deviceToken")]
+    public string? DeviceToken { get; set; }
 }
 
 public class TwoFactorLoginDto
@@ -40,12 +42,15 @@ public class TwoFactorLoginDto
     public string Email { get; set; } = string.Empty;
     [Required]
     public string Code { get; set; } = string.Empty;
+    [System.Text.Json.Serialization.JsonPropertyName("rememberMe")]
     public bool RememberMe { get; set; }
 }
 
 public class FirebaseLoginDto
 {
     public string Token { get; set; } = string.Empty;
+    [System.Text.Json.Serialization.JsonPropertyName("deviceToken")]
+    public string? DeviceToken { get; set; }
 }
 
 // DTO per completare il profilo dopo la registrazione (Input)

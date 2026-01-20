@@ -74,6 +74,14 @@ export default function LandingPage() {
                     <div className="flex items-center gap-4">
                         <LanguageSwitcher />
 
+                        {/* Links */}
+                        <Link
+                            to="/rules"
+                            className="hidden md:block text-xs font-bold text-slate-400 uppercase tracking-widest hover:text-emerald-400 transition-colors mr-2"
+                        >
+                            {t('footer.links.rules')}
+                        </Link>
+
                         {/* Login Button */}
                         <Link
                             to="/login"

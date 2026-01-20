@@ -37,10 +37,12 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.warn('Sessione scaduta o token non valido. Logout...');
-      localStorage.removeItem('token');
-      // Opzionale: redirect forzato o reload
-      window.location.href = '/login';
+      // Evita redirect se siamo già al login (es. errore 2FA)
+      if (!window.location.pathname.includes('/login')) {
+        console.warn('Sessione scaduta o token non valido. Logout...');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

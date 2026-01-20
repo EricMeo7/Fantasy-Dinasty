@@ -65,7 +65,12 @@ export default function LeagueSelection() {
   };
 
   const handleLogout = () => {
+    // Preserva deviceToken per 2FA "Remember Me"
+    const deviceToken = localStorage.getItem('deviceToken');
     localStorage.clear();
+    if (deviceToken) {
+      localStorage.setItem('deviceToken', deviceToken);
+    }
     navigate('/login');
   };
 

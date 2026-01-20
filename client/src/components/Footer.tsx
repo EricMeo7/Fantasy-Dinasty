@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 // Footer component
@@ -16,6 +17,22 @@ export default function Footer() {
                         <p className="text-xs font-medium text-slate-400">
                             {t('footer.built_for')} <span className="text-emerald-400 font-bold italic">Fantasy Dynasty NBA</span> {t('footer.managers')}
                         </p>
+                    </div>
+
+                    {/* Links */}
+                    <div className="flex items-center gap-6">
+                        <Link
+                            to="/rules"
+                            className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-emerald-400 transition-colors"
+                        >
+                            {t('footer.links.rules')}
+                        </Link>
+                        <Link
+                            to="/contact"
+                            className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-emerald-400 transition-colors"
+                        >
+                            {t('footer.links.contact')}
+                        </Link>
                     </div>
 
                     {/* Meta Info */}

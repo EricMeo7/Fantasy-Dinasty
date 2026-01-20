@@ -311,7 +311,7 @@ export default function LiveDraft() {
 
             <div className="max-w-4xl w-full">
                 <div className="text-center mb-16">
-                    <h1 className="text-6xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none mb-4">
+                    <h1 className="text-4xl md:text-8xl font-black text-white italic tracking-tighter uppercase leading-none mb-4 break-words">
                         {t('draft.waiting_room')}
                     </h1>
                     <div className="flex items-center justify-center gap-4">
@@ -494,7 +494,7 @@ export default function LiveDraft() {
                                     <span className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-4 py-1 md:px-6 md:py-2 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.3em] inline-flex items-center gap-2 mb-2 md:mb-4">
                                         <Gavel size={12} className="md:w-[14px] md:h-[14px]" /> {t('draft.bid_in_progress')}
                                     </span>
-                                    <h2 className="text-3xl md:text-6xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl px-2">
+                                    <h2 className="text-3xl md:text-6xl font-black text-white italic tracking-tighter uppercase leading-none drop-shadow-2xl px-2 break-words">
                                         {draftState.currentPlayerName}
                                     </h2>
                                 </div>

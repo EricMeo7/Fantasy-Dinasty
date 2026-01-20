@@ -150,11 +150,19 @@ public class AuthController : ControllerBase
         }
 
         var tokenString = GenerateJwtToken(user);
+        string? deviceToken = null;
+
+        if (model.RememberMe)
+        {
+            deviceToken = Guid.NewGuid().ToString();
+            await _userManager.SetAuthenticationTokenAsync(user, "Default", "DeviceToken", deviceToken);
+        }
 
         return Ok(new AuthResponseDto
         {
             Token = tokenString,
-            Email = user.Email!
+            Email = user.Email!,
+            DeviceToken = deviceToken
         });
     }
 
@@ -194,11 +202,21 @@ public class AuthController : ControllerBase
             // Generiamo il NOSTRO token JWT per mantenere la compatibilità con il resto dell'app
             if (user.TwoFactorEnabled)
             {
-                return Ok(new AuthResponseDto
+                // CHECK DEVICE TOKEN
+                var storedDeviceToken = await _userManager.GetAuthenticationTokenAsync(user, "Default", "DeviceToken");
+                
+                _logger.LogInformation($"[2FA Check] User: {user.Email}, Received Token: '{model.DeviceToken}', Stored Token: '{storedDeviceToken}'");
+
+                bool isDeviceTrusted = !string.IsNullOrEmpty(storedDeviceToken) && storedDeviceToken == model.DeviceToken;
+
+                if (!isDeviceTrusted)
                 {
-                    RequiresTwoFactor = true,
-                    Email = user.Email!
-                });
+                    return Ok(new AuthResponseDto
+                    {
+                        RequiresTwoFactor = true,
+                        Email = user.Email!
+                    });
+                }
             }
 
             var tokenString = GenerateJwtToken(user);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Send, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -26,8 +27,8 @@ export const StickyTradeBar: React.FC<StickyTradeBarProps> = ({
     const outgoingColor = totalOutgoing > 100 ? 'text-red-500' : 'text-emerald-500';
     const incomingColor = totalIncoming > 100 ? 'text-red-500' : 'text-blue-400';
 
-    return (
-        <div className="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] z-50">
+    return createPortal(
+        <div className="fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] z-[100] animate-in slide-in-from-bottom-full duration-500">
             <div className="max-w-7xl mx-auto px-6 py-4">
                 <div className="grid grid-cols-3 gap-6 items-center">
                     {/* Left: Outgoing Salary */}
@@ -72,6 +73,7 @@ export const StickyTradeBar: React.FC<StickyTradeBarProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

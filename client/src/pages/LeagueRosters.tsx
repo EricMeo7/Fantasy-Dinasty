@@ -81,7 +81,7 @@ export default function LeagueRosters() {
               >
                 <ArrowRight className="rotate-180 group-hover:-translate-x-1 transition-transform" size={12} /> Return to Dashboard
               </button>
-              <h1 className="text-3xl md:text-7xl font-black text-white flex items-center gap-4 tracking-tighter italic uppercase leading-none">
+              <h1 className="text-3xl md:text-7xl font-black text-white flex flex-wrap items-center gap-2 md:gap-4 tracking-tighter italic uppercase leading-none break-words">
                 League <span className="text-emerald-500">Explorer</span>
               </h1>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-3">Real-time Roster Intelligence Sync</p>

@@ -63,7 +63,20 @@ export const useSaveLineup = () => {
 
                 const optimisticLineup = previousLineup.map(p => {
                     if (starterMap.has(p.playerId)) {
-                        return { ...p, isStarter: true, slot: starterMap.get(p.playerId)!, benchOrder: 0 };
+                        const slot = starterMap.get(p.playerId)!;
+                        // Feature: Manual Bench Slots (BN-G, BN-F)
+                        // They are passed in starterSlots but are NOT starters
+                        if (slot.startsWith('BN-')) {
+                            return { ...p, isStarter: false, slot: slot, benchOrder: 0 }; // Order will be fixed by server or inferred? 
+                            // Logic in Matchup.tsx puts them in Bench list too? 
+                            // Wait, Matchup.tsx puts them in starterSlots map AND bench list? 
+                            // No, in saveLineup: if p.slot startsWith BN, it goes to starterSlots. 
+                            // AND it goes to bench list because !p.isStarter.
+                            // So it hits this block first (starterMap).
+                            // We should probably rely on BENCH ORDER from bench list if available?
+                            // But let's just set isStarter false and slot.
+                        }
+                        return { ...p, isStarter: true, slot: slot, benchOrder: 0 };
                     } else if (benchSet.has(p.playerId)) {
                         const idx = newData.bench.indexOf(p.playerId);
                         return { ...p, isStarter: false, slot: 'BN', benchOrder: idx + 1 };
