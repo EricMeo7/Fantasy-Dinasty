@@ -36,6 +36,16 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
         stealWeight: 3,
         blockWeight: 3,
         turnoverWeight: -1,
+        fgmWeight: 0.5,
+        fgaWeight: -0.5,
+        ftmWeight: 0.5,
+        ftaWeight: -0.5,
+        threePmWeight: 0.5,
+        threePaWeight: 0,
+        orebWeight: 0.5,
+        drebWeight: 0,
+        winWeight: 3,
+        lossWeight: 0,
         rosterSlotsPG: 1,
         rosterSlotsSG: 1,
         rosterSlotsSF: 1,
@@ -285,13 +295,42 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                                         <h3 className="flex items-center gap-2 text-emerald-400 font-bold uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
                                             <Target size={18} /> {t('modals.league_settings.scoring_system')}
                                         </h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                            <WeightInput label={t('modals.league_settings.points')} field="pointWeight" val={settings.pointWeight} onChange={handleChange} />
-                                            <WeightInput label={t('modals.league_settings.rebounds')} field="reboundWeight" val={settings.reboundWeight} onChange={handleChange} />
-                                            <WeightInput label={t('modals.league_settings.assists')} field="assistWeight" val={settings.assistWeight} onChange={handleChange} />
-                                            <WeightInput label={t('modals.league_settings.steals')} field="stealWeight" val={settings.stealWeight} onChange={handleChange} />
-                                            <WeightInput label={t('modals.league_settings.blocks')} field="blockWeight" val={settings.blockWeight} onChange={handleChange} />
-                                            <WeightInput label={t('modals.league_settings.turnovers')} field="turnoverWeight" val={settings.turnoverWeight} onChange={handleChange} isNegative />
+
+                                        {/* Standard */}
+                                        <div className="mb-6">
+                                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Standard Base</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                                <WeightInput label={t('modals.league_settings.points')} field="pointWeight" val={settings.pointWeight} onChange={handleChange} />
+                                                <WeightInput label={t('modals.league_settings.rebounds')} field="reboundWeight" val={settings.reboundWeight} onChange={handleChange} />
+                                                <WeightInput label={t('modals.league_settings.assists')} field="assistWeight" val={settings.assistWeight} onChange={handleChange} />
+                                                <WeightInput label={t('modals.league_settings.steals')} field="stealWeight" val={settings.stealWeight} onChange={handleChange} />
+                                                <WeightInput label={t('modals.league_settings.blocks')} field="blockWeight" val={settings.blockWeight} onChange={handleChange} />
+                                                <WeightInput label={t('modals.league_settings.turnovers')} field="turnoverWeight" val={settings.turnoverWeight} onChange={handleChange} isNegative />
+                                            </div>
+                                        </div>
+
+                                        {/* Shooting */}
+                                        <div className="mb-6">
+                                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Shooting Splits</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                                <WeightInput label="FGM" field="fgmWeight" val={settings.fgmWeight} onChange={handleChange} />
+                                                <WeightInput label="FGA" field="fgaWeight" val={settings.fgaWeight} onChange={handleChange} isNegative />
+                                                <WeightInput label="FTM" field="ftmWeight" val={settings.ftmWeight} onChange={handleChange} />
+                                                <WeightInput label="FTA" field="ftaWeight" val={settings.ftaWeight} onChange={handleChange} isNegative />
+                                                <WeightInput label="3PM" field="threePmWeight" val={settings.threePmWeight} onChange={handleChange} />
+                                                <WeightInput label="3PA" field="threePaWeight" val={settings.threePaWeight} onChange={handleChange} isNegative />
+                                            </div>
+                                        </div>
+
+                                        {/* Advanced */}
+                                        <div>
+                                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Advanced & Bonus</h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                <WeightInput label="Off. Rebounds" field="orebWeight" val={settings.orebWeight} onChange={handleChange} />
+                                                <WeightInput label="Def. Rebounds" field="drebWeight" val={settings.drebWeight} onChange={handleChange} />
+                                                <WeightInput label="Win Bonus" field="winWeight" val={settings.winWeight} onChange={handleChange} />
+                                                <WeightInput label="Loss Penalty" field="lossWeight" val={settings.lossWeight} onChange={handleChange} isNegative />
+                                            </div>
                                         </div>
                                     </section>
 

@@ -42,6 +42,18 @@ public class UpdateSettingsHandler : IRequestHandler<UpdateSettingsCommand, Resu
         settings.StealWeight = input.StealWeight;
         settings.BlockWeight = input.BlockWeight;
         settings.TurnoverWeight = input.TurnoverWeight;
+
+        // Advanced Scoring
+        settings.FgmWeight = input.FgmWeight;
+        settings.FgaWeight = input.FgaWeight;
+        settings.FtmWeight = input.FtmWeight;
+        settings.FtaWeight = input.FtaWeight;
+        settings.ThreePmWeight = input.ThreePmWeight;
+        settings.ThreePaWeight = input.ThreePaWeight;
+        settings.OrebWeight = input.OrebWeight;
+        settings.DrebWeight = input.DrebWeight;
+        settings.WinWeight = input.WinWeight;
+        settings.LossWeight = input.LossWeight;
         
         // Roster Limits
         settings.RoleLimitGuards = input.RoleLimitGuards;

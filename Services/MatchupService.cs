@@ -383,7 +383,23 @@ public class MatchupService
         double blk = log.Blocks * s.BlockWeight;
         double tov = log.Turnovers * s.TurnoverWeight;
 
-        return Math.Round(pts + reb + ast + stl + blk + tov, 1);
+        // Advanced
+        double fgm = log.Fgm * s.FgmWeight;
+        double fga = log.Fga * s.FgaWeight;
+        double ftm = log.Ftm * s.FtmWeight;
+        double fta = log.Fta * s.FtaWeight;
+        double tpm = log.ThreePm * s.ThreePmWeight;
+        double tpa = log.ThreePa * s.ThreePaWeight;
+        double oreb = log.OffRebounds * s.OrebWeight;
+        double dreb = log.DefRebounds * s.DrebWeight;
+        // Win/Loss only applies if player actually played (Minutes > 0)
+        double win = 0;
+        if (log.Minutes > 0)
+        {
+             win = log.Won ? s.WinWeight : s.LossWeight;
+        }
+
+        return Math.Round(pts + reb + ast + stl + blk + tov + fgm + fga + ftm + fta + tpm + tpa + oreb + dreb + win, 1);
     }
 
     private bool IsRoleCompatible(string slot, string playerPos)

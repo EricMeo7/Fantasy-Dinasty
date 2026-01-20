@@ -38,6 +38,18 @@ public class LeagueSettings
     public double BlockWeight { get; set; } = 3.0;
     public double TurnoverWeight { get; set; } = -1.0;
 
+    // Advanced Scoring Weights (Defaults for Efficiency & Bonuses)
+    public double FgmWeight { get; set; } = 0.5;
+    public double FgaWeight { get; set; } = -0.5;
+    public double FtmWeight { get; set; } = 0.5;
+    public double FtaWeight { get; set; } = -0.5;
+    public double ThreePmWeight { get; set; } = 0.5;
+    public double ThreePaWeight { get; set; } = 0.0;
+    public double OrebWeight { get; set; } = 0.5;
+    public double DrebWeight { get; set; } = 0.0;
+    public double WinWeight { get; set; } = 3.0;
+    public double LossWeight { get; set; } = 0.0;
+
     // Roster Configuration - Detailed slots removed as per user request
     // Uses RoleLimit... below for validation.
 

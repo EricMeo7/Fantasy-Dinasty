@@ -154,9 +154,14 @@ public class NbaDataService : INbaDataService
                 var json = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(json);
                 var game = doc.RootElement.GetProperty("game");
+                var homeNode = game.GetProperty("homeTeam");
+                var awayNode = game.GetProperty("awayTeam");
+                
+                int homeScore = homeNode.GetProperty("score").GetInt32();
+                int awayScore = awayNode.GetProperty("score").GetInt32();
 
                 // Helper locale per processare un team
-                void ProcessTeam(JsonElement teamNode)
+                void ProcessTeam(JsonElement teamNode, bool isWinner)
                 {
                     if (!teamNode.TryGetProperty("players", out var players)) return;
 
@@ -180,7 +185,20 @@ public class NbaDataService : INbaDataService
                             string minStr = stats.GetProperty("minutesCalculated").GetString(); 
                             double min = ParseIsoMinutes(minStr); 
 
-                            // Calcolo Punti
+                            // Advanced Stats Parsing
+                            int fgm = (int)stats.GetProperty("fieldGoalsMade").GetDouble();
+                            int fga = (int)stats.GetProperty("fieldGoalsAttempted").GetDouble();
+                            int ftm = (int)stats.GetProperty("freeThrowsMade").GetDouble();
+                            int fta = (int)stats.GetProperty("freeThrowsAttempted").GetDouble();
+                            int tpm = (int)stats.GetProperty("threePointersMade").GetDouble();
+                            int tpa = (int)stats.GetProperty("threePointersAttempted").GetDouble();
+                            int oreb = (int)stats.GetProperty("reboundsOffensive").GetDouble();
+                            int dreb = (int)stats.GetProperty("reboundsDefensive").GetDouble();
+
+                            // Win Calculation passed via 'isWinner' arg
+                            bool won = isWinner;
+
+                            // Calcolo Punti (Standard Default Formula for Cache - Detailed calc happens in MatchupService)
                             double fpts = Math.Round(pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov, 1);
 
                             // Aggiungi al dizionario risultati (Lock)
@@ -200,15 +218,20 @@ public class NbaDataService : INbaDataService
                                      GameDate = dbDateStr,
                                      Points = (int)pts, Rebounds = (int)reb, Assists = (int)ast,
                                      Steals = (int)stl, Blocks = (int)blk, Turnovers = (int)tov,
-                                     Minutes = min, FantasyPoints = fpts
+                                     Minutes = min, FantasyPoints = fpts,
+                                     // Advanced
+                                     Fgm = fgm, Fga = fga, Ftm = ftm, Fta = fta,
+                                     ThreePm = tpm, ThreePa = tpa,
+                                     OffRebounds = oreb, DefRebounds = dreb,
+                                     Won = won
                                  });
                             }
                         }
                     }
                 }
 
-                ProcessTeam(game.GetProperty("homeTeam"));
-                ProcessTeam(game.GetProperty("awayTeam"));
+                ProcessTeam(homeNode, homeScore > awayScore);
+                ProcessTeam(awayNode, awayScore > homeScore);
             }
             catch (Exception ex) { _logger.LogError($"Errore boxscore {gameId}: {ex.Message}"); }
         });
@@ -227,7 +250,13 @@ public class NbaDataService : INbaDataService
                  if (existing != null) {
                      existing.FantasyPoints = log.FantasyPoints;
                      existing.Points = log.Points; 
-                     // ... aggiorna altri campi
+                     existing.Rebounds = log.Rebounds; existing.Assists = log.Assists;
+                     existing.Steals = log.Steals; existing.Blocks = log.Blocks; existing.Turnovers = log.Turnovers;
+                     existing.Fgm = log.Fgm; existing.Fga = log.Fga;
+                     existing.Ftm = log.Ftm; existing.Fta = log.Fta;
+                     existing.ThreePm = log.ThreePm; existing.ThreePa = log.ThreePa;
+                     existing.OffRebounds = log.OffRebounds; existing.DefRebounds = log.DefRebounds;
+                     existing.Won = log.Won;
                  } else {
                      context.PlayerGameLogs.Add(log);
                  }

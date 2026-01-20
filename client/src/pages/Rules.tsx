@@ -197,30 +197,113 @@ const Rules = () => {
                         title={t('rules.card_7_title')}
                         color="orange"
                     >
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
-                                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">{t('rules.pts')}</div>
-                                <div className="text-white font-bold text-lg">+1.0</div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            {/* STANDARD */}
+                            <div>
+                                <h4 className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-3 border-b border-white/10 pb-2">Standard</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.pts')}</div>
+                                        <div className="text-white font-bold text-lg">+1.0</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.reb')}</div>
+                                        <div className="text-white font-bold text-lg">+1.2</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.ast')}</div>
+                                        <div className="text-white font-bold text-lg">+1.5</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.stl')}</div>
+                                        <div className="text-white font-bold text-lg">+3.0</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.blk')}</div>
+                                        <div className="text-white font-bold text-lg">+3.0</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-red-500/10">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.tov')}</div>
+                                        <div className="text-red-400 font-bold text-lg">-1.0</div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
-                                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">{t('rules.reb')}</div>
-                                <div className="text-white font-bold text-lg">+1.2</div>
+
+                            {/* EFFICIENCY */}
+                            <div>
+                                <h4 className="text-orange-400 text-xs font-bold uppercase tracking-wider mb-3 border-b border-white/10 pb-2">Efficiency & Bonus</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-emerald-500/10">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.fgm')}</div>
+                                        <div className="text-emerald-400 font-bold text-lg">+0.5</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-red-500/10">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.fga')}</div>
+                                        <div className="text-red-400 font-bold text-lg">-0.5</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-emerald-500/10">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.ftm')}</div>
+                                        <div className="text-emerald-400 font-bold text-lg">+0.5</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-red-500/10">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.fta')}</div>
+                                        <div className="text-red-400 font-bold text-lg">-0.5</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-blue-500/10">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.three_pm')}</div>
+                                        <div className="text-blue-400 font-bold text-lg">+0.5</div>
+                                    </div>
+                                    <div className="bg-slate-950/50 p-3 rounded-xl border border-blue-500/10">
+                                        <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.oreb_short')}</div>
+                                        <div className="text-blue-400 font-bold text-lg">+0.5</div>
+                                    </div>
+                                    <div className="col-span-2 bg-slate-950/50 p-3 rounded-xl border border-amber-500/10 bg-gradient-to-r from-amber-500/5 to-transparent">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <div className="text-slate-400 text-[10px] uppercase tracking-wider mb-1">{t('rules.win_short')}</div>
+                                                <div className="text-amber-400 font-bold text-lg">+3.0</div>
+                                            </div>
+                                            <Sparkles className="text-amber-500/20" size={24} />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
-                                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">{t('rules.ast')}</div>
-                                <div className="text-white font-bold text-lg">+1.5</div>
-                            </div>
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
-                                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">{t('rules.stl')}</div>
-                                <div className="text-white font-bold text-lg">+3.0</div>
-                            </div>
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-white/5">
-                                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">{t('rules.blk')}</div>
-                                <div className="text-white font-bold text-lg">+3.0</div>
-                            </div>
-                            <div className="bg-slate-950/50 p-3 rounded-xl border border-red-500/10">
-                                <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">{t('rules.tov')}</div>
-                                <div className="text-red-400 font-bold text-lg">-1.0</div>
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-white/5">
+                            <h4 className="text-orange-400 font-bold text-xs uppercase tracking-wider mb-2">{t('rules.efficiency_title')}</h4>
+                            <p className="text-slate-400 text-xs mb-3">
+                                <Trans i18nKey="rules.efficiency_intro" components={{ 0: <strong className="text-white" /> }} />
+                            </p>
+                            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-slate-300">
+                                <li className="flex gap-2 items-start"><span className="text-green-400 shrink-0 mt-0.5">●</span> {t('rules.efficiency_list.shooting')}</li>
+                                <li className="flex gap-2 items-start"><span className="text-green-400 shrink-0 mt-0.5">●</span> {t('rules.efficiency_list.free_throws')}</li>
+                                <li className="flex gap-2 items-start"><span className="text-blue-400 shrink-0 mt-0.5">●</span> {t('rules.efficiency_list.three_pt')}</li>
+                                <li className="flex gap-2 items-start"><span className="text-blue-400 shrink-0 mt-0.5">●</span> {t('rules.efficiency_list.oreb')}</li>
+                                <li className="flex gap-2 items-start"><span className="text-amber-400 shrink-0 mt-0.5">●</span> {t('rules.efficiency_list.win')}</li>
+                            </ul>
+                        </div>
+
+                        {/* Example */}
+                        <div className="mt-4 pt-4 border-t border-white/5 bg-slate-950/30 p-4 rounded-xl">
+                            <h4 className="text-xs font-black text-white uppercase mb-2 flex items-center gap-2">
+                                <Sparkles size={12} className="text-yellow-400" /> {t('rules.example_title')}
+                            </h4>
+                            <p className="text-slate-400 text-[10px] italic mb-3 border-b border-white/5 pb-2">{t('rules.example_intro')}</p>
+
+                            <div className="space-y-3 text-[10px] text-slate-300">
+                                <div>
+                                    <strong className="text-emerald-400 block mb-1 uppercase tracking-wider">{t('rules.example_step1_title')}</strong>
+                                    <span dangerouslySetInnerHTML={{ __html: t('rules.example_step1_desc') }} />
+                                </div>
+                                <div>
+                                    <strong className="text-blue-400 block mb-1 uppercase tracking-wider">{t('rules.example_step2_title')}</strong>
+                                    <span dangerouslySetInnerHTML={{ __html: t('rules.example_step2_desc') }} />
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-white/10 text-sm font-bold text-white bg-emerald-500/10 p-2 rounded text-center border border-emerald-500/20">
+                                    {t('rules.example_result')}
+                                </div>
+                                <p className="text-slate-500 italic mt-1 text-center">{t('rules.example_note')}</p>
                             </div>
                         </div>
 
