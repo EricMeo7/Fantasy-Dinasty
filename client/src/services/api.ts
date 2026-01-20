@@ -9,7 +9,7 @@ const axiosInstance = axios.create({
   },
 });
 
-console.log("API Service Initialized with Base URL:", CONFIG.API_BASE_URL);
+
 
 
 // Interceptor per Token e League ID

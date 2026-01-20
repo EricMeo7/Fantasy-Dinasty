@@ -37,9 +37,9 @@ export default function Dashboard() {
   });
 
   const leagueStatus = statusData ?? 0;
-  // pendingTradesCount removed
+  // hasTeam based on both roster (immediate) and myTeam (robust)
+  const hasTeam = roster.length > 0 || !!myTeam;
   const injuredPlayers = roster.filter((p: any) => p.injuryStatus && p.injuryStatus !== 'Active');
-  const hasTeam = roster.length > 0;
 
   const loading = loadingStatus || loadingMatch || loadingRoster;
 
@@ -89,8 +89,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 1. SEZIONE RIEPILOGO ALERTS (Se ci sono novità importanti) */}
-        {hasTeam && (currentMatch || injuredPlayers.length > 0) && (
+        {/* 1. SEZIONE RIEPILOGO ALERTS (Sempre visibile se esiste un team) */}
+        {hasTeam && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 mb-8 md:mb-16 mt-4 animate-in fade-in slide-in-from-top-6 duration-700">
 
             {/* WIDGET PARTITA CORRENTE */}

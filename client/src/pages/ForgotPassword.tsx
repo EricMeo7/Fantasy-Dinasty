@@ -16,9 +16,10 @@ const ForgotPassword = () => {
 
         try {
             // Determine the URL dynamically:
-            // In Production (Render/Pages), window.location.origin will be correct (e.g. https://fantasy-dinasty.pages.dev)
+            // window.location.origin will be correct
+            const origin = window.location.origin;
             // In Dev, it will be http://localhost:5173
-            const redirectUrl = `${window.location.origin}/reset-password`;
+            const redirectUrl = `${origin}/reset-password`;
 
             await sendPasswordResetEmail(auth, email, {
                 url: redirectUrl,
