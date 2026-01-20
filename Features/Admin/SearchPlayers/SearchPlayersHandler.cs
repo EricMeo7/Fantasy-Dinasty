@@ -22,6 +22,7 @@ public class SearchPlayersHandler : IRequestHandler<SearchPlayersQuery, Result<L
 
         // 2. Search
         var players = await _context.Players
+            .AsNoTracking()
             .Where(p => p.LastName.ToLower().Contains(request.Query.ToLower()) || p.FirstName.ToLower().Contains(request.Query.ToLower()))
             .OrderBy(p => p.LastName)
             .ThenBy(p => p.FirstName)

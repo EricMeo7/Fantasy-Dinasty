@@ -123,32 +123,31 @@ namespace FantasyBasket.API.Services
 
         private async Task UpdateDatabaseAsync(List<ScrapedInjury> scrapedData, List<string> logs)
         {
-            var allPlayers = await _context.Players.ToListAsync();
+            // Optimize: Fetch only required fields for matching in memory
+            var allPlayersData = await _context.Players
+                .AsNoTracking()
+                .Select(p => new { p.Id, p.FirstName, p.LastName })
+                .ToListAsync();
+
             int updatedCount = 0;
             int notFoundCount = 0;
 
-            // Optional: Reset existing injuries? Or keep them and update/overwrite?
-            // Usually safest is to assume the scrape is the source of truth for ACTIVE injuries.
-            // But if a player is healed, they just disappear from the list.
-            // So ideally we should clear injuries for players NOT in the list, 
-            // BUT that's dangerous if the scrape is partial. 
-            // Let's stick to UPDATING/OVERWRITING for now, and maybe setting Status="Active" if we were sure.
-            // User request doesn't specify clearing, so let's just update found ones.
-
             foreach (var scraped in scrapedData)
             {
-                var player = FindPlayer(allPlayers, scraped.PlayerName);
+                var matchedPlayer = FindPlayerOptimized(allPlayersData, scraped.PlayerName);
 
-                if (player != null)
+                if (matchedPlayer != null)
                 {
-                    // Determine simplified status for logic (Out, Questionable, Game Time Decision)
-                    var shortStatus = DetermineShortStatus(scraped.StatusNote);
-
-                    player.InjuryStatus = shortStatus; // "Out", "Questionable", etc.
-                    player.InjuryBodyPart = scraped.InjuryType; // "Ankle", "Knee"
-                    player.InjuryReturnDate = scraped.StatusNote; // "Expected to be out until..."
-
-                    updatedCount++;
+                    // Find the tracked entity to update
+                    var player = await _context.Players.FindAsync(matchedPlayer.Id);
+                    if (player != null)
+                    {
+                        var shortStatus = DetermineShortStatus(scraped.StatusNote);
+                        player.InjuryStatus = shortStatus;
+                        player.InjuryBodyPart = scraped.InjuryType;
+                        player.InjuryReturnDate = scraped.StatusNote;
+                        updatedCount++;
+                    }
                 }
                 else
                 {
@@ -161,9 +160,8 @@ namespace FantasyBasket.API.Services
             logs.Add($"Database Updated: {updatedCount} players matched. {notFoundCount} unmatched.");
         }
 
-        private Player? FindPlayer(List<Player> dbPlayers, string scrapedName)
+        private dynamic? FindPlayerOptimized(IEnumerable<dynamic> dbPlayers, string scrapedName)
         {
-            // Normalize scraped name: remove spaces, dots, apostrophes, dashes, lower case
             var normalizedScraped = RemoveDiacritics(scrapedName).ToLower()
                 .Replace(" ", "").Replace(".", "").Replace("'", "").Replace("-", "");
 

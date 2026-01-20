@@ -3,20 +3,29 @@ using FantasyBasket.API.Data;
 using FantasyBasket.API.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FantasyBasket.API.Features.Trades.GetMyTrades;
 
 public class GetMyTradesHandler : IRequestHandler<GetMyTradesQuery, Result<List<TradeDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public GetMyTradesHandler(ApplicationDbContext context)
+    public GetMyTradesHandler(ApplicationDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<Result<List<TradeDto>>> Handle(GetMyTradesQuery request, CancellationToken cancellationToken)
     {
+        string cacheKey = $"my_trades_{request.LeagueId}_{request.UserId}";
+        if (_cache.TryGetValue(cacheKey, out List<TradeDto>? cachedTrades) && cachedTrades != null)
+        {
+            return Result<List<TradeDto>>.Success(cachedTrades);
+        }
+
         var trades = await _context.Trades
             .Where(t => t.LeagueId == request.LeagueId && t.Status == TradeStatus.Pending)
             .Where(t => t.Offers.Any(o => o.ToUserId == request.UserId || o.FromUserId == request.UserId) || t.ProposerId == request.UserId)
@@ -41,10 +50,10 @@ public class GetMyTradesHandler : IRequestHandler<GetMyTradesQuery, Result<List<
             .ToListAsync(cancellationToken);
             
         // Client-side sort to save SQL memory
-        trades = trades.OrderByDescending(t => t.CreatedAt).ToList();
+        var sortedTradesData = trades.OrderByDescending(t => t.CreatedAt).ToList();
 
         // Fetch all team names involved to avoid N+1 in mapping
-        var teamUserIds = trades.SelectMany(t => t.Offers.SelectMany(o => new[] { o.FromUserId, o.ToUserId }))
+        var teamUserIds = sortedTradesData.SelectMany(t => t.Offers.SelectMany(o => new[] { o.FromUserId, o.ToUserId }))
             .Distinct()
             .ToList();
 
@@ -54,7 +63,7 @@ public class GetMyTradesHandler : IRequestHandler<GetMyTradesQuery, Result<List<
             .Select(t => new { t.UserId, t.Id, t.Name })
             .ToDictionaryAsync(t => t.UserId, t => new { t.Id, t.Name }, cancellationToken);
 
-        var result = trades.Select(t =>
+        var result = sortedTradesData.Select(t =>
         {
             var acceptedIds = t.Acceptances;
             var isMeProposer = t.ProposerId == request.UserId;
@@ -93,6 +102,8 @@ public class GetMyTradesHandler : IRequestHandler<GetMyTradesQuery, Result<List<
                 }).ToList()
             };
         }).ToList();
+
+        _cache.Set(cacheKey, result, TimeSpan.FromSeconds(30));
 
         return Result<List<TradeDto>>.Success(result);
     }

@@ -1,20 +1,29 @@
 using FantasyBasket.API.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FantasyBasket.API.Features.League.GetAllRosters;
 
 public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<TeamRosterDto>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public GetAllRostersHandler(ApplicationDbContext context)
+    public GetAllRostersHandler(ApplicationDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<List<TeamRosterDto>> Handle(GetAllRostersQuery request, CancellationToken cancellationToken)
     {
+        string cacheKey = $"all_rosters_{request.LeagueId}";
+        if (_cache.TryGetValue(cacheKey, out List<TeamRosterDto>? cachedRosters) && cachedRosters != null)
+        {
+            return cachedRosters;
+        }
+
         var teamsData = await _context.Teams
             .Where(t => t.LeagueId == request.LeagueId)
             .AsNoTracking()
@@ -44,7 +53,7 @@ public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<Tea
             })
             .ToListAsync(cancellationToken);
 
-        return teamsData.Select(t => new TeamRosterDto
+        var result = teamsData.Select(t => new TeamRosterDto
         {
             Id = t.Id,
             UserId = t.UserId,
@@ -70,5 +79,8 @@ public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<Tea
             .OrderByDescending(p => p.SalaryYear1) // Client-side sort
             .ToList()
         }).ToList();
+
+        _cache.Set(cacheKey, result, TimeSpan.FromSeconds(120));
+        return result;
     }
 }

@@ -16,8 +16,8 @@ public class GetMyLeaguesHandler : IRequestHandler<GetMyLeaguesQuery, List<Leagu
     public async Task<List<LeagueListDto>> Handle(GetMyLeaguesQuery request, CancellationToken cancellationToken)
     {
         return await _context.Teams
+            .AsNoTracking()
             .Where(t => t.UserId == request.UserId)
-            .Include(t => t.League)
             .Select(t => new LeagueListDto
             {
                 LeagueId = t.League.Id,

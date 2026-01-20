@@ -36,7 +36,7 @@ export default function TeamSettingsModal({ isOpen, onClose }: Props) {
             });
             setTeam(data);
             setName(data.name);
-            setLogoPreview(`${CONFIG.API_BASE_URL}/team/${data.id}/logo?t=${new Date().getTime()}`);
+            setLogoPreview(`${CONFIG.API_BASE_URL}/team/${data.id}/logo`);
         } catch (e) {
             console.error(e);
             showAlert({ title: t('common.error'), message: t('team_settings.error_fetch'), type: "error" });

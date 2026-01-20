@@ -156,9 +156,7 @@ public class LeagueController : ControllerBase
             return NotFound(ErrorCodes.NOT_FOUND);
         }
 
-        Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-        Response.Headers.Append("Pragma", "no-cache");
-        Response.Headers.Append("Expires", "0");
+        Response.Headers.Append("Cache-Control", "public, max-age=86400");
 
         return File(league.LogoData, league.LogoContentType ?? "image/png");
     }

@@ -4,6 +4,7 @@ using FantasyBasket.API.Interfaces;
 using FantasyBasket.API.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FantasyBasket.API.Features.Lineup.GetLineup;
 
@@ -11,43 +12,84 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
 {
     private readonly ApplicationDbContext _context;
     private readonly INbaDataService _nbaService;
+    private readonly IMemoryCache _cache;
 
-    public GetLineupHandler(ApplicationDbContext context, INbaDataService nbaService)
+    public GetLineupHandler(ApplicationDbContext context, INbaDataService nbaService, IMemoryCache cache)
     {
         _context = context;
         _nbaService = nbaService;
+        _cache = cache;
     }
 
     public async Task<Result<List<DailyLineupDto>>> Handle(GetLineupQuery request, CancellationToken cancellationToken)
     {
+        string cacheKey = $"lineup_{request.LeagueId}_{request.UserId}_{request.TargetTeamId}_{request.Date:yyyyMMdd}";
+        if (_cache.TryGetValue(cacheKey, out List<DailyLineupDto>? cachedLineup) && cachedLineup != null)
+        {
+            return Result<List<DailyLineupDto>>.Success(cachedLineup);
+        }
+
         // 1. Identify Team
-        FantasyBasket.API.Models.Team? team = null;
+        int teamId = 0;
         if (request.TargetTeamId.HasValue)
         {
-            team = await _context.Teams.FirstOrDefaultAsync(t => t.Id == request.TargetTeamId.Value && t.LeagueId == request.LeagueId, cancellationToken);
+            teamId = await _context.Teams
+                .AsNoTracking()
+                .Where(t => t.Id == request.TargetTeamId.Value && t.LeagueId == request.LeagueId)
+                .Select(t => t.Id)
+                .FirstOrDefaultAsync(cancellationToken);
         }
         else
         {
-            team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == request.UserId && t.LeagueId == request.LeagueId, cancellationToken);
+            teamId = await _context.Teams
+                .AsNoTracking()
+                .Where(t => t.UserId == request.UserId && t.LeagueId == request.LeagueId)
+                .Select(t => t.Id)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
-        if (team == null) return Result<List<DailyLineupDto>>.Failure(ErrorCodes.TEAM_NOT_FOUND);
+        if (teamId == 0) return Result<List<DailyLineupDto>>.Failure(ErrorCodes.TEAM_NOT_FOUND);
 
         DateTime startOfDay = request.Date.Date;
         DateTime endOfDay = startOfDay.AddDays(1);
 
         // 2. Fetch Existing Lineup
         var lineupEntries = await _context.DailyLineups
-            .Where(d => d.TeamId == team!.Id && d.Date >= startOfDay && d.Date < endOfDay)
-            .Include(d => d.Player)
+            .AsNoTracking()
+            .Where(d => d.TeamId == teamId && d.Date >= startOfDay && d.Date < endOfDay)
+            .Select(d => new {
+                d.Id,
+                d.PlayerId,
+                d.IsStarter,
+                d.Slot,
+                d.BenchOrder,
+                Player = new {
+                    d.Player.ExternalId,
+                    d.Player.FirstName,
+                    d.Player.LastName,
+                    d.Player.Position,
+                    d.Player.NbaTeam,
+                    d.Player.InjuryStatus,
+                    d.Player.InjuryBodyPart,
+                    d.Player.AvgPoints,
+                    d.Player.AvgRebounds,
+                    d.Player.AvgAssists,
+                    d.Player.FantasyPoints
+                }
+            })
             .ToListAsync(cancellationToken);
 
-        // 3. Auto-Fill if Empty (Logic migrated from Controller)
         // 3. Sync with Contracts (Ensure all current players are in lineup)
-        // This fixes the issue where traded/acquired players don't show up in future lineups
         var contracts = await _context.Contracts
-            .Where(c => c.TeamId == team!.Id)
-            .Include(c => c.Player)
+            .AsNoTracking()
+            .Where(c => c.TeamId == teamId)
+            .Select(c => new {
+                c.PlayerId,
+                Player = new {
+                    c.Player.NbaTeam,
+                    c.Player.Position
+                }
+            })
             .ToListAsync(cancellationToken);
 
         var existingPlayerIds = lineupEntries.Select(l => l.PlayerId).ToList();
@@ -56,7 +98,9 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
         if (missingContracts.Any())
         {
             var gamesToday = await _context.NbaGames
+                .AsNoTracking()
                 .Where(g => g.GameDate >= startOfDay && g.GameDate < endOfDay)
+                .Select(g => new { g.HomeTeam, g.AwayTeam, g.GameDate })
                 .ToListAsync(cancellationToken);
 
             var newEntries = new List<DailyLineup>();
@@ -64,17 +108,16 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
             foreach (var c in missingContracts)
             {
                 var game = gamesToday.FirstOrDefault(g => g.HomeTeam == c.Player.NbaTeam || g.AwayTeam == c.Player.NbaTeam);
-                // If game exists, use game date (redundant if checking only today?), otherwise startOfDay
                 DateTime entryDate = game != null ? game.GameDate : startOfDay;
 
                 newEntries.Add(new DailyLineup
                 {
-                    TeamId = team!.Id,
+                    TeamId = teamId,
                     PlayerId = c.PlayerId,
                     Date = entryDate,
-                    IsStarter = false, // Default newly acquired players to bench
+                    IsStarter = false,
                     Slot = c.Player.Position,
-                    BenchOrder = 0 // Will sort at bottom
+                    BenchOrder = 0
                 });
             }
 
@@ -83,45 +126,52 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                 _context.DailyLineups.AddRange(newEntries);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // Reload lineupEntries with the new additions
+                // Reload lineupEntries
                 lineupEntries = await _context.DailyLineups
-                    .Where(d => d.TeamId == team!.Id && d.Date >= startOfDay && d.Date < endOfDay)
-                    .Include(d => d.Player)
+                    .AsNoTracking()
+                    .Where(d => d.TeamId == teamId && d.Date >= startOfDay && d.Date < endOfDay)
+                    .Select(d => new {
+                        d.Id,
+                        d.PlayerId,
+                        d.IsStarter,
+                        d.Slot,
+                        d.BenchOrder,
+                        Player = new {
+                            d.Player.ExternalId,
+                            d.Player.FirstName,
+                            d.Player.LastName,
+                            d.Player.Position,
+                            d.Player.NbaTeam,
+                            d.Player.InjuryStatus,
+                            d.Player.InjuryBodyPart,
+                            d.Player.AvgPoints,
+                            d.Player.AvgRebounds,
+                            d.Player.AvgAssists,
+                            d.Player.FantasyPoints
+                        }
+                    })
                     .ToListAsync(cancellationToken);
             }
         }
 
-        // 4. Force Refresh Logic DISABLED to prevent UI Lag
-        // We rely on Background Worker for Live Scores.
-        // Syncing synchronously here is too risky (stats.nba.com timeouts).
-        /*
-        var playerIds = lineupEntries.Select(l => l.PlayerId).ToList();
-        if (playerIds.Any())
-        {
-            var logsCheck = await _context.PlayerGameLogs
-                .CountAsync(l => l.GameDate == startOfDay.ToString("yyyy-MM-dd") && playerIds.Contains(l.PlayerId), cancellationToken);
-
-            if (logsCheck < playerIds.Count && request.Date.Date <= DateTime.UtcNow.Date)
-            {
-                await _nbaService.GetFantasyPointsByDate(startOfDay, playerIds);
-            }
-        }
-        */
-
         // 5. Build DTO
         var gamesMap = await _context.NbaGames
+            .AsNoTracking()
             .Where(g => g.GameDate >= startOfDay && g.GameDate < endOfDay)
+            .Select(g => new { g.HomeTeam, g.AwayTeam, g.Status, g.GameDate })
             .ToListAsync(cancellationToken);
 
         var logsToday = await _context.PlayerGameLogs
+            .AsNoTracking()
             .Where(l => l.GameDate == startOfDay.ToString("yyyy-MM-dd"))
+            .Select(l => new { l.PlayerId, l.FantasyPoints, l.Points, l.Rebounds, l.Assists, l.Steals, l.Blocks, l.Turnovers, l.Minutes })
             .ToListAsync(cancellationToken);
 
         var result = new List<DailyLineupDto>();
 
         foreach (var entry in lineupEntries)
         {
-            var game = gamesMap.FirstOrDefault(g => g.HomeTeam == entry.Player!.NbaTeam || g.AwayTeam == entry.Player!.NbaTeam);
+            var game = gamesMap.FirstOrDefault(g => g.HomeTeam == entry.Player.NbaTeam || g.AwayTeam == entry.Player.NbaTeam);
             var liveLog = logsToday.FirstOrDefault(l => l.PlayerId == entry.PlayerId);
 
             string opponent = "";
@@ -130,7 +180,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
 
             if (hasGame)
             {
-                bool isHome = game!.HomeTeam == entry.Player!.NbaTeam;
+                bool isHome = game!.HomeTeam == entry.Player.NbaTeam;
                 opponent = isHome ? game.AwayTeam : "@" + game.HomeTeam;
                 gameTime = game.Status;
             }
@@ -139,18 +189,18 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
             {
                 Id = entry.Id,
                 PlayerId = entry.PlayerId,
-                ExternalId = entry.Player!.ExternalId,
-                Name = $"{entry.Player!.FirstName} {entry.Player!.LastName}",
-                Position = entry.Player!.Position,
-                NbaTeam = entry.Player!.NbaTeam,
+                ExternalId = entry.Player.ExternalId,
+                Name = $"{entry.Player.FirstName} {entry.Player.LastName}",
+                Position = entry.Player.Position,
+                NbaTeam = entry.Player.NbaTeam,
                 IsStarter = entry.IsStarter,
-                Slot = entry.Slot, // Map the slot
+                Slot = entry.Slot,
                 BenchOrder = entry.BenchOrder,
                 HasGame = hasGame,
                 Opponent = opponent,
                 GameTime = gameTime,
-                InjuryStatus = entry.Player!.InjuryStatus,
-                InjuryBodyPart = entry.Player!.InjuryBodyPart,
+                InjuryStatus = entry.Player.InjuryStatus,
+                InjuryBodyPart = entry.Player.InjuryBodyPart,
                 RealPoints = liveLog?.FantasyPoints,
 
                 GamePoints = liveLog?.Points,
@@ -161,10 +211,10 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                 GameTurnovers = liveLog?.Turnovers,
                 GameMinutes = liveLog?.Minutes.ToString() ?? "0",
 
-                AvgPoints = entry.Player!.AvgPoints,
-                AvgRebounds = entry.Player!.AvgRebounds,
-                AvgAssists = entry.Player!.AvgAssists,
-                AvgFantasyPoints = entry.Player!.FantasyPoints
+                AvgPoints = entry.Player.AvgPoints,
+                AvgRebounds = entry.Player.AvgRebounds,
+                AvgAssists = entry.Player.AvgAssists,
+                AvgFantasyPoints = entry.Player.FantasyPoints
             });
         }
 
@@ -173,7 +223,9 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
         // We assume team.LeagueId is set.
         var matchup = await _context.Matchups
             .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.LeagueId == team!.LeagueId && m.StartAt <= startOfDay && m.EndAt > startOfDay, cancellationToken);
+            .Where(m => m.LeagueId == request.LeagueId && m.StartAt <= startOfDay && m.EndAt > startOfDay)
+            .Select(m => new { m.StartAt, m.EndAt })
+            .FirstOrDefaultAsync(cancellationToken);
         
         // If we found a Matchup context (we should if schedule exists)
         if (matchup != null && matchup.StartAt.HasValue && matchup.EndAt.HasValue)
@@ -207,10 +259,14 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
              // Keep null.
         }
 
-        return Result<List<DailyLineupDto>>.Success(result
+        var finalResult = result
             .OrderByDescending(r => r.IsStarter)
             .ThenBy(r => r.BenchOrder == 0 ? 99 : r.BenchOrder)
             .ThenByDescending(r => r.AvgFantasyPoints)
-            .ToList());
+            .ToList();
+
+        _cache.Set(cacheKey, finalResult, TimeSpan.FromSeconds(30));
+
+        return Result<List<DailyLineupDto>>.Success(finalResult);
     }
 }

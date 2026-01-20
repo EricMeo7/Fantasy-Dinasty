@@ -93,7 +93,17 @@ public class TeamController : ControllerBase
         int leagueId = GetCurrentLeagueId();
 
         var team = await _context.Teams
-            .FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
+            .AsNoTracking()
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => new {
+                t.Id,
+                t.Name,
+                t.UserId,
+                t.LeagueId,
+                t.IsAdmin,
+                t.Division
+            })
+            .FirstOrDefaultAsync();
 
         if (team == null) return NotFound(ErrorCodes.TEAM_NOT_FOUND);
 
@@ -103,7 +113,19 @@ public class TeamController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetTeam(int id)
     {
-        var team = await _context.Teams.FindAsync(id);
+        var team = await _context.Teams
+            .AsNoTracking()
+            .Where(t => t.Id == id)
+            .Select(t => new {
+                t.Id,
+                t.Name,
+                t.UserId,
+                t.LeagueId,
+                t.IsAdmin,
+                t.Division
+            })
+            .FirstOrDefaultAsync();
+
         if (team == null) return NotFound();
         return Ok(team);
     }
@@ -145,9 +167,7 @@ public class TeamController : ControllerBase
             return NotFound(ErrorCodes.NOT_FOUND);
         }
 
-        Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-        Response.Headers.Append("Pragma", "no-cache");
-        Response.Headers.Append("Expires", "0");
+        Response.Headers.Append("Cache-Control", "public, max-age=86400");
 
         return File(team.LogoData, team.LogoContentType ?? "image/png");
     }

@@ -1,6 +1,7 @@
 using FantasyBasket.API.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Linq.Dynamic.Core;
 
 namespace FantasyBasket.API.Features.Stats.GetPlayerPool;
@@ -8,14 +9,27 @@ namespace FantasyBasket.API.Features.Stats.GetPlayerPool;
 public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPoolResponse>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public GetPlayerPoolHandler(ApplicationDbContext context)
+    public GetPlayerPoolHandler(ApplicationDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<PlayerPoolResponse> Handle(GetPlayerPoolQuery request, CancellationToken cancellationToken)
     {
+        // 0. Caching logic
+        string cacheKey = $"player_pool_{request.LeagueId}_{request.Season}_{request.NameSearch}_{request.Position}_{request.NbaTeam}_" +
+                         $"{request.MinPts}_{request.MinReb}_{request.MinAst}_{request.MinStl}_{request.MinBlk}_{request.MinFpts}_" +
+                         $"{request.MinMin}_{request.MinGp}_{request.MinFgPct}_{request.Min3pPct}_{request.MinFtPct}_" +
+                         $"{request.OnlyFreeAgents}_{request.SortBy}_{request.IsDescending}_{request.Page}_{request.PageSize}";
+
+        if (_cache.TryGetValue(cacheKey, out PlayerPoolResponse? cachedResponse) && cachedResponse != null)
+        {
+            return cachedResponse;
+        }
+
         // 1. Base Query: Start from Players
         var query = _context.Players.AsNoTracking();
 
@@ -171,10 +185,14 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        return new PlayerPoolResponse
+        var finalResult = new PlayerPoolResponse
         {
             Players = players,
             TotalCount = totalCount
         };
+
+        _cache.Set(cacheKey, finalResult, TimeSpan.FromSeconds(120));
+
+        return finalResult;
     }
 }

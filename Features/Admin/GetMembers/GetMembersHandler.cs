@@ -22,6 +22,7 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, Result<List<Le
 
         // 2. Fetch Members
         var members = await _context.Teams
+            .AsNoTracking()
             .Where(t => t.LeagueId == request.LeagueId)
             .Select(t => new LeagueMemberDto
             {

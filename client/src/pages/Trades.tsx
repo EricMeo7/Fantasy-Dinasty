@@ -53,7 +53,7 @@ export default function Trades() {
                         <div className="p-5 bg-slate-900 border border-white/5 rounded-3xl shadow-2xl relative text-blue-500 overflow-hidden group">
                             {myTeam?.id ? (
                                 <LogoAvatar
-                                    src={`${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}`}
+                                    src={`${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo`}
                                     alt={myTeam.name}
                                     size="md"
                                     shape="square"

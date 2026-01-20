@@ -19,10 +19,14 @@ public class GetPlayerDetailsHandler : IRequestHandler<GetPlayerDetailsQuery, Re
     {
         var resultHistory = new List<object>();
 
-        var player = await _context.Players.FindAsync(new object[] { request.PlayerId }, cancellationToken);
+        var player = await _context.Players
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken);
+        
         if (player == null) return Result<object>.Failure(ErrorCodes.PLAYER_NOT_FOUND);
 
         var history = await _context.PlayerSeasonStats
+            .AsNoTracking()
             .Where(s => s.PlayerId == request.PlayerId)
             .ToListAsync(cancellationToken);
 

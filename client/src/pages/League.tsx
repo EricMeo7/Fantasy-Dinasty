@@ -86,7 +86,7 @@ export default function League() {
                             <div className="flex items-center gap-5">
                                 <div className="h-16 w-16 rounded-2xl border border-amber-500/20 overflow-hidden relative bg-slate-900 flex items-center justify-center">
                                     <img
-                                        src={`${CONFIG.API_BASE_URL}/league/${localStorage.getItem('selectedLeagueId')}/logo?t=${new Date().getTime()}`}
+                                        src={`${CONFIG.API_BASE_URL}/league/${localStorage.getItem('selectedLeagueId')}/logo`}
                                         alt={t('modals.league_settings.league_logo')}
                                         className="h-full w-full object-cover"
                                         onError={(e) => {

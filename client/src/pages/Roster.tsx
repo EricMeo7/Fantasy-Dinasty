@@ -112,7 +112,7 @@ export default function Roster() {
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-8 md:mb-16">
                     <div className="flex items-center gap-4 md:gap-8">
                         <LogoAvatar
-                            src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}` : undefined}
+                            src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo` : undefined}
                             alt={myTeam?.name || 'Team'}
                             size="xl"
                             shape="square"

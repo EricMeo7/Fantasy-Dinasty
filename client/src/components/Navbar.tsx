@@ -217,7 +217,7 @@ export default function Navbar() {
                             >
                                 <span className="transition-transform duration-300 group-hover:scale-110">
                                     <LogoAvatar
-                                        src={`${CONFIG.API_BASE_URL}/league/${currentLeague.leagueId}/logo?t=${new Date().getTime()}`}
+                                        src={`${CONFIG.API_BASE_URL}/league/${currentLeague.leagueId}/logo`}
                                         alt="League Logo"
                                         size="xs"
                                         shape="square"
@@ -246,7 +246,7 @@ export default function Navbar() {
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <LogoAvatar
-                                                        src={`${CONFIG.API_BASE_URL}/league/${l.leagueId}/logo?t=${new Date().getTime()}`}
+                                                        src={`${CONFIG.API_BASE_URL}/league/${l.leagueId}/logo`}
                                                         alt={l.leagueName}
                                                         size="xs"
                                                         shape="square"
@@ -349,7 +349,7 @@ export default function Navbar() {
                                 <div className="text-[8px] text-slate-600 font-black uppercase mt-1 tracking-widest group-hover:text-blue-500 transition-colors">{t('navbar.general_manager')}</div>
                             </div>
                             <LogoAvatar
-                                src={myTeamId ? `${CONFIG.API_BASE_URL}/team/${myTeamId}/logo?t=${new Date().getTime()}` : undefined}
+                                src={myTeamId ? `${CONFIG.API_BASE_URL}/team/${myTeamId}/logo` : undefined}
                                 alt="Team Logo"
                                 size="sm"
                                 shape="circle"

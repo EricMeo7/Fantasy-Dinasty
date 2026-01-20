@@ -3,6 +3,7 @@ using FantasyBasket.API.Models;
 using FantasyBasket.API.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FantasyBasket.API.Features.League.GetMatchDetails;
 
@@ -11,26 +12,41 @@ public class GetMatchDetailsHandler :
     IRequestHandler<GetCurrentMatchupQuery, Result<MatchDetailsResponseDto>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMemoryCache _cache;
     private readonly DateTime _seasonStartFallback = new DateTime(2025, 10, 22);
 
-    public GetMatchDetailsHandler(ApplicationDbContext context)
+    public GetMatchDetailsHandler(ApplicationDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<Result<MatchDetailsResponseDto>> Handle(GetMatchDetailsQuery request, CancellationToken cancellationToken)
     {
+        string cacheKey = $"match_details_{request.MatchId}";
+        if (_cache.TryGetValue(cacheKey, out MatchDetailsResponseDto? cached))
+        {
+            return Result<MatchDetailsResponseDto>.Success(cached!);
+        }
+
         var match = await _context.Matchups
+            .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == request.MatchId && m.LeagueId == request.LeagueId, cancellationToken);
 
         if (match == null) return Result<MatchDetailsResponseDto>.Failure(ErrorCodes.MATCH_NOT_FOUND);
 
-        return await BuildMatchResponse(match, request.LeagueId, cancellationToken);
+        var response = await BuildMatchResponse(match, request.LeagueId, cancellationToken);
+        if (response.IsSuccess)
+        {
+            _cache.Set(cacheKey, response.Value, TimeSpan.FromSeconds(30));
+        }
+        return response;
     }
 
     public async Task<Result<MatchDetailsResponseDto>> Handle(GetCurrentMatchupQuery request, CancellationToken cancellationToken)
     {
         var match = await _context.Matchups
+            .AsNoTracking()
             .Where(m => m.LeagueId == request.LeagueId && !m.IsPlayed)
             .Where(m => m.HomeTeamId == request.UserId || m.AwayTeamId == request.UserId)
             .OrderBy(m => m.WeekNumber)
@@ -38,12 +54,17 @@ public class GetMatchDetailsHandler :
 
         if (match == null) return Result<MatchDetailsResponseDto>.Failure(ErrorCodes.NO_UPCOMING_MATCH);
 
+        // For "Current Matchup", we use a different cache key or shorter duration if we want instant switch after game starts
         return await BuildMatchResponse(match, request.LeagueId, cancellationToken);
     }
 
     private async Task<Result<MatchDetailsResponseDto>> BuildMatchResponse(Matchup match, int leagueId, CancellationToken ct)
     {
-        var league = await _context.Leagues.FindAsync(new object[] { leagueId }, ct);
+        var leagueData = await _context.Leagues
+            .AsNoTracking()
+            .Where(l => l.Id == leagueId)
+            .Select(l => new { l.SeasonStartDate })
+            .FirstOrDefaultAsync(ct);
         
         // FETCH SETTINGS
         var settings = await _context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync(s => s.LeagueId == leagueId, ct);
@@ -57,24 +78,12 @@ public class GetMatchDetailsHandler :
             T = settings?.TurnoverWeight ?? -1.0
         };
 
-        DateTime startDate = league?.SeasonStartDate ?? _seasonStartFallback;
+        DateTime startDate = leagueData?.SeasonStartDate ?? _seasonStartFallback;
         DateTime weekStart, weekEnd;
 
         if (match.StartAt.HasValue && match.EndAt.HasValue)
         {
              weekStart = match.StartAt.Value;
-             // EndAt is the *start* of next slot in DB logic. 
-             // For display/logic inclusive range, we typically want up to that moment. 
-             // But UI often treats end date as inclusive day. 
-             // Let's pass the exact bound and let UI decide (-1 day).
-             // Actually, consistency with GetMatchups: 
-             // GetMatchupsHandler did .AddDays(-1).
-             // Let's keep raw here or adjust?
-             // MatchDetailDtos usually carries "The period".
-             // Let's pass the raw boundary or inclusive?
-             // If I pass raw EndAt (e.g. Monday midnight), UI looping <= diffDays might include Monday.
-             // If I pass Sunday 23:59...
-             // Let's pass `match.EndAt.Value.AddDays(-1)` as the "Last Display Date".
              weekEnd = match.EndAt.Value.AddDays(-1);
         }
         else
@@ -83,8 +92,14 @@ public class GetMatchDetailsHandler :
              weekEnd = weekStart.AddDays(6);
         }
 
-        var homeTeam = await _context.Teams.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == match.HomeTeamId && t.LeagueId == leagueId, ct);
-        var awayTeam = await _context.Teams.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == match.AwayTeamId && t.LeagueId == leagueId, ct);
+        var teamsData = await _context.Teams
+            .AsNoTracking()
+            .Where(t => (t.UserId == match.HomeTeamId || t.UserId == match.AwayTeamId) && t.LeagueId == leagueId)
+            .Select(t => new { t.Id, t.UserId, t.Name })
+            .ToListAsync(ct);
+
+        var homeTeam = teamsData.FirstOrDefault(t => t.UserId == match.HomeTeamId);
+        var awayTeam = teamsData.FirstOrDefault(t => t.UserId == match.AwayTeamId);
 
         if (homeTeam == null || awayTeam == null) 
             return Result<MatchDetailsResponseDto>.Failure(ErrorCodes.TEAMS_NOT_FOUND);
@@ -119,8 +134,8 @@ public class GetMatchDetailsHandler :
 
     private async Task<List<MatchPlayerDto>> GetRosterWithStats(int teamId, DateTime weekStart, ScoringWeights w, CancellationToken ct)
     {
-        // OPTIMIZATION: Use projection to avoid materializing full Player entities
         var rosterData = await _context.Contracts
+            .AsNoTracking()
             .Where(c => c.TeamId == teamId)
             .Select(c => new 
             {
@@ -139,15 +154,13 @@ public class GetMatchDetailsHandler :
 
         var playerIds = rosterData.Select(x => x.PlayerId).ToList();
 
-        // Optimized dictionary fetch for Today and Weekly stats
         var dailyLogs = new Dictionary<int, double>();
         var weeklyLogs = new Dictionary<int, double>();
 
         if (playerIds.Any())
         {
-            // Fetch relevant logs for the whole week
-            // SELECT RAW STATS FOR DYNAMIC CALCULATION
             var logs = await _context.PlayerGameLogs
+                .AsNoTracking()
                 .Where(l => l.GameDate.CompareTo(sDateStr) >= 0 && l.GameDate.CompareTo(eDateStr) < 0 && playerIds.Contains(l.PlayerId))
                 .Select(l => new { 
                     l.PlayerId, 
@@ -161,7 +174,6 @@ public class GetMatchDetailsHandler :
                 })
                 .ToListAsync(ct);
 
-            // In-Memory Calculation of FPT
             var calculatedLogs = logs.Select(l => new 
             {
                 l.PlayerId,
@@ -182,7 +194,7 @@ public class GetMatchDetailsHandler :
         return rosterData.Select(c => new MatchPlayerDto
         {
             Id = c.PlayerId,
-            Name = $"{c.FirstName.Substring(0, 1)}. {c.LastName}",
+            Name = $"{(c.FirstName.Length > 0 ? c.FirstName.Substring(0, 1) : "")}. {c.LastName}",
             Position = c.Position,
             NbaTeam = c.NbaTeam,
             TodayScore = dailyLogs.GetValueOrDefault(c.PlayerId, 0),

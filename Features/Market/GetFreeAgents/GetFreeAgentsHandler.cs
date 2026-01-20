@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 using FantasyBasket.API.Services;
 using FantasyBasket.API.Interfaces;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FantasyBasket.API.Features.Market.GetFreeAgents;
 
@@ -14,23 +15,31 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
     private readonly ApplicationDbContext _context;
     private readonly AuctionService _auctionService;
     private readonly INbaDataService _nbaDataService;
+    private readonly IMemoryCache _cache;
 
-    public GetFreeAgentsHandler(ApplicationDbContext context, AuctionService auctionService, INbaDataService nbaDataService)
+    public GetFreeAgentsHandler(ApplicationDbContext context, AuctionService auctionService, INbaDataService nbaDataService, IMemoryCache cache)
     {
         _context = context;
         _auctionService = auctionService;
         _nbaDataService = nbaDataService;
+        _cache = cache;
     }
 
     public async Task<Result<List<FreeAgentDto>>> Handle(GetFreeAgentsQuery request, CancellationToken cancellationToken)
     {
+        var leagueId = request.LeagueId;
+        string cacheKey = $"free_agents_{leagueId}";
+
+        if (_cache.TryGetValue(cacheKey, out List<FreeAgentDto>? cachedResults) && cachedResults != null)
+        {
+            return Result<List<FreeAgentDto>>.Success(cachedResults);
+        }
+
         // 1. Process expired auctions ON DEMAND to ensure instant updates
-        await _auctionService.ProcessExpiredAuctionsAsync(cancellationToken, request.LeagueId);
+        await _auctionService.ProcessExpiredAuctionsAsync(cancellationToken, leagueId);
 
         try
         {
-            var leagueId = request.LeagueId;
-
             // FETCH LEAGUE SETTINGS FOR SCORING
             var settings = await _context.LeagueSettings
                 .AsNoTracking()
@@ -83,16 +92,51 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
             var sortedIds = sortedItems.Select(x => x.Id).ToList();
             if (!sortedIds.Any()) return Result<List<FreeAgentDto>>.Success(new List<FreeAgentDto>());
 
-            // STEP 2: FETCH FULL DATA
+            // STEP 2: FETCH MINIMAL FULL DATA
+            var prevSeason = _nbaDataService.GetPreviousSeason();
             var players = await _context.Players
                 .AsNoTracking()
-                .Include(p => p.SeasonStats)
                 .Where(p => sortedIds.Contains(p.Id))
+                .Select(p => new {
+                    p.Id,
+                    p.ExternalId,
+                    p.FirstName,
+                    p.LastName,
+                    p.NbaTeam,
+                    p.Position,
+                    p.AvgPoints,
+                    p.AvgRebounds,
+                    p.AvgAssists,
+                    p.AvgSteals,
+                    p.AvgBlocks,
+                    p.AvgTurnovers,
+                    p.FgPercent,
+                    p.InjuryStatus,
+                    p.InjuryBodyPart,
+                    SeasonStats = p.SeasonStats
+                        .Where(s => s.Season == prevSeason)
+                        .Select(s => new {
+                            s.Season,
+                            s.AvgPoints,
+                            s.AvgRebounds,
+                            s.AvgAssists,
+                            s.AvgSteals,
+                            s.AvgBlocks
+                        })
+                        .ToList()
+                })
                 .ToListAsync(cancellationToken);
 
             var activeAuctions = await _context.Auctions
                 .AsNoTracking()
                 .Where(a => a.LeagueId == leagueId && a.IsActive)
+                .Select(a => new {
+                    a.PlayerId,
+                    a.EndTime,
+                    a.CurrentOfferTotal,
+                    a.CurrentOfferYears,
+                    a.HighBidderId
+                })
                 .ToListAsync(cancellationToken);
             
             var bidderIds = activeAuctions.Select(a => a.HighBidderId).Where(id => id != null).Distinct().ToList();
@@ -102,13 +146,13 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                 teamsMap = await _context.Teams
                     .AsNoTracking()
                     .Where(t => t.LeagueId == leagueId && bidderIds.Contains(t.UserId))
+                    .Select(t => new { t.UserId, t.Name })
                     .ToDictionaryAsync(t => t.UserId, t => t.Name, cancellationToken);
             }
 
             // STEP 3: MERGE
             var playerMap = players.ToDictionary(p => p.Id);
             var auctionMap = activeAuctions.ToDictionary(a => a.PlayerId);
-            var prevSeason = _nbaDataService.GetPreviousSeason();
 
             var result = new List<FreeAgentDto>(sortedIds.Count);
 
@@ -189,6 +233,9 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                    MinBid = minBid
                 });
             }
+
+            // Cache the result for 60 seconds
+            _cache.Set(cacheKey, result, TimeSpan.FromSeconds(60));
 
             return Result<List<FreeAgentDto>>.Success(result);
         }

@@ -66,7 +66,7 @@ public class AuctionService
     // --- BASE D'ASTA (Aggiornato con LeagueId per leggere MinBidAmount corretto) ---
     public async Task<double> GetBaseAuctionPriceAsync(int playerId, int leagueId)
     {
-        var league = await _context.Leagues.FindAsync(leagueId);
+        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
         string currentSeason = league?.CurrentSeason ?? _nbaDataService.GetCurrentSeason();
         double defaultMin = league?.MinBidAmount ?? 1.0; 
 
@@ -82,6 +82,7 @@ public class AuctionService
         string prevSeason = CalculatePreviousSeason(currentSeason);
 
         var prevStat = await _context.PlayerSeasonStats
+            .AsNoTracking()
             .Where(s => s.PlayerId == playerId && s.Season == prevSeason)
             .FirstOrDefaultAsync();
 
@@ -137,14 +138,16 @@ public class AuctionService
     public async Task<double> GetTeamCapSpace(string userId, int leagueId)
     {
         // 1. Recupera impostazioni lega
-        var league = await _context.Leagues.FindAsync(leagueId);
+        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
         if (league == null) return 0;
 
         double cap = league.SalaryCap;
         string currentSeason = league.CurrentSeason;
 
         // 2. Trova il TeamId dell'utente in questa lega
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
+        var team = await _context.Teams
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
         if (team == null) return 0; // Utente non ha squadra in questa lega
 
         // 3. Calcola Stipendi Attivi (Usando Contracts, non Players)
@@ -223,7 +226,7 @@ public class AuctionService
     // --- REPORT FINANZIARIO ---
     public async Task<TeamFinanceOverviewDto> GetTeamFinanceOverview(string userId, int leagueId)
     {
-        var league = await _context.Leagues.FindAsync(leagueId);
+        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
         if (league == null) return new TeamFinanceOverviewDto();
 
         double cap = league.SalaryCap;
@@ -237,12 +240,16 @@ public class AuctionService
 
         // Contratti
         var contracts = await _context.Contracts
+            .AsNoTracking()
             .Where(c => c.TeamId == team.Id)
+            .Select(c => new { c.SalaryYear1, c.SalaryYear2, c.SalaryYear3, c.ContractYears })
             .ToListAsync();
 
         // Dead Money
         var deadCaps = await _context.DeadCaps
+            .AsNoTracking()
             .Where(d => d.TeamId == userId && d.LeagueId == leagueId)
+            .Select(d => new { d.Reason, d.Season, d.Amount })
             .ToListAsync();
 
         var overview = new TeamFinanceOverviewDto();
@@ -338,7 +345,7 @@ public class AuctionService
 
     public async Task<double> GetFreeSpaceForYear(string userId, int leagueId, int yearIndex)
     {
-        var league = await _context.Leagues.FindAsync(leagueId);
+        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
         if (league == null) return 0;
 
         double cap = league.SalaryCap;

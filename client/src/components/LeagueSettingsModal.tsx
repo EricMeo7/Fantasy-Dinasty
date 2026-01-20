@@ -76,7 +76,7 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
         }
         if (leagueDetail) {
             setLeagueName(leagueDetail.name);
-            setLogoPreview(`${CONFIG.API_BASE_URL}/league/${currentLeagueId}/logo?t=${new Date().getTime()}`);
+            setLogoPreview(`${CONFIG.API_BASE_URL}/league/${currentLeagueId}/logo`);
         }
     }, [remoteSettings, leagueDetail, currentLeagueId]);
 

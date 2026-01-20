@@ -17,7 +17,15 @@ public class GetActiveAuctionsHandler : IRequestHandler<GetActiveAuctionsQuery, 
     public async Task<Result<List<ActiveAuctionDto>>> Handle(GetActiveAuctionsQuery request, CancellationToken cancellationToken)
     {
         var auctions = await _context.Auctions
+            .AsNoTracking()
             .Where(a => a.LeagueId == request.LeagueId && a.IsActive)
+            .Select(a => new {
+                a.PlayerId,
+                a.CurrentOfferTotal,
+                a.CurrentOfferYears,
+                a.HighBidderId,
+                a.EndTime
+            })
             .ToListAsync(cancellationToken);
 
         var bidderIds = auctions
@@ -30,7 +38,9 @@ public class GetActiveAuctionsHandler : IRequestHandler<GetActiveAuctionsQuery, 
         if (bidderIds.Any())
         {
             teamsMap = await _context.Teams
+                .AsNoTracking()
                 .Where(t => bidderIds.Contains(t.UserId) && t.LeagueId == request.LeagueId)
+                .Select(t => new { t.UserId, t.Name })
                 .ToDictionaryAsync(t => t.UserId, t => t.Name, cancellationToken);
         }
 

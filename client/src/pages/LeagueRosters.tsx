@@ -150,7 +150,7 @@ export default function LeagueRosters() {
                   <div className="p-6 md:p-12 bg-slate-950/40 border-b border-white/5 flex flex-col md:flex-row justify-between items-start md:items-end gap-10" >
                     <div className="flex items-center gap-6">
                       <LogoAvatar
-                        src={`${CONFIG.API_BASE_URL}/team/${currentTeam.id}/logo?t=${new Date().getTime()}`}
+                        src={`${CONFIG.API_BASE_URL}/team/${currentTeam.id}/logo`}
                         alt={currentTeam.teamName}
                         size="lg"
                         shape="square"

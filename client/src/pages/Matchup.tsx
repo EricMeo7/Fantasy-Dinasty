@@ -397,7 +397,7 @@ export default function Matchup() {
                             className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${viewingTeamId === matchup.homeTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                         >
                             <LogoAvatar
-                                src={`${CONFIG.API_BASE_URL}/team/${matchup.homeTeamId}/logo?t=${new Date().getTime()}`}
+                                src={`${CONFIG.API_BASE_URL}/team/${matchup.homeTeamId}/logo`}
                                 alt={matchup.homeTeam}
                                 size="sm"
                                 shape="square"
@@ -411,7 +411,7 @@ export default function Matchup() {
                             className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-3 ${viewingTeamId === matchup.awayTeamId ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
                         >
                             <LogoAvatar
-                                src={`${CONFIG.API_BASE_URL}/team/${matchup.awayTeamId}/logo?t=${new Date().getTime()}`}
+                                src={`${CONFIG.API_BASE_URL}/team/${matchup.awayTeamId}/logo`}
                                 alt={matchup.awayTeam}
                                 size="sm"
                                 shape="square"

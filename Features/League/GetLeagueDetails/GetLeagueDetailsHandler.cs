@@ -19,11 +19,30 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
 
     public async Task<Result<LeagueDetailsDto>> Handle(GetLeagueDetailsQuery request, CancellationToken cancellationToken)
     {
-        var league = await _context.Leagues
-            .Include(l => l.Teams).ThenInclude(t => t.User)
-            .FirstOrDefaultAsync(l => l.Id == request.LeagueId, cancellationToken);
+        string fullCacheKey = $"league_details_{request.LeagueId}";
+        if (_cache.TryGetValue(fullCacheKey, out LeagueDetailsDto? cachedResult) && cachedResult != null)
+        {
+            return Result<LeagueDetailsDto>.Success(cachedResult);
+        }
 
-        if (league == null) return Result<LeagueDetailsDto>.Failure(ErrorCodes.LEAGUE_NOT_FOUND);
+        var leagueData = await _context.Leagues
+            .AsNoTracking()
+            .Where(l => l.Id == request.LeagueId)
+            .Select(l => new {
+                l.Name,
+                l.InvitationCode,
+                Teams = l.Teams.Select(t => new {
+                    t.Id,
+                    t.Name,
+                    t.UserId,
+                    t.IsAdmin,
+                    t.Division,
+                    ManagerName = t.User.GeneralManagerName ?? t.User.UserName
+                }).ToList()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (leagueData == null) return Result<LeagueDetailsDto>.Failure(ErrorCodes.LEAGUE_NOT_FOUND);
 
         // Cache Key for Standings Calculation (Heavy operation)
         string standingCacheKey = $"standings_calc_{request.LeagueId}";
@@ -32,14 +51,19 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
         {
             // Calculate Standings logic (moved from Controller)
             var matches = await _context.Matchups
+                .AsNoTracking()
                 .Where(m => m.LeagueId == request.LeagueId && m.IsPlayed)
+                .Select(m => new { m.HomeTeamId, m.AwayTeamId, m.HomeScore, m.AwayScore })
                 .ToListAsync(cancellationToken);
 
             baseStandings = new List<LeagueStandingDto>();
 
-            foreach (var team in league.Teams)
+            foreach (var team in leagueData.Teams)
             {
-                var teamMatches = matches.Where(m => m.HomeTeamId == team.UserId || m.AwayTeamId == team.UserId).ToList();
+                var teamMatches = matches
+                    .Where(m => m.HomeTeamId == team.UserId || m.AwayTeamId == team.UserId)
+                    .Select(m => new { m.HomeTeamId, m.HomeScore, m.AwayScore })
+                    .ToList();
                 int wins = 0;
                 int losses = 0;
                 double points = 0;
@@ -59,7 +83,7 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
                 {
                     TeamId = team.Id, // Store Team ID internally, verify logic if used externally
                     FantasyTeamName = team.Name,
-                    GeneralManagerName = team.User.GeneralManagerName ?? team.User.UserName,
+                    GeneralManagerName = team.ManagerName,
                     IsAdmin = team.IsAdmin,
                     // IsMe set later
                     GamesPlayed = wins + losses,
@@ -92,7 +116,7 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
         // Re-fetching teams to map ID -> User? No, inefficient.
         // Let's assume we can map using the League object we just fetched? Yes.
         
-        var myTeam = league.Teams.FirstOrDefault(t => t.UserId == request.UserId);
+        var myTeam = leagueData.Teams.FirstOrDefault(t => t.UserId == request.UserId);
         int myTeamId = myTeam?.Id ?? 0;
 
         var finalStandings = baseStandings.Select(s => new LeagueStandingDto
@@ -109,11 +133,16 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
             Division = s.Division
         }).ToList();
 
-        return Result<LeagueDetailsDto>.Success(new LeagueDetailsDto
+        var finalResult = new LeagueDetailsDto
         {
-            Name = league.Name,
-            InviteCode = league.InvitationCode,
+            Name = leagueData.Name,
+            InviteCode = leagueData.InvitationCode,
             Standings = finalStandings
-        });
+        };
+
+        // Cache the whole result for 30 seconds
+        _cache.Set(fullCacheKey, finalResult, TimeSpan.FromSeconds(30));
+
+        return Result<LeagueDetailsDto>.Success(finalResult);
     }
 }

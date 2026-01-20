@@ -296,7 +296,7 @@ export default function LiveDraft() {
             {/* Header / Stats Overlay */}
             <div className="absolute top-8 left-8 flex items-center gap-4">
                 <LogoAvatar
-                    src={`${CONFIG.API_BASE_URL}/league/${localStorage.getItem('selectedLeagueId')}/logo?t=${new Date().getTime()}`}
+                    src={`${CONFIG.API_BASE_URL}/league/${localStorage.getItem('selectedLeagueId')}/logo`}
                     alt="League Logo"
                     size="sm"
                     shape="square"

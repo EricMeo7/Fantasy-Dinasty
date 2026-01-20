@@ -126,7 +126,7 @@ export default function LeagueSelection() {
                 >
                   <div className="flex justify-between items-start mb-10">
                     <LogoAvatar
-                      src={`${CONFIG.API_BASE_URL}/league/${league.leagueId}/logo?t=${new Date().getTime()}`}
+                      src={`${CONFIG.API_BASE_URL}/league/${league.leagueId}/logo`}
                       alt={league.leagueName}
                       size="md"
                       shape="square"

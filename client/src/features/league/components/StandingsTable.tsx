@@ -67,7 +67,7 @@ export const StandingsTable = ({ standings, title, icon, color = "text-yellow-50
                                 <td className="px-8 py-5">
                                     <div className="flex items-center gap-4">
                                         <LogoAvatar
-                                            src={`${CONFIG.API_BASE_URL}/team/${team.teamId}/logo?t=${new Date().getTime()}`}
+                                            src={`${CONFIG.API_BASE_URL}/team/${team.teamId}/logo`}
                                             alt={team.fantasyTeamName}
                                             size="sm"
                                             shape="square"

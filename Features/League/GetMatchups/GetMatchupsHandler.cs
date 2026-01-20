@@ -2,30 +2,53 @@ using FantasyBasket.API.Common;
 using FantasyBasket.API.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FantasyBasket.API.Features.League.GetMatchups;
 
 public class GetMatchupsHandler : IRequestHandler<GetMatchupsQuery, Result<List<MatchupDto>>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMemoryCache _cache;
 
-    public GetMatchupsHandler(ApplicationDbContext context)
+    public GetMatchupsHandler(ApplicationDbContext context, IMemoryCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<Result<List<MatchupDto>>> Handle(GetMatchupsQuery request, CancellationToken cancellationToken)
     {
+        string cacheKey = $"matchups_{request.LeagueId}";
+        if (_cache.TryGetValue(cacheKey, out List<MatchupDto>? cachedMatchups) && cachedMatchups != null)
+        {
+            return Result<List<MatchupDto>>.Success(cachedMatchups);
+        }
+
         var seasonStartDate = await _context.Leagues
+            .AsNoTracking()
             .Where(l => l.Id == request.LeagueId)
             .Select(l => l.SeasonStartDate)
             .FirstOrDefaultAsync(cancellationToken) ?? DateTime.UtcNow.Date;
 
-        // 1. Recupera tutti i match
+        // 1. Recupera tutti i match (Proiezione)
         var matches = await _context.Matchups
+            .AsNoTracking()
             .Where(m => m.LeagueId == request.LeagueId)
             .OrderBy(m => m.WeekNumber)
-            .AsNoTracking()
+            .Select(m => new {
+                m.Id,
+                m.WeekNumber,
+                m.IsPlayed,
+                m.HomeTeamId,
+                m.AwayTeamId,
+                m.HomeScore,
+                m.AwayScore,
+                m.StartAt,
+                m.EndAt,
+                m.HomeTeamPlaceholder,
+                m.AwayTeamPlaceholder
+            })
             .ToListAsync(cancellationToken);
 
         // 2. Recupera tutte le squadre (Cacheabile, ma veloce)
@@ -140,6 +163,8 @@ public class GetMatchupsHandler : IRequestHandler<GetMatchupsQuery, Result<List<
                 }
             }
         }
+
+        _cache.Set(cacheKey, result, TimeSpan.FromSeconds(60));
 
         return Result<List<MatchupDto>>.Success(result);
     }

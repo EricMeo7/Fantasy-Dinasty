@@ -66,7 +66,7 @@ export default function Dashboard() {
         <div className="mb-8 md:mb-12 mt-4 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8">
           <div className="flex items-center gap-4 md:gap-8">
             <LogoAvatar
-              src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo?t=${new Date().getTime()}` : undefined}
+              src={myTeam?.id ? `${CONFIG.API_BASE_URL}/team/${myTeam.id}/logo` : undefined}
               alt={myTeam?.name || 'Team'}
               size="xl"
               shape="square"
@@ -119,7 +119,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between gap-2 md:gap-4 relative z-10">
                   <div className="flex flex-col flex-1">
                     <LogoAvatar
-                      src={`${CONFIG.API_BASE_URL}/team/${currentMatch.homeTeamId}/logo?t=${new Date().getTime()}`}
+                      src={`${CONFIG.API_BASE_URL}/team/${currentMatch.homeTeamId}/logo`}
                       alt={currentMatch.homeTeam}
                       size="md"
                       shape="square"
@@ -138,7 +138,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex flex-col flex-1 text-right items-end">
                     <LogoAvatar
-                      src={`${CONFIG.API_BASE_URL}/team/${currentMatch.awayTeamId}/logo?t=${new Date().getTime()}`}
+                      src={`${CONFIG.API_BASE_URL}/team/${currentMatch.awayTeamId}/logo`}
                       alt={currentMatch.awayTeam}
                       size="md"
                       shape="square"
