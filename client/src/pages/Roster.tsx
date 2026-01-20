@@ -12,6 +12,7 @@ import { PlayerCard } from '../features/roster/components/PlayerCard';
 import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModal';
 import ReleaseModal from '../components/ReleaseModal';
 import TeamSettingsModal from '../components/TeamSettingsModal';
+import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
 // i18next import restored above
 import { CONFIG } from '../config';
 import SEO from '../components/SEO/SEO';
@@ -30,6 +31,7 @@ export default function Roster() {
     const { data: players = [], isLoading: loadingRoster } = useMyRoster();
     const { data: finance } = useTeamBudget();
     const { data: myTeam } = useMyTeamInfo();
+    const { data: leagueSettings } = useLeagueSettings();
 
     // Local State for Modals
     const [selectedPlayer, setSelectedPlayer] = useState<PlayerFull | null>(null);
@@ -171,7 +173,15 @@ export default function Roster() {
                             <div className="flex items-center gap-4">
                                 <div className="h-8 w-px bg-slate-800"></div>
                                 <div className="flex flex-col items-end">
-                                    <span className="text-xl font-black text-white italic tabular-nums leading-none">{players.length} <span className="text-[10px] text-slate-700">/ 15</span></span>
+                                    <span className="text-xl font-black text-white italic tabular-nums leading-none">
+                                        {players.length}
+                                        {(() => {
+                                            const totalSlots = (leagueSettings?.roleLimitGuards || 5) +
+                                                (leagueSettings?.roleLimitForwards || 5) +
+                                                (leagueSettings?.roleLimitCenters || 3);
+                                            return <span className="text-[10px] text-slate-700">/ {totalSlots}</span>;
+                                        })()}
+                                    </span>
                                     <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mt-1">{t('roster.personnel_count')}</span>
                                 </div>
                             </div>

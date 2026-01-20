@@ -7,11 +7,13 @@ import PlayerStatsModal, { type PlayerFull } from '../components/PlayerStatsModa
 import SEO from '../components/SEO/SEO';
 import LogoAvatar from '../components/LogoAvatar';
 import { CONFIG } from '../config';
+import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
 
 export default function LeagueRosters() {
   const navigate = useNavigate();
   const { showAlert } = useModal();
   const { data: teams = [], isLoading, isError } = useAllRosters();
+  const { data: leagueSettings } = useLeagueSettings();
   const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
 
   // Stats Modal State
@@ -168,7 +170,15 @@ export default function LeagueRosters() {
                     </div>
 
                     <div className="bg-slate-950 rounded-[2rem] p-6 border border-white/5 shadow-inner flex flex-col items-end">
-                      <div className="text-3xl md:text-4xl font-black text-white italic tracking-tighter leading-none">{currentTeam.players.length}<span className="text-xs text-slate-700 ml-2 uppercase tracking-widest">/15</span></div>
+                      <div className="text-3xl md:text-4xl font-black text-white italic tracking-tighter leading-none">
+                        {currentTeam.players.length}
+                        {(() => {
+                          const totalSlots = (leagueSettings?.roleLimitGuards || 5) +
+                            (leagueSettings?.roleLimitForwards || 5) +
+                            (leagueSettings?.roleLimitCenters || 3);
+                          return <span className="text-xs text-slate-700 ml-2 uppercase tracking-widest">/{totalSlots}</span>;
+                        })()}
+                      </div>
                       <div className="text-[9px] text-slate-600 uppercase font-black tracking-widest mt-2">Active Roster Size</div>
                     </div>
                   </div>

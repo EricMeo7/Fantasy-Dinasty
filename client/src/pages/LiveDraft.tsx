@@ -414,7 +414,16 @@ export default function LiveDraft() {
                                 </div>
                                 <div className="text-center md:text-right">
                                     <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1">{t('draft.roster_size')}</p>
-                                    <p className="text-sm md:text-lg font-black italic text-white leading-none">{myTeam.rosterCount} <span className="text-xs">/ 12</span></p>
+                                    {(() => {
+                                        const totalSlots = (leagueSettings?.roleLimitGuards || 5) +
+                                            (leagueSettings?.roleLimitForwards || 5) +
+                                            (leagueSettings?.roleLimitCenters || 3);
+                                        return (
+                                            <p className="text-sm md:text-lg font-black italic text-white leading-none">
+                                                {myTeam.rosterCount} <span className="text-xs">/ {totalSlots}</span>
+                                            </p>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>
