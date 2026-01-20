@@ -62,7 +62,9 @@ export default function AdminPanel() {
       await resetMarket.mutateAsync();
       await showAlert({ title: t('modals.done'), message: t('success.market_reset'), type: "success" });
     } catch (error: any) {
-      await showAlert({ title: t('common.error'), message: error.response?.data?.message || t('error.generic'), type: "error" });
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.errors?.[0] || errorData?.message || error.message;
+      await showAlert({ title: t('common.error'), message: errorMessage, type: "error" });
     }
   };
 
@@ -79,7 +81,9 @@ export default function AdminPanel() {
       await updateStatus.mutateAsync(newStatus);
       await showAlert({ title: "Aggiornato", message: t('admin.status_updated', { status: statusName }), type: "success" });
     } catch (error: any) {
-      await showAlert({ title: t('common.error'), message: "Errore cambio stato: " + (error.response?.data || t('error.generic')), type: "error" });
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.errors?.[0] || errorData?.message || (typeof errorData === 'string' ? errorData : error.message);
+      await showAlert({ title: t('common.error'), message: t('error.generic') + ": " + errorMessage, type: "error" });
     }
   };
 
@@ -101,7 +105,9 @@ export default function AdminPanel() {
       await generateSchedule.mutateAsync({ playoffTeams: teams, mode });
       await showAlert({ title: t('common.success'), message: t('admin.schedule_success'), type: "success" });
     } catch (error: any) {
-      await showAlert({ title: t('common.error'), message: t('admin.generate_error') + ": " + (error.response?.data?.message || error.message), type: "error" });
+      const errorData = error.response?.data;
+      const errorMessage = errorData?.errors?.[0] || errorData?.message || error.message;
+      await showAlert({ title: t('common.error'), message: t('admin.generate_error') + ": " + errorMessage, type: "error" });
     }
   };
 

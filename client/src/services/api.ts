@@ -22,6 +22,9 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    const lng = localStorage.getItem('i18nextLng') || 'it';
+    config.headers['Accept-Language'] = lng;
+
     // Se c'è una lega selezionata, aggiungi l'header custom
     if (leagueId) {
       config.headers['X-League-Id'] = leagueId;

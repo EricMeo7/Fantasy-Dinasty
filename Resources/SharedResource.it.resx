@@ -151,4 +151,7 @@
   <data name="NbaScheduleUpdated" xml:space="preserve">
     <value>Calendario NBA aggiornato (Orari partite inseriti).</value>
   </data>
+  <data name="NotEnoughTeams" xml:space="preserve">
+    <value>Impossibile generare il calendario: La lega deve avere almeno 2 squadre (attualmente ne ha {0}).</value>
+  </data>
 </root>

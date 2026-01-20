@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
+using EFCore.BulkExtensions;
 
 namespace FantasyBasket.API.Services;
 
@@ -15,6 +16,17 @@ public class NbaDataService : INbaDataService
     private readonly IMemoryCache _cache;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<NbaDataService> _logger;
+
+    // --- CONSTANTS ---
+    private const string URL_PLAYER_BIO = "playerindex?Historical=1&LeagueID=00&Season={0}&SeasonType=Regular%20Season";
+    private const string URL_LEAGUE_DASH = "leaguedashplayerstats?LastNGames=0&LeagueID=00&MeasureType=Base&Month=0&OpponentTeamID=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlusMinus=N&Rank=N&Season={0}&SeasonType=Regular%20Season&TeamID=0";
+    private const string URL_SCOREBOARD = "scoreboardv2?DayOffset=0&GameDate={0}&LeagueID=00";
+    private const string URL_ALL_PLAYERS = "commonallplayers?LeagueID=00&Season={0}&IsOnlyCurrentSeason=1";
+    private const string URL_TEAM_ROSTER = "commonteamroster?Season={0}&TeamID={1}";
+    
+    // CDN URLs
+    private const string URL_CDN_SCHEDULE = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json";
+    private const string URL_CDN_BOXSCORE = "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{0}.json";
 
     public NbaDataService(IHttpClientFactory clientFactory, IMemoryCache cache, IServiceProvider serviceProvider, ILogger<NbaDataService> logger)
     {
@@ -101,10 +113,9 @@ public class NbaDataService : INbaDataService
     // ==============================================================================
     public async Task<Dictionary<int, double>> GetFantasyPointsByDate(DateTime date, List<int> internalPlayerIds)
     {
-        // --- STEP 1: CACHE CHECK (Identico a prima) ---
         var nbaDate = ConvertToNbaDate(date);
         bool isPast = nbaDate.Date < ConvertToNbaDate(DateTime.UtcNow).Date;
-        string cacheKey = $"fpts_{nbaDate:yyyyMMdd}"; // Chiave semplificata
+        string cacheKey = $"fpts_{nbaDate:yyyyMMdd}";
 
         if (isPast && _cache.TryGetValue(cacheKey, out Dictionary<int, double>? cachedResult))
             return cachedResult!;
@@ -113,41 +124,40 @@ public class NbaDataService : INbaDataService
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         string dbDateStr = nbaDate.ToString("yyyy-MM-dd");
 
-        // --- STEP 2: RECUPERO CACHE DB (Identico a prima) ---
-        var cachedLogs = await context.PlayerGameLogs
+        // Utilizziamo ConcurrentDictionary per thread-safety durante il caricamento parallelo
+        var dbLogs = await context.PlayerGameLogs
             .Where(l => l.GameDate == dbDateStr && internalPlayerIds.Contains(l.PlayerId))
             .ToDictionaryAsync(l => l.PlayerId, l => l.FantasyPoints);
-        
-        if (isPast && internalPlayerIds.All(id => cachedLogs.ContainsKey(id))) 
+            
+        var resultArray = new System.Collections.Concurrent.ConcurrentDictionary<int, double>(dbLogs);
+
+        // Se è una data passata e abbiamo tutti i dati, ritorniamo la cache
+        if (isPast && internalPlayerIds.All(id => resultArray.ContainsKey(id))) 
         {
-            _cache.Set(cacheKey, cachedLogs, TimeSpan.FromHours(4));
-            return cachedLogs;
+            _cache.Set(cacheKey, resultArray.ToDictionary(k => k.Key, v => v.Value), TimeSpan.FromHours(4));
+            return resultArray.ToDictionary(k => k.Key, v => v.Value);
         }
 
-        // --- STEP 3: NUOVO METODO CDN ---
-        // Invece di chiamare Stats, cerchiamo le partite di quel giorno nel DB e scarichiamo i boxscore
+        // --- STEP 3: DOWNLOAD & PARSING (CONCURRENT) ---
         var gamesToday = await context.NbaGames
             .Where(g => g.GameDate == nbaDate.Date)
             .Select(g => g.NbaGameId)
             .ToListAsync();
 
-        if (!gamesToday.Any()) return cachedLogs;
+        if (!gamesToday.Any()) return resultArray.ToDictionary(k => k.Key, v => v.Value);
 
         var client = _clientFactory.CreateClient("NbaCdn");
-        var logsToAdd = new List<PlayerGameLog>();
+        var logsToAdd = new System.Collections.Concurrent.ConcurrentBag<PlayerGameLog>();
         
-        // Mappa per convertire ID NBA (esterni) in ID tuoi (interni)
         var playerMap = await context.Players
             .Where(p => internalPlayerIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.ExternalId, p => p.Id);
 
-        // Scarichiamo i boxscore in parallelo per velocità
         var tasks = gamesToday.Select(async gameId => 
         {
             try 
             {
-                // URL Magico: Contiene statistiche live dettagliate
-                var url = $"https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{gameId}.json";
+                var url = string.Format(URL_CDN_BOXSCORE, gameId);
                 var response = await client.GetAsync(url);
                 if (!response.IsSuccessStatusCode) return;
 
@@ -160,7 +170,6 @@ public class NbaDataService : INbaDataService
                 int homeScore = homeNode.GetProperty("score").GetInt32();
                 int awayScore = awayNode.GetProperty("score").GetInt32();
 
-                // Helper locale per processare un team
                 void ProcessTeam(JsonElement teamNode, bool isWinner)
                 {
                     if (!teamNode.TryGetProperty("players", out var players)) return;
@@ -169,7 +178,6 @@ public class NbaDataService : INbaDataService
                     {
                         int nbaId = p.GetProperty("personId").GetInt32();
                         
-                        // Se il giocatore ci interessa
                         if (playerMap.TryGetValue(nbaId, out int internalId))
                         {
                             var stats = p.GetProperty("statistics");
@@ -181,11 +189,9 @@ public class NbaDataService : INbaDataService
                             double blk = stats.GetProperty("blocks").GetDouble();
                             double tov = stats.GetProperty("turnovers").GetDouble();
                             
-                            // Parsa minuti (formato "PT34M12.00S")
                             string minStr = stats.GetProperty("minutesCalculated").GetString(); 
                             double min = ParseIsoMinutes(minStr); 
 
-                            // Advanced Stats Parsing
                             int fgm = (int)stats.GetProperty("fieldGoalsMade").GetDouble();
                             int fga = (int)stats.GetProperty("fieldGoalsAttempted").GetDouble();
                             int ftm = (int)stats.GetProperty("freeThrowsMade").GetDouble();
@@ -195,37 +201,24 @@ public class NbaDataService : INbaDataService
                             int oreb = (int)stats.GetProperty("reboundsOffensive").GetDouble();
                             int dreb = (int)stats.GetProperty("reboundsDefensive").GetDouble();
 
-                            // Win Calculation passed via 'isWinner' arg
-                            bool won = isWinner;
-
-                            // Calcolo Punti (Standard Default Formula for Cache - Detailed calc happens in MatchupService)
                             double fpts = Math.Round(pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov, 1);
 
-                            // Aggiungi al dizionario risultati (Lock)
-                            lock(cachedLogs) 
-                            {
-                                cachedLogs[internalId] = fpts;
-                            }
+                            // Aggiorna Risultato (Thread-Safe)
+                            resultArray[internalId] = fpts;
 
-                            // Prepara salvataggio DB (semplificato)
-                            lock(logsToAdd)
+                            // Aggiungi Log (Thread-Safe) - Upsert logico verrà fatto dopo
+                            logsToAdd.Add(new PlayerGameLog 
                             {
-                                 // Qui dovresti controllare se esiste già nel DB per evitare duplicati, 
-                                 // o usare una logica "Upsert". Per brevità creo l'oggetto.
-                                 logsToAdd.Add(new PlayerGameLog 
-                                 {
-                                     PlayerId = internalId,
-                                     GameDate = dbDateStr,
-                                     Points = (int)pts, Rebounds = (int)reb, Assists = (int)ast,
-                                     Steals = (int)stl, Blocks = (int)blk, Turnovers = (int)tov,
-                                     Minutes = min, FantasyPoints = fpts,
-                                     // Advanced
-                                     Fgm = fgm, Fga = fga, Ftm = ftm, Fta = fta,
-                                     ThreePm = tpm, ThreePa = tpa,
-                                     OffRebounds = oreb, DefRebounds = dreb,
-                                     Won = won
-                                 });
-                            }
+                                PlayerId = internalId,
+                                GameDate = dbDateStr,
+                                Points = (int)pts, Rebounds = (int)reb, Assists = (int)ast,
+                                Steals = (int)stl, Blocks = (int)blk, Turnovers = (int)tov,
+                                Minutes = min, FantasyPoints = fpts,
+                                Fgm = fgm, Fga = fga, Ftm = ftm, Fta = fta,
+                                ThreePm = tpm, ThreePa = tpa,
+                                OffRebounds = oreb, DefRebounds = dreb,
+                                Won = isWinner
+                            });
                         }
                     }
                 }
@@ -238,36 +231,48 @@ public class NbaDataService : INbaDataService
 
         await Task.WhenAll(tasks);
 
-        // --- STEP 4: SALVATAGGIO ASINCRONO (Upsert manuale) ---
-        // Nota: Qui dovresti gestire l'aggiornamento se il log esiste già
-        if (logsToAdd.Any())
+        // --- STEP 4: SALVATAGGIO ASINCRONO (BATCH FETCH - NO N+1) ---
+        if (!logsToAdd.IsEmpty)
         {
-            foreach(var log in logsToAdd)
+            // PRO FIX: Carichiamo TUTTI i log esistenti per questa data/players in una sola query
+            var distinctPlayerIds = logsToAdd.Select(l => l.PlayerId).Distinct().ToList();
+            
+            var existingLogsDict = await context.PlayerGameLogs
+                .Where(l => l.GameDate == dbDateStr && distinctPlayerIds.Contains(l.PlayerId))
+                .ToDictionaryAsync(l => l.PlayerId);
+
+            var upsertList = new List<PlayerGameLog>();
+
+            foreach (var log in logsToAdd)
             {
-                 var existing = await context.PlayerGameLogs
-                    .FirstOrDefaultAsync(l => l.PlayerId == log.PlayerId && l.GameDate == log.GameDate);
-                 
-                 if (existing != null) {
-                     existing.FantasyPoints = log.FantasyPoints;
-                     existing.Points = log.Points; 
-                     existing.Rebounds = log.Rebounds; existing.Assists = log.Assists;
-                     existing.Steals = log.Steals; existing.Blocks = log.Blocks; existing.Turnovers = log.Turnovers;
-                     existing.Fgm = log.Fgm; existing.Fga = log.Fga;
-                     existing.Ftm = log.Ftm; existing.Fta = log.Fta;
-                     existing.ThreePm = log.ThreePm; existing.ThreePa = log.ThreePa;
-                     existing.OffRebounds = log.OffRebounds; existing.DefRebounds = log.DefRebounds;
-                     existing.Won = log.Won;
-                 } else {
-                     context.PlayerGameLogs.Add(log);
-                 }
+                if (existingLogsDict.TryGetValue(log.PlayerId, out var existing))
+                {
+                    // UPDATE
+                    existing.FantasyPoints = log.FantasyPoints;
+                    existing.Points = log.Points; 
+                    existing.Rebounds = log.Rebounds; existing.Assists = log.Assists;
+                    existing.Steals = log.Steals; existing.Blocks = log.Blocks; existing.Turnovers = log.Turnovers;
+                    existing.Fgm = log.Fgm; existing.Fga = log.Fga;
+                    existing.Ftm = log.Ftm; existing.Fta = log.Fta;
+                    existing.ThreePm = log.ThreePm; existing.ThreePa = log.ThreePa;
+                    existing.OffRebounds = log.OffRebounds; existing.DefRebounds = log.DefRebounds;
+                    existing.Won = log.Won;
+                }
+                else
+                {
+                    // INSERT
+                    context.PlayerGameLogs.Add(log);
+                }
             }
+            
             await context.SaveChangesAsync();
         }
 
-        if (isPast) _cache.Set(cacheKey, cachedLogs, TimeSpan.FromMinutes(30)); 
-        else _cache.Set(cacheKey, cachedLogs, TimeSpan.FromSeconds(60));
+        var finalDict = resultArray.ToDictionary(k => k.Key, v => v.Value);
+        if (isPast) _cache.Set(cacheKey, finalDict, TimeSpan.FromMinutes(30)); 
+        else _cache.Set(cacheKey, finalDict, TimeSpan.FromSeconds(60));
 
-        return cachedLogs;
+        return finalDict;
     }
 
     // Helper per parsare i minuti dal formato ISO8601 usato dal CDN (es: "PT12M30.00S")
@@ -287,17 +292,14 @@ public class NbaDataService : INbaDataService
     {
         _logger.LogInformation("Avvio download massivo Calendario NBA (CDN)...");
 
-        var url = "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json";
-
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         try
         {
-            // [FIX CRITICO SOCKET EXCEPTION] - Usiamo client dedicato per CDN
-            var cdnClient = _clientFactory.CreateClient("NbaCdn"); // Managed by Factory
+            var cdnClient = _clientFactory.CreateClient("NbaCdn");
             
-            var response = await cdnClient.GetAsync(url);
+            var response = await cdnClient.GetAsync(URL_CDN_SCHEDULE);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -391,7 +393,7 @@ public class NbaDataService : INbaDataService
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
         string dateStr = date.ToString("MM/dd/yyyy", CultureInfo.InvariantCulture);
-        var url = $"scoreboardv2?DayOffset=0&GameDate={dateStr}&LeagueID=00";
+        var url = string.Format(URL_SCOREBOARD, dateStr);
 
         try
         {
@@ -475,7 +477,7 @@ public class NbaDataService : INbaDataService
 
             // STEP 1: Prova a recuperare injury report globale da commonallplayers
             // Questo endpoint dovrebbe avere info su tutti i giocatori attivi
-            var url = $"commonallplayers?LeagueID=00&Season={currentSeason}&IsOnlyCurrentSeason=1";
+            var url = string.Format(URL_ALL_PLAYERS, currentSeason);
             
             var response = await client.GetAsync(url);
             if (!response.IsSuccessStatusCode)
@@ -517,7 +519,11 @@ public class NbaDataService : INbaDataService
                 return;
             }
 
-            // STEP 2: Reset tutti i giocatori ad "Active" prima dell'update
+            // CRITICAL FIX: Transazione per atomicità
+            using var transaction = await context.Database.BeginTransactionAsync();
+            try 
+            {
+                // STEP 2: Reset tutti i giocatori ad "Active" prima dell'update
             var allPlayers = await context.Players.ToListAsync();
             foreach (var player in allPlayers)
             {
@@ -566,10 +572,24 @@ public class NbaDataService : INbaDataService
                 }
 
                 _logger.LogInformation($"✅ Trovati {injuredCount} giocatori infortunati da commonallplayers");
+                
+                // SANITY CHECK (DATA INTEGRITY)
+                if (injuredCount == 0)
+                {
+                    throw new InvalidOperationException("⚠️ Sanity Check Failed: 0 infortunati trovati. Rollback preventivo per evitare data loss.");
+                }
             }
 
-            await context.SaveChangesAsync();
-            _logger.LogInformation("✅ Aggiornamento infortuni completato con successo");
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                _logger.LogInformation("✅ Aggiornamento infortuni completato (COMMIT)");
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "❌ Errore Transaction Infortuni. Eseguito Rollback.");
+                throw; 
+            }
         }
         catch (Exception ex)
         {
@@ -598,7 +618,7 @@ public class NbaDataService : INbaDataService
         {
             try
             {
-                var url = $"commonteamroster?Season={season}&TeamID={teamId}";
+                var url = string.Format(URL_TEAM_ROSTER, season, teamId);
                 var response = await client.GetAsync(url);
 
                 if (!response.IsSuccessStatusCode)
@@ -662,7 +682,7 @@ public class NbaDataService : INbaDataService
     // Questo metodo è lungo perché deve mappare decine di colonne statistiche
     private async Task ProcessSeasonAsync(ApplicationDbContext context, string season, bool isCurrentSeason, Dictionary<int, PlayerBio> bioMap)
     {
-        var url = $"leaguedashplayerstats?LastNGames=0&LeagueID=00&MeasureType=Base&Month=0&OpponentTeamID=0&PaceAdjust=N&PerMode=PerGame&Period=0&PlusMinus=N&Rank=N&Season={season}&SeasonType=Regular%20Season&TeamID=0";
+        var url = string.Format(URL_LEAGUE_DASH, season);
 
         try
         {
@@ -724,141 +744,122 @@ public class NbaDataService : INbaDataService
                 } catch { return 0; }
             }
 
-            var existingPlayers = await context.Players
-                .Include(p => p.SeasonStats)
-                .ToDictionaryAsync(p => p.ExternalId);
-
-            int count = 0;
-            // Keep track of new players locally to prevent efficiently re-fetching or duplicates in same batch
-            var newPlayersCache = new Dictionary<int, Player>();
+            // --- OTTIMIZZAZIONE BATCH (UPSERT) ---
+            var playersToUpsert = new List<Player>();
+            // Lista temporanea per le stats: (ExternalId, StatObject)
+            var statsToSync = new List<(int ExtId, PlayerSeasonStat Stat)>();
 
             foreach (var row in rows)
             {
                 int externalId = GetInt(row, idxId);
-
-                Player? player = null;
-
-                if (existingPlayers.TryGetValue(externalId, out var dbPlayer))
-                {
-                    player = dbPlayer;
-                }
-                else if (newPlayersCache.TryGetValue(externalId, out var localPlayer))
-                {
-                    player = localPlayer;
-                }
-                else
-                {
-                    // New Player
-                    string fullName = row[idxName].ValueKind == JsonValueKind.String ? row[idxName].GetString() ?? "Unknown" : "Unknown";
-                    var names = fullName.Split(' ');
-                    player = new Player
-                    {
-                        ExternalId = externalId,
-                        FirstName = names[0],
-                        LastName = names.Length > 1 ? string.Join(" ", names.Skip(1)) : ""
-                    };
-                    
-                    context.Players.Add(player);
-                    newPlayersCache[externalId] = player; // Track it locally
-                }
-
+                string fullName = row[idxName].ValueKind == JsonValueKind.String ? row[idxName].GetString() ?? "Unknown" : "Unknown";
+                string teamName = (row[idxTeam].ValueKind == JsonValueKind.String) ? row[idxTeam].GetString() ?? "FA" : "FA";
+                int gamesPlayed = GetInt(row, idxGp);
+                
+                // Stats Parsing
                 double pts = GetVal(row, idxPts);
                 double reb = GetVal(row, idxReb);
                 double ast = GetVal(row, idxAst);
                 double stl = GetVal(row, idxStl);
                 double blk = GetVal(row, idxBlk);
                 double tov = GetVal(row, idxTov);
+                double min = GetVal(row, idxMin);
+                double pf = GetInt(row, idxPf);
                 double fpts = Math.Round(pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov, 1);
-
-                string teamName = (row[idxTeam].ValueKind == JsonValueKind.String) ? row[idxTeam].GetString() ?? "FA" : "FA";
-                int gamesPlayed = GetInt(row, idxGp);
+                
+                // Advanced & Shooting
+                double fgm = GetVal(row, idxFgm); double fga = GetVal(row, idxFga); double fgPct = GetVal(row, idxFgPct);
+                double tpm = GetVal(row, idx3pm); double tpa = GetVal(row, idx3pa); double tpPct = GetVal(row, idx3pPct);
+                double ftm = GetVal(row, idxFtm); double fta = GetVal(row, idxFta); double ftPct = GetVal(row, idxFtPct);
+                double oreb = GetVal(row, idxOreb); double dreb = GetVal(row, idxDreb);
+                double pm = GetVal(row, idxPlusMinus); double wpct = GetVal(row, idxWpct);
+                double dd = GetVal(row, idxDd2); double td = GetVal(row, idxTd3);
+                
+                double efficiency = Math.Round((pts + reb + ast + stl + blk) - (fga - fgm) - (fta - ftm) - tov, 1);
 
                 if (isCurrentSeason)
                 {
-                    player.NbaTeam = teamName;
-                    player.GamesPlayed = gamesPlayed;
+                    var names = fullName.Split(' ');
+                    var firstName = names[0].Replace("'", "''"); // Simple SQL escape for later
+                    var lastName = (names.Length > 1 ? string.Join(" ", names.Skip(1)) : "").Replace("'", "''");
+
+                    var p = new Player
+                    {
+                        ExternalId = externalId,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        NbaTeam = teamName,
+                        GamesPlayed = gamesPlayed,
+                        AvgPoints = pts, AvgRebounds = reb, AvgAssists = ast,
+                        AvgSteals = stl, AvgBlocks = blk, AvgMinutes = min,
+                        AvgTurnovers = tov, PersonalFouls = pf,
+                        Fgm = fgm, Fga = fga, FgPercent = fgPct,
+                        ThreePm = tpm, ThreePa = tpa, ThreePtPercent = tpPct,
+                        Ftm = ftm, Fta = fta, FtPercent = ftPct,
+                        OffRebounds = oreb, DefRebounds = dreb,
+                        PlusMinus = pm, WinPct = wpct,
+                        DoubleDoubles = dd, TripleDoubles = td,
+                        FantasyPoints = fpts,
+                        Efficiency = efficiency
+                    };
+                    
                     if (bioMap.TryGetValue(externalId, out var bio))
                     {
-                        player.Position = bio.Position; player.Height = bio.Height; player.Weight = bio.Weight;
+                        p.Position = bio.Position; p.Height = bio.Height; p.Weight = bio.Weight;
                     }
 
-                    player.AvgPoints = pts; player.AvgRebounds = reb; player.AvgAssists = ast;
-                    player.AvgSteals = stl; player.AvgBlocks = blk; player.AvgMinutes = GetVal(row, idxMin);
-                    player.AvgTurnovers = tov; player.PersonalFouls = GetInt(row, idxPf);
-                    player.Fgm = GetVal(row, idxFgm); player.Fga = GetVal(row, idxFga); player.FgPercent = GetVal(row, idxFgPct);
-                    player.ThreePm = GetVal(row, idx3pm); player.ThreePa = GetVal(row, idx3pa); player.ThreePtPercent = GetVal(row, idx3pPct);
-                    player.Ftm = GetVal(row, idxFtm); player.Fta = GetVal(row, idxFta); player.FtPercent = GetVal(row, idxFtPct);
-                    player.OffRebounds = GetVal(row, idxOreb); player.DefRebounds = GetVal(row, idxDreb);
-                    player.PlusMinus = GetVal(row, idxPlusMinus); player.WinPct = GetVal(row, idxWpct);
-                    player.DoubleDoubles = GetVal(row, idxDd2); player.TripleDoubles = GetVal(row, idxTd3);
-                    player.FantasyPoints = fpts;
-
-                    double missedFg = GetVal(row, idxFga) - GetVal(row, idxFgm);
-                    double missedFt = GetVal(row, idxFta) - GetVal(row, idxFtm);
-                    player.Efficiency = Math.Round((pts + reb + ast + stl + blk) - missedFg - missedFt - tov, 1);
+                    playersToUpsert.Add(p);
                 }
-                else
+                
+                // Prepare Season Stat Object
+                var s = new PlayerSeasonStat
                 {
-                    // Ensure SeasonStats collection is initialized if it was null (new player)
-                    if (player.SeasonStats == null) player.SeasonStats = new List<PlayerSeasonStat>();
-                    
-                    var statEntry = player.SeasonStats.FirstOrDefault(s => s.Season == season);
-                    if (statEntry == null)
-                    {
-                        statEntry = new PlayerSeasonStat { Season = season, PlayerId = player.Id, Player = player };
-                        player.SeasonStats.Add(statEntry);
-                        // Explicitly add to context to be safe, though navigation property usually handles it
-                        if (player.Id != 0) context.PlayerSeasonStats.Add(statEntry); 
-                    }
-                    
-                    // Populate ALL fields to match Player model
-                    statEntry.NbaTeam = teamName;
-                    statEntry.GamesPlayed = gamesPlayed;
-                    
-                    // Base Stats
-                    statEntry.AvgPoints = pts;
-                    statEntry.AvgRebounds = reb;
-                    statEntry.AvgAssists = ast;
-                    statEntry.AvgSteals = stl;
-                    statEntry.AvgBlocks = blk;
-                    statEntry.AvgMinutes = GetVal(row, idxMin);
-                    statEntry.AvgTurnovers = tov;
-                    
-                    // Shooting Details
-                    statEntry.Fgm = GetVal(row, idxFgm);
-                    statEntry.Fga = GetVal(row, idxFga);
-                    statEntry.FgPercent = GetVal(row, idxFgPct);
-                    statEntry.ThreePm = GetVal(row, idx3pm);
-                    statEntry.ThreePa = GetVal(row, idx3pa);
-                    statEntry.ThreePtPercent = GetVal(row, idx3pPct);
-                    statEntry.Ftm = GetVal(row, idxFtm);
-                    statEntry.Fta = GetVal(row, idxFta);
-                    statEntry.FtPercent = GetVal(row, idxFtPct);
-                    
-                    // Rebound Details
-                    statEntry.OffRebounds = GetVal(row, idxOreb);
-                    statEntry.DefRebounds = GetVal(row, idxDreb);
-                    
-                    // Advanced Stats
-                    statEntry.PersonalFouls = GetInt(row, idxPf);
-                    statEntry.PlusMinus = GetVal(row, idxPlusMinus);
-                    statEntry.WinPct = GetVal(row, idxWpct);
-                    statEntry.DoubleDoubles = GetVal(row, idxDd2);
-                    statEntry.TripleDoubles = GetVal(row, idxTd3);
-                    
-                    // Calculate Efficiency
-                    double missedFg = GetVal(row, idxFga) - GetVal(row, idxFgm);
-                    double missedFt = GetVal(row, idxFta) - GetVal(row, idxFtm);
-                    statEntry.Efficiency = Math.Round((pts + reb + ast + stl + blk) - missedFg - missedFt - tov, 1);
-                    
-                    // Fantasy Points
-                    statEntry.FantasyPoints = fpts;
-                }
-                count++;
+                    Season = season,
+                    NbaTeam = teamName,
+                    GamesPlayed = gamesPlayed,
+                    AvgPoints = pts, AvgRebounds = reb, AvgAssists = ast,
+                    AvgSteals = stl, AvgBlocks = blk, AvgMinutes = min,
+                    AvgTurnovers = tov,
+                    Fgm = fgm, Fga = fga, FgPercent = fgPct,
+                    ThreePm = tpm, ThreePa = tpa, ThreePtPercent = tpPct,
+                    Ftm = ftm, Fta = fta, FtPercent = ftPct,
+                    OffRebounds = oreb, DefRebounds = dreb,
+                    PersonalFouls = pf, PlusMinus = pm, WinPct = wpct,
+                    DoubleDoubles = dd, TripleDoubles = td,
+                    Efficiency = efficiency
+                };
+                statsToSync.Add((externalId, s));
             }
 
-            await context.SaveChangesAsync();
-            _logger.LogInformation($"Processata stagione {season}: {count} records.");
+            // 1. UPSERT PLAYERS (Solo Current Season)
+            if (isCurrentSeason && playersToUpsert.Any())
+            {
+                await BulkUpsertPlayersAsync(context, playersToUpsert);
+            }
+
+            // 2. RECUPERA MAPPING ID (External -> Internal)
+            // Necessario per assegnare l'ID corretto alle stats
+            var idMap = await context.Players
+                .Where(p => statsToSync.Select(s => s.ExtId).Contains(p.ExternalId))
+                .Select(p => new { p.ExternalId, p.Id })
+                .ToDictionaryAsync(k => k.ExternalId, v => v.Id);
+
+            // 3. PREPARA LISTA STATS CON ID INTERNI
+            var finalStats = new List<PlayerSeasonStat>();
+            foreach(var item in statsToSync)
+            {
+                if (idMap.TryGetValue(item.ExtId, out int internalId))
+                {
+                    item.Stat.PlayerId = internalId;
+                    finalStats.Add(item.Stat);
+                }
+            }
+
+            // 4. UPSERT SEASON STATS
+            if (finalStats.Any())
+            {
+                await BulkUpsertSeasonStatsAsync(context, finalStats);
+            }
         }
         catch (Exception ex)
         {
@@ -885,7 +886,8 @@ public class NbaDataService : INbaDataService
         if (_cache.TryGetValue($"bio_{season}", out Dictionary<int, PlayerBio>? cachedBio)) return cachedBio!;
 
         var bioMap = new Dictionary<int, PlayerBio>();
-        var url = $"playerindex?Historical=1&LeagueID=00&Season={season}&SeasonType=Regular%20Season";
+
+        var url = string.Format(URL_PLAYER_BIO, season);
         try
         {
             var client = _clientFactory.CreateClient("NbaStats");
@@ -958,6 +960,39 @@ public class NbaDataService : INbaDataService
             { 1610612757, "POR" }, { 1610612758, "SAC" }, { 1610612759, "SAS" }, { 1610612761, "TOR" },
             { 1610612762, "UTA" }, { 1610612764, "WAS" }
         };
+    }
+
+    // ==============================================================================
+    // HELPERS DI OTTIMIZZAZIONE (BULK EXTENSIONS)
+    // ==============================================================================
+    private async Task BulkUpsertPlayersAsync(ApplicationDbContext context, List<Player> players)
+    {
+        if (!players.Any()) return;
+
+        // Configurazione Upsert: Update se ExternalId esiste già
+        var bulkConfig = new BulkConfig
+        {
+            UpdateByProperties = new List<string> { nameof(Player.ExternalId) },
+            PreserveInsertOrder = false,
+            SetOutputIdentity = false
+        };
+
+        await context.BulkInsertOrUpdateAsync(players, bulkConfig);
+    }
+
+    private async Task BulkUpsertSeasonStatsAsync(ApplicationDbContext context, List<PlayerSeasonStat> stats)
+    {
+        if (!stats.Any()) return;
+
+        // Configurazione Upsert: Chiave composta PlayerId + Season
+        var bulkConfig = new BulkConfig
+        {
+            UpdateByProperties = new List<string> { nameof(PlayerSeasonStat.PlayerId), nameof(PlayerSeasonStat.Season) },
+            PreserveInsertOrder = false,
+            SetOutputIdentity = false
+        };
+
+        await context.BulkInsertOrUpdateAsync(stats, bulkConfig);
     }
 }
 

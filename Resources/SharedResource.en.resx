@@ -151,4 +151,7 @@
   <data name="NbaScheduleUpdated" xml:space="preserve">
     <value>NBA Schedule Updated (Game Times Populated).</value>
   </data>
+  <data name="NotEnoughTeams" xml:space="preserve">
+    <value>Impossible to generate the calendar: The league must have at least 2 teams (currently it has {0}).</value>
+  </data>
 </root>

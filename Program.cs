@@ -300,16 +300,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowReactApp");
-
 // Localization Middleware
-var supportedCultures = new[] { "it-IT", "en-US" };
+var supportedCultures = new[] { "it-IT", "en-US", "it", "en" };
 var localizationOptions = new RequestLocalizationOptions()
     .SetDefaultCulture("it-IT")
     .AddSupportedCultures(supportedCultures)
     .AddSupportedUICultures(supportedCultures);
 
 app.UseRequestLocalization(localizationOptions);
+
+app.UseMiddleware<FantasyBasket.API.Middleware.ExceptionMiddleware>();
+
+app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization(); // Questo attiva i controlli [Authorize]

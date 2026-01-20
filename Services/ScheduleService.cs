@@ -9,11 +9,13 @@ public class ScheduleService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<ScheduleService> _logger;
+    private readonly Microsoft.Extensions.Localization.IStringLocalizer<SharedResource> _localizer;
 
-    public ScheduleService(ApplicationDbContext context, ILogger<ScheduleService> logger)
+    public ScheduleService(ApplicationDbContext context, ILogger<ScheduleService> logger, Microsoft.Extensions.Localization.IStringLocalizer<SharedResource> localizer)
     {
         _context = context;
         _logger = logger;
+        _localizer = localizer;
     }
 
     private DateTime GetDynamicSeasonEndDate()
@@ -28,8 +30,17 @@ public class ScheduleService
     public async Task GenerateCalendarAsync(int leagueId, ScheduleMode mode)
     {
         var league = await _context.Leagues.Include(l => l.Teams).FirstOrDefaultAsync(l => l.Id == leagueId);
-        if (league == null || league.Teams.Count < 2)
-            throw new Exception(ErrorCodes.NOT_ENOUGH_TEAMS);
+        
+        if (league == null)
+        {
+             throw new FluentValidation.ValidationException(_localizer["LeagueNotFound"]);
+        }
+
+        if (league.Teams.Count < 2)
+        {
+            var message = string.Format(_localizer["NotEnoughTeams"], league.Teams.Count);
+            throw new FluentValidation.ValidationException(message);
+        }
 
         // FETCH PLAYOFF SETTINGS
         var settings = await _context.LeagueSettings.FirstOrDefaultAsync(s => s.LeagueId == leagueId);

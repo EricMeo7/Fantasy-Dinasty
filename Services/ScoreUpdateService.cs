@@ -111,17 +111,14 @@ public class ScoreUpdateService : BackgroundService
                         
                         delayMinutes = 5; 
 
-                        // Aggiorniamo calendario e infortuni solo ogni 60 minuti (o se non fatto da molto)
-                        if (DateTime.UtcNow > _lastFullScheduleUpdate.AddMinutes(60))
+                        // Aggiorniamo calendario e infortuni solo ogni 6 ore (o 4 volte al giorno)
+                        if (DateTime.UtcNow > _lastFullScheduleUpdate.AddHours(6))
                         {
-                            _logger.LogInformation("Esecuzione manutenzione oraria (Calendario/Infortuni/Giocatori).");
+                            _logger.LogInformation("Esecuzione manutenzione periodica (6h) (Calendario/Infortuni/Giocatori).");
                             
-                            // Sync Giocatori (una volta al giorno)
-                            if (today > _lastPlayerSync.Date)
-                            {
-                                await nbaService.SyncPlayersAsync();
-                                _lastPlayerSync = DateTime.UtcNow;
-                            }
+                            // Sync Giocatori (Sempre quando scatta la manutenzione delle 6 ore)
+                            await nbaService.SyncPlayersAsync();
+                            _lastPlayerSync = DateTime.UtcNow;
 
                             // Update Calendario completo
                             await nbaService.UpdateDailyNbaSchedule(today.AddDays(-1));
