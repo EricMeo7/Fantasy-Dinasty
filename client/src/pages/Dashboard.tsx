@@ -18,6 +18,7 @@ import { CONFIG } from '../config';
 import LineupTimer from '../components/LineupTimer';
 import SEO from '../components/SEO/SEO';
 import LogoAvatar from '../components/LogoAvatar';
+import DonationBanner from '../components/DonationBanner';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -306,6 +307,10 @@ export default function Dashboard() {
             </div>
           )
         }
+
+        <div className="mt-16 md:mt-24">
+          <DonationBanner />
+        </div>
 
       </main>
     </div>

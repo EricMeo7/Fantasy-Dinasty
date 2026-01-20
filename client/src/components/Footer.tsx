@@ -33,6 +33,14 @@ export default function Footer() {
                         >
                             {t('footer.links.contact')}
                         </Link>
+                        <a
+                            href="https://ko-fi.com/fantasydynasty"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-blue-400 transition-colors"
+                        >
+                            Support Us
+                        </a>
                     </div>
 
                     {/* Meta Info */}

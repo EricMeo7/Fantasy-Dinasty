@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import {
     ChevronDown, LogOut,
     RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard, Book, Activity, Send,
-    ShoppingBag, Calendar, Trophy, Users
+    ShoppingBag, Calendar, Trophy, Users, Coffee
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLeagueStatus } from '../features/admin/api/useLeagueStatus';
@@ -18,6 +18,22 @@ interface UserLega {
     leagueName: string;
     myTeamName: string;
     isAdmin: boolean;
+}
+
+interface NavItem {
+    label: string;
+    path: string;
+    icon: React.ReactNode;
+    badge?: number;
+    isExternal?: boolean;
+}
+
+interface MacroArea {
+    key: string;
+    label: string;
+    icon: React.ReactNode;
+    color: string;
+    items: NavItem[];
 }
 
 export default function Navbar() {
@@ -119,7 +135,7 @@ export default function Navbar() {
     const marketPath = leagueStatus === 1 ? '/live-draft' : '/market';
 
     // --- MACRO AREAS CONFIGURATION ---
-    const macroAreas = [
+    const macroAreas: MacroArea[] = [
         {
             key: 'franchise',
             label: t('navbar.franchise'),
@@ -160,6 +176,7 @@ export default function Navbar() {
                 { label: t('navbar.player_stats'), path: '/pool', icon: <Activity size={16} /> },
                 { label: t('navbar.rules'), path: '/rules', icon: <Book size={16} /> },
                 { label: t('navbar.contact'), path: '/contact', icon: <Send size={16} /> },
+                { label: t('navbar.support'), path: 'https://ko-fi.com/fantasydynasty', icon: <Coffee size={16} />, isExternal: true },
             ]
         }
     ];
@@ -275,7 +292,14 @@ export default function Navbar() {
                                         {area.items.map((item) => (
                                             <button
                                                 key={item.path}
-                                                onClick={() => { navigate(item.path); setOpenDropdown(null); }}
+                                                onClick={() => {
+                                                    if (item.path.startsWith('http')) {
+                                                        window.open(item.path, '_blank');
+                                                    } else {
+                                                        navigate(item.path);
+                                                    }
+                                                    setOpenDropdown(null);
+                                                }}
                                                 className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left group/item relative overflow-hidden ${location.pathname === item.path ? `bg-${area.color}-600/10 text-white` : 'text-slate-300 hover:bg-white/5 hover:text-white'}`}
                                             >
                                                 <div className={`p-1.5 rounded-lg transition-colors ${location.pathname === item.path ? `bg-${area.color}-500 text-white` : `bg-slate-800 text-slate-400 group-hover/item:bg-${area.color}-500 group-hover/item:text-white`}`}>

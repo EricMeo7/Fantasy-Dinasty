@@ -856,7 +856,8 @@ export const it = {
             "free_agents": "Free Agents",
             "roster": "Roster",
             "resources": "Risorse",
-            "contact": "Contatti"
+            "contact": "Contatti",
+            "support": "Supportaci"
         },
         "rules": {
             "page_title": "Regolamento",
@@ -1100,6 +1101,10 @@ export const it = {
                 "min_ft_pct": "Min FT%"
             }
         },
-
+        "donation": {
+            "title": "Supporta il Server",
+            "description": "Fantasy Dynasty è un progetto indipendente e gratuito. Non ci sono vantaggi Pay-to-Win. Le donazioni servono esclusivamente a coprire i costi mensili dei server e del database per mantenere il gioco attivo e veloce per tutti.",
+            "cta": "Supporta il Server"
+        }
     }
 };

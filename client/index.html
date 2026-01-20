@@ -55,6 +55,15 @@
 <body>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+  <script src='https://storage.ko-fi.com/widget/scripts/overlay-widget.js'></script>
+  <script>
+    kofiWidgetOverlay.draw('fantasydynasty', {
+      'type': 'floating-chat',
+      'floating-chat.donatebutton.text': 'Support Us',
+      'floating-chat.donatebutton.background-color': '#2563eb',
+      'floating-chat.donatebutton.text-color': '#fff'
+    });
+  </script>
 </body>
 
 </html>
