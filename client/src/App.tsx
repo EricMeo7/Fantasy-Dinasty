@@ -85,6 +85,22 @@ function AppContent() {
   const noFooterRoutes = ['/login', '/forgot-password', '/reset-password', '/setup-profile'];
   const shouldHideFooter = noFooterRoutes.includes(location.pathname);
 
+  // KO-FI WIDGET HANDLING
+  // The widget is injected via index.html and is global. We need to hide it on pages where it obstructs UI (e.g. Trades)
+  useEffect(() => {
+    const kofiWidget = document.getElementById('kofi-widget-overlay-container');
+    if (kofiWidget) {
+      // Routes where the widget should be HIDDEN
+      const hideWidgetRoutes = ['/trades', '/draft', '/live-draft'];
+
+      if (hideWidgetRoutes.some(route => location.pathname.includes(route))) {
+        kofiWidget.style.display = 'none';
+      } else {
+        kofiWidget.style.display = 'block';
+      }
+    }
+  }, [location.pathname]);
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-200 font-sans">
       <Toaster
