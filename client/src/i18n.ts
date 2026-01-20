@@ -17,7 +17,7 @@ i18n
   .use(initReactI18next) // Passa i18n a React
   .init({
     resources,
-    fallbackLng: 'it', // Lingua di default se non ne trova altre
+    fallbackLng: 'en', // Lingua di default se non ne trova altre
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],

@@ -22,7 +22,7 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    const lng = localStorage.getItem('i18nextLng') || 'it';
+    const lng = localStorage.getItem('i18nextLng') || 'en';
     config.headers['Accept-Language'] = lng;
 
     // Se c'è una lega selezionata, aggiungi l'header custom
