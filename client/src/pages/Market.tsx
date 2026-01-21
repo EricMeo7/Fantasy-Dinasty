@@ -10,11 +10,9 @@ import BidModal from '../components/BidModal';
 import SEO from '../components/SEO/SEO';
 import { CardSkeleton } from '../components/SkeletonLoaders';
 import { EmptyState } from '../components/EmptyState';
-
-import { useMyRoster } from '../features/roster/api/useMyRoster';
 import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
-import { RosterValidator } from '../utils/RosterValidator';
-import { useModal } from '../context/ModalContext';
+import { useMyRoster } from '../features/roster/api/useMyRoster';
+
 
 export default function Market() {
     const { t } = useTranslation();
@@ -23,6 +21,8 @@ export default function Market() {
     // Server State
     const { data: staticPlayers = [], isLoading: isStaticLoading } = useFreeAgents();
     const { data: activeAuctions = [], refetch: refetchAuctions } = useActiveAuctions();
+    const { data: myPlayers = [] } = useMyRoster();
+    const { data: leagueSettings } = useLeagueSettings();
 
     const isInitialLoading = isStaticLoading && staticPlayers.length === 0;
 
@@ -104,35 +104,10 @@ export default function Market() {
 
 
     // Validation Dependencies
-    const { data: myRoster } = useMyRoster();
-    const { data: leagueSettings } = useLeagueSettings();
-    const { showAlert } = useModal();
 
     const openDetails = (player: any) => { setSelectedDetailsPlayer(player); setIsDetailsOpen(true); };
 
     const openBidModal = (player: any) => {
-        // Validation: Can I fit this player?
-        if (leagueSettings && myRoster) {
-            const validation = RosterValidator.canAddPlayer(
-                myRoster.map((p: any) => ({ id: p.id, position: p.position })),
-                { id: player.id, position: player.position },
-                {
-                    guards: leagueSettings.roleLimitGuards || 5,
-                    forwards: leagueSettings.roleLimitForwards || 5,
-                    centers: leagueSettings.roleLimitCenters || 3
-                }
-            );
-
-            if (!validation.valid) {
-                showAlert({
-                    title: t('draft.roster_limit_exceeded'),
-                    message: validation.reason || t('draft.roster_full_msg'),
-                    type: "error"
-                });
-                return;
-            }
-        }
-
         setBidPlayer(player);
         setIsBidOpen(true);
     }
@@ -173,6 +148,20 @@ export default function Market() {
                         <div className="flex items-center gap-4 mt-3">
                             <p className="text-slate-400 font-medium text-lg leading-none">{t('market.market_description')}</p>
                             <div className="h-px flex-1 bg-slate-800/50"></div>
+                            {leagueSettings && (
+                                <div className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl flex items-center gap-3 shadow-inner whitespace-nowrap">
+                                    <Users size={16} className="text-blue-500" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1">{t('draft.roster_size')}</span>
+                                        <span className="text-sm font-black text-white leading-none italic font-mono">
+                                            {myPlayers.length}
+                                            <span className="text-[10px] text-slate-700 ml-1">
+                                                / {(leagueSettings.roleLimitGuards || 0) + (leagueSettings.roleLimitForwards || 0) + (leagueSettings.roleLimitCenters || 0)}
+                                            </span>
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

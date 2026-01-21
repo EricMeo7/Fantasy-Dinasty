@@ -5,6 +5,8 @@ import { useAcceptTrade } from '../api/useAcceptTrade';
 import { useRejectTrade } from '../api/useRejectTrade';
 import { CONFIG } from '../../../config';
 import { CheckCircle2, Clock, Loader2, ArrowRight, ShieldAlert, Sparkles, XCircle } from 'lucide-react';
+import { useModal } from '../../../context/ModalContext';
+import { useErrorTranslation } from '../../../hooks/useErrorTranslation';
 import LogoAvatar from '../../../components/LogoAvatar';
 
 interface TradeCardProps {
@@ -15,6 +17,8 @@ export const TradeCard: React.FC<TradeCardProps> = ({ trade }) => {
     const { t } = useTranslation();
     const { mutate: accept, isPending: isAccepting } = useAcceptTrade();
     const { mutate: reject, isPending: isRejecting } = useRejectTrade();
+    const { showAlert } = useModal();
+    const { translateError } = useErrorTranslation();
 
     const actionLoading = isAccepting || isRejecting;
 
@@ -132,12 +136,20 @@ export const TradeCard: React.FC<TradeCardProps> = ({ trade }) => {
                                 {t('trades.reject_request')}
                             </button>
                             <button
-                                onClick={() => accept(trade.id)}
+                                onClick={() => accept(trade.id, {
+                                    onError: (e: any) => {
+                                        const code = e.response?.data?.message || e.response?.data || 'UNKNOWN_ERROR';
+                                        showAlert({
+                                            title: t('common.error'),
+                                            message: translateError(code),
+                                            type: 'error'
+                                        });
+                                    }
+                                })}
                                 disabled={actionLoading}
                                 className="px-14 py-5 bg-emerald-600 hover:bg-emerald-550 border-t border-white/10 text-white rounded-2xl text-[11px] font-black uppercase italic tracking-tighter shadow-[0_15px_35px_rgba(16,185,129,0.3)] transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-30"
                             >
-                                {
-                                    isAccepting ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
+                                {isAccepting ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
                                 {t('trades.execute_agreement')}
                             </button>
                         </>
@@ -156,6 +168,6 @@ export const TradeCard: React.FC<TradeCardProps> = ({ trade }) => {
                     )
                 }
             </div>
-        </div>
+        </div >
     );
 };

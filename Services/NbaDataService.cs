@@ -110,17 +110,22 @@ public class NbaDataService : INbaDataService
         // 1. Scarica mappa dati fisici (Altezza/Peso/Ruolo)
         var bioMap = await GetPlayerBioMapAsync(currentSeason);
 
-        // 2. Processa stagione corrente (Aggiorna tabella Players)
-        await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, bioMap, _cachedSettings!);
+        // 2. Scarica mappa completa roster (Team per TUTTI i giocatori attivi, anche con 0 GP)
+        var rosterMap = await GetAllPlayersRosterMapAsync(currentSeason);
 
-        // 3. Processa storico (Aggiorna tabella PlayerSeasonStats per gli ultimi 5 anni)
+        // 3. Processa stagione corrente (Aggiorna tabella Players)
+        await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, bioMap, rosterMap, _cachedSettings!);
+
+        // 4. Processa storico (Aggiorna tabella PlayerSeasonStats per gli ultimi 5 anni)
         // OTTIMIZZAZIONE: Esegui solo il 1° del mese per risparmiare bandwidth
         if (DateTime.UtcNow.Day == 1)
         {
             foreach (var season in historySeasons)
             {
                 _logger.LogInformation($"Sync Storico: {season}...");
-                await ProcessSeasonAsync(context, season, isCurrentSeason: false, bioMap, _cachedSettings!);
+                var historicalBioMap = await GetPlayerBioMapAsync(season);
+                var historicalRosterMap = await GetAllPlayersRosterMapAsync(season);
+                await ProcessSeasonAsync(context, season, isCurrentSeason: false, historicalBioMap, historicalRosterMap, _cachedSettings!);
                 await Task.Delay(5000); // 5s delay to avoid Rate Limiting / IP excessive usage
             }
         }
@@ -730,8 +735,7 @@ public class NbaDataService : INbaDataService
     // --- HELPER PRIVATI (PARSING E UTILITY) ---
 
     // Questo metodo è lungo perché deve mappare decine di colonne statistiche
-    // Questo metodo è lungo perché deve mappare decine di colonne statistiche
-    private async Task ProcessSeasonAsync(ApplicationDbContext context, string season, bool isCurrentSeason, Dictionary<int, PlayerBio> bioMap, LeagueSettings settings)
+    private async Task ProcessSeasonAsync(ApplicationDbContext context, string season, bool isCurrentSeason, Dictionary<int, PlayerBio> bioMap, Dictionary<int, string> rosterMap, LeagueSettings settings)
     {
         var url = string.Format(URL_LEAGUE_DASH, season);
 
@@ -800,11 +804,57 @@ public class NbaDataService : INbaDataService
             // Lista temporanea per le stats: (ExternalId, StatObject)
             var statsToSync = new List<(int ExtId, PlayerSeasonStat Stat)>();
 
+            // STEP 1: PRE-INITIALIZE ALL ROSTERED PLAYERS (including 0 GP players)
+            // This ensures EVERY active player has Team + Position, even if they haven't played yet
+            if (isCurrentSeason && rosterMap.Any())
+            {
+                _logger.LogInformation($"Pre-initializing {rosterMap.Count} rostered players from commonallplayers");
+                var existingPlayerIds = await context.Players
+                    .Where(p => rosterMap.Keys.Contains(p.ExternalId))
+                    .Select(p => p.ExternalId)
+                    .ToListAsync();
+
+                foreach (var (externalId, teamName) in rosterMap)
+                {
+                    // Skip if this player will be updated by stats (has played games)
+                    // We'll handle them in the main loop below
+                    // For now, just ensure all 0 GP players exist
+                    if (!existingPlayerIds.Contains(externalId))
+                    {
+                        // This is a new player (probably 0 GP)
+                        var p = new Player
+                        {
+                            ExternalId = externalId,
+                            FirstName = "Unknown", // Will be updated if stats arrive
+                            LastName = $"Player {externalId}",
+                            NbaTeam = teamName,
+                            Position = bioMap.TryGetValue(externalId, out var bio) ? bio.Position : "F",
+                            Height = bio.Height ?? "",
+                            Weight = bio.Weight ?? "",
+                            GamesPlayed = 0
+                            // All stats default to 0
+                        };
+                        playersToUpsert.Add(p);
+                    }
+                }
+            }
+
+            // STEP 2: ENRICH WITH ACTUAL STATS from leaguedashplayerstats
+            var statsExternalIds = new HashSet<int>();
+
             foreach (var row in rows)
             {
                 int externalId = GetInt(row, idxId);
+                statsExternalIds.Add(externalId); // Track as having stats
+                
                 string fullName = row[idxName].ValueKind == JsonValueKind.String ? row[idxName].GetString() ?? "Unknown" : "Unknown";
-                string teamName = (row[idxTeam].ValueKind == JsonValueKind.String) ? row[idxTeam].GetString() ?? "FA" : "FA";
+                
+                // PREFER TEAM from rosterMap (source of truth for roster assignments)
+                // Fallback to leaguedashplayerstats if not in rosterMap
+                string teamName = rosterMap.TryGetValue(externalId, out var rosterTeam)
+                    ? rosterTeam
+                    : (row[idxTeam].ValueKind == JsonValueKind.String ? row[idxTeam].GetString() ?? "FA" : "FA");
+                    
                 int gamesPlayed = GetInt(row, idxGp);
                 
                 // Stats Parsing
@@ -981,6 +1031,52 @@ public class NbaDataService : INbaDataService
         }
         catch { }
         return bioMap;
+    }
+
+    // Fetches complete roster map from commonallplayers (includes ALL active players, even with 0 GP)
+    private async Task<Dictionary<int, string>> GetAllPlayersRosterMapAsync(string season)
+    {
+        // CACHING ROSTER MAP (24H Cache - roster changes are infrequent)
+        if (_cache.TryGetValue($"roster_{season}", out Dictionary<int, string>? cachedRoster)) return cachedRoster!;
+
+        var rosterMap = new Dictionary<int, string>();
+        var url = string.Format(URL_ALL_PLAYERS, season);
+
+        try
+        {
+            var client = _clientFactory.CreateClient("NbaStats");
+            var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode) return rosterMap;
+
+            var json = await response.Content.ReadAsStringAsync();
+            var data = JsonSerializer.Deserialize<NbaStatsResponse>(json);
+            if (data?.ResultSets == null || !data.ResultSets.Any()) return rosterMap;
+
+            var rows = data.ResultSets[0].RowSet;
+            var headers = data.ResultSets[0].Headers;
+            
+            int idxId = headers.IndexOf("PERSON_ID");
+            int idxTeam = headers.IndexOf("TEAM_ABBREVIATION");
+
+            foreach (var row in rows)
+            {
+                if (idxId == -1) continue;
+                int id = row[idxId].GetInt32();
+                string team = (idxTeam != -1 && row[idxTeam].ValueKind == JsonValueKind.String)
+                    ? row[idxTeam].GetString() ?? "FA"
+                    : "FA";
+                rosterMap[id] = team;
+            }
+
+            _cache.Set($"roster_{season}", rosterMap, TimeSpan.FromHours(24));
+            _logger.LogInformation($"Loaded {rosterMap.Count} players from commonallplayers for season {season}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to fetch commonallplayers: {ex.Message}");
+        }
+
+        return rosterMap;
     }
 
 

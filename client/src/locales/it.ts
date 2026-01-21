@@ -46,7 +46,7 @@ export const it = {
             "error_internal_error": "Si è verificato un errore interno del server.",
             "error_team_not_found": "Il tuo team non è stato trovato in questa lega.",
             "error_insufficient_budget": "Budget insufficiente per completare l'operazione.",
-            "error_roster_full": "Roster pieno. Devi tagliare un giocatore prima.",
+            "error_roster_full": "Limite roster raggiunto per questo ruolo o squadra piena.",
             "error_auction_not_found": "Asta non trovata o già terminata.",
             "error_auction_in_progress": "C'è già un'asta in corso.",
             "error_not_your_turn": "Non è il tuo turno di nomina.",

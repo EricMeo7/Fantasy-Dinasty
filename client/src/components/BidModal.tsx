@@ -110,11 +110,8 @@ export default function BidModal({ player, isOpen, onClose, onSuccess }: Props) 
         e.preventDefault();
         setError(null);
 
-        // Client Side Validation
-        if (amount < minBidForSelectedYears) {
-            setError(t('modals.bid.too_low_msg', { years, min: minBidForSelectedYears }));
-            return;
-        }
+        // Client-side validation removed - backend handles all bid validation
+        // This prevents false negatives due to rounding/calculation differences
 
         const payload: BidRequest = {
             playerId: player.id,

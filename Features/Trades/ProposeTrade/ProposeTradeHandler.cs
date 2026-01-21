@@ -32,6 +32,39 @@ public class ProposeTradeHandler : IRequestHandler<ProposeTradeCommand, Result<i
         try
         {
             await _auctionService.ValidateTradeFinancials(offers, request.LeagueId);
+
+            // 2b. Roster Limit Validation
+            var involvedRecipients = offers.Select(o => o.ToUserId).Distinct().ToList();
+            foreach (var recipientUserId in involvedRecipients)
+            {
+                var incomingPlayers = offers.Where(o => o.ToUserId == recipientUserId).Select(o => o.PlayerId).ToList();
+                var outgoingPlayers = offers.Where(o => o.FromUserId == recipientUserId).Select(o => o.PlayerId).ToList();
+
+                var currentContracts = await _context.Contracts
+                    .Where(c => c.Team.UserId == recipientUserId && c.Team.LeagueId == request.LeagueId)
+                    .Select(c => new { c.PlayerId, c.Player.Position })
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                var positionsAfterTrade = currentContracts
+                    .Where(c => !outgoingPlayers.Contains(c.PlayerId))
+                    .Select(c => c.Position)
+                    .ToList();
+
+                var incomingPositions = await _context.Players
+                    .Where(p => incomingPlayers.Contains(p.Id))
+                    .Select(p => p.Position)
+                    .AsNoTracking()
+                    .ToListAsync();
+                
+                positionsAfterTrade.AddRange(incomingPositions);
+
+                var validationResult = await _auctionService.ValidateRosterStateAsync(positionsAfterTrade, request.LeagueId);
+                if (!validationResult.IsSuccess)
+                {
+                    return Result<int>.Failure(validationResult.Error ?? ErrorCodes.INTERNAL_ERROR);
+                }
+            }
         }
         catch (InvalidOperationException ex)
         {

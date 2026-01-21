@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowLeftRight, Sparkles, Users, X } from 'lucide-react';
 import { useProposeTrade } from '../api/useProposeTrade';
 import { useModal } from '../../../context/ModalContext';
+import { useErrorTranslation } from '../../../hooks/useErrorTranslation';
 import { PremiumSelect } from '../../../components/PremiumSelect';
 import { PlayerRow } from './PlayerRow';
 import { StickyTradeBar } from './StickyTradeBar';
@@ -51,6 +52,7 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, myTeamId, onS
     const [targetTeamIds, setTargetTeamIds] = useState<string[]>([]);
     const { mutate: propose, isPending } = useProposeTrade();
     const { showAlert, showConfirm } = useModal();
+    const { translateError } = useErrorTranslation();
 
     const myRoster = teams.find(t => {
         const teamId = t.userId || String(t.id);
@@ -135,8 +137,12 @@ export const TradeBuilder: React.FC<TradeBuilderProps> = ({ teams, myTeamId, onS
                 onSuccess();
             },
             onError: (e: any) => {
-                const msg = e.response?.data?.message || e.response?.data || t('common.error');
-                showAlert({ title: t('common.error'), message: t('error.trade_proposal_failed') + ":\n" + msg, type: 'error' });
+                const code = e.response?.data?.message || e.response?.data || 'UNKNOWN_ERROR';
+                showAlert({
+                    title: t('common.error'),
+                    message: t('error.trade_proposal_failed') + ":\n" + translateError(code),
+                    type: 'error'
+                });
             }
         });
     };

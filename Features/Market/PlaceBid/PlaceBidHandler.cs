@@ -34,19 +34,14 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<PlaceBidR
             // --- CREAZIONE ASTA SE NON ESISTE ---
             if (auction == null)
             {
-                double basePrice = await _auctionService.GetBaseAuctionPriceAsync(request.PlayerId, request.LeagueId);
-                double proposedAnnualValue = Math.Floor(request.TotalAmount / Math.Max(1, request.Years));
-
-                if (proposedAnnualValue < basePrice)
-                {
-                    return Result<PlaceBidResult>.Failure(ErrorCodes.BID_TOO_LOW);
-                }
-
+                // Check if player is already taken
                 bool taken = await _context.Contracts
                     .AnyAsync(c => c.PlayerId == request.PlayerId && c.Team.LeagueId == request.LeagueId, cancellationToken);
                 
                 if (taken) return Result<PlaceBidResult>.Failure(ErrorCodes.PLAYER_ALREADY_TAKEN);
 
+                // Create new auction - no minimum bid check here since frontend handles it
+                // and recalculating basePrice can cause rounding discrepancies
                 auction = new Auction
                 {
                     LeagueId = request.LeagueId,

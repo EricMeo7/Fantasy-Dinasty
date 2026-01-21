@@ -56,7 +56,7 @@ export const en = {
             "error_internal_error": "Internal server error occurred.",
             "error_team_not_found": "Your team was not found in this league.",
             "error_insufficient_budget": "Insufficient budget to complete the operation.",
-            "error_roster_full": "Roster is full. You must release a player first.",
+            "error_roster_full": "Cannot acquire: Roster limit reached.",
             "error_auction_not_found": "Auction not found or already closed.",
             "error_auction_in_progress": "An auction is already in progress.",
             "error_not_your_turn": "It's not your turn to nominate.",

@@ -11,9 +11,8 @@ import { useTranslation } from 'react-i18next';
 import { useErrorTranslation } from '../hooks/useErrorTranslation';
 import SEO from '../components/SEO/SEO';
 import { PremiumSelect } from '../components/PremiumSelect';
-import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
-import { RosterValidator } from '../utils/RosterValidator';
 import LogoAvatar from '../components/LogoAvatar';
+import { useLeagueSettings } from '../features/admin/api/useLeagueSettings';
 
 const HUB_URL = `${CONFIG.HUB_BASE_URL}/drafthub`;
 
@@ -71,13 +70,12 @@ export default function LiveDraft() {
     const [selectedPlayerForNomination, setSelectedPlayerForNomination] = useState<any>(null);
     const [isNominationModalOpen, setIsNominationModalOpen] = useState(false);
     const [isBidModalOpen, setIsBidModalOpen] = useState(false);
+    const { data: leagueSettings } = useLeagueSettings();
 
     const navigate = useNavigate();
     const { showAlert, showConfirm } = useModal();
     const isConnecting = useRef(false);
 
-    // Settings for Validation
-    const { data: leagueSettings } = useLeagueSettings();
 
     const toggleTeamExpand = (teamId: string) => {
         setExpandedTeamId(expandedTeamId === teamId ? null : teamId);
@@ -133,6 +131,55 @@ export default function LiveDraft() {
                 if (state.currentPlayerId) {
                     setMyBidAmount(state.currentBidTotal + 1);
                     setMyBidYears(state.currentBidYears);
+                }
+            });
+
+            // Lightweight bid update handler (reduced payload ~2KB vs ~50KB)
+            connection.on('BidUpdate', (update: {
+                currentBidTotal: number;
+                currentBidYears: number;
+                currentBidYear1: number;
+                highBidderId: string;
+                highBidderName: string;
+                bidEndTime: string;
+                updatedBudgets: { userId: string; teamName: string; remainingBudget: number; rosterCount: number }[];
+            }) => {
+                setDraftState(prev => {
+                    if (!prev) return prev;
+
+                    // Update bid information
+                    const updated = {
+                        ...prev,
+                        currentBidTotal: update.currentBidTotal,
+                        currentBidYears: update.currentBidYears,
+                        currentBidYear1: update.currentBidYear1,
+                        highBidderId: update.highBidderId,
+                        highBidderName: update.highBidderName,
+                        bidEndTime: update.bidEndTime,
+                    };
+
+                    // Update budgets for affected teams only
+                    if (update.updatedBudgets && update.updatedBudgets.length > 0) {
+                        updated.teams = prev.teams.map(team => {
+                            const budgetUpdate = update.updatedBudgets.find(u => u.userId === team.userId);
+                            if (budgetUpdate) {
+                                return {
+                                    ...team,
+                                    remainingBudget: budgetUpdate.remainingBudget,
+                                    rosterCount: budgetUpdate.rosterCount
+                                };
+                            }
+                            return team;
+                        });
+                    }
+
+                    return updated;
+                });
+
+                // Update my bid form
+                if (update.currentBidTotal) {
+                    setMyBidAmount(update.currentBidTotal + 1);
+                    setMyBidYears(update.currentBidYears);
                 }
             });
 
@@ -207,26 +254,6 @@ export default function LiveDraft() {
 
     const handleConfirmNomination = async (player: any) => {
         setIsNominationModalOpen(false);
-        // Validation: Can I fit this player?
-        if (leagueSettings) {
-            const myTeam = draftState?.teams.find(t => t.userId === getMyIdFromToken());
-            if (myTeam) {
-                const validation = RosterValidator.canAddPlayer(
-                    myTeam.players.map(p => ({ id: 0, position: p.position })), // Map to simple input
-                    { id: player.id, position: player.position },
-                    {
-                        guards: leagueSettings.roleLimitGuards,
-                        forwards: leagueSettings.roleLimitForwards,
-                        centers: leagueSettings.roleLimitCenters
-                    }
-                );
-
-                if (!validation.valid) {
-                    showAlert({ title: "Roster Limit", message: t('draft.roster_full_msg') || validation.reason || "Roster Full", type: "error" });
-                    return;
-                }
-            }
-        }
 
         // Use minBid from API if available (simulating FreeAgent logic), otherwise fallback
         const startBid = Math.max(1, player.minBid || Math.round(player.avgPoints || 1));
@@ -236,29 +263,6 @@ export default function LiveDraft() {
     const handleBid = async () => {
         if (!draftState) return;
 
-        // Validation: Can I fit current player?
-        if (leagueSettings && draftState.currentPlayerId) {
-            const myTeam = draftState.teams.find(t => t.userId === getMyIdFromToken());
-            // Try to find position. If not in freeAgents, we skip Local Validation (fallback to Backend).
-            const player = freeAgents.find(p => p.id === draftState.currentPlayerId);
-
-            if (myTeam && player) {
-                const validation = RosterValidator.canAddPlayer(
-                    myTeam.players.map(p => ({ id: 0, position: p.position })),
-                    { id: player.id, position: player.position },
-                    {
-                        guards: leagueSettings.roleLimitGuards,
-                        forwards: leagueSettings.roleLimitForwards,
-                        centers: leagueSettings.roleLimitCenters
-                    }
-                );
-
-                if (!validation.valid) {
-                    showAlert({ title: "Roster Limit", message: t('draft.roster_full_msg') || validation.reason || "Roster Full", type: "error" });
-                    return;
-                }
-            }
-        }
 
         await connection?.invoke('Bid', Number(myBidAmount), Number(myBidYears));
     };
@@ -414,16 +418,14 @@ export default function LiveDraft() {
                                 </div>
                                 <div className="text-center md:text-right">
                                     <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1">{t('draft.roster_size')}</p>
-                                    {(() => {
-                                        const totalSlots = (leagueSettings?.roleLimitGuards || 5) +
-                                            (leagueSettings?.roleLimitForwards || 5) +
-                                            (leagueSettings?.roleLimitCenters || 3);
-                                        return (
-                                            <p className="text-sm md:text-lg font-black italic text-white leading-none">
-                                                {myTeam.rosterCount} <span className="text-xs">/ {totalSlots}</span>
-                                            </p>
-                                        );
-                                    })()}
+                                    <p className="text-sm md:text-lg font-black italic text-white leading-none">
+                                        {myTeam.rosterCount}
+                                        {leagueSettings && (
+                                            <span className="text-[10px] text-slate-700 ml-1">
+                                                / {(leagueSettings.roleLimitGuards || 0) + (leagueSettings.roleLimitForwards || 0) + (leagueSettings.roleLimitCenters || 0)}
+                                            </span>
+                                        )}
+                                    </p>
                                 </div>
                             </div>
                         </div>
