@@ -107,14 +107,14 @@ public class NbaDataService : INbaDataService
         
         await EnsureSettingsLoadedAsync(context);
 
-        // 1. Scarica mappa dati fisici (Altezza/Peso/Ruolo)
+        // 1. Scarica MASTER REGISTRY (Source of Truth per ID, Name, Team)
+        var registry = await GetAllPlayersRegistryAsync(currentSeason);
+
+        // 2. Scarica mappa dati fisici (Position/Altezza/Peso)
         var bioMap = await GetPlayerBioMapAsync(currentSeason);
 
-        // 2. Scarica mappa completa roster (Team per TUTTI i giocatori attivi, anche con 0 GP)
-        var rosterMap = await GetAllPlayersRosterMapAsync(currentSeason);
-
         // 3. Processa stagione corrente (Aggiorna tabella Players)
-        await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, bioMap, rosterMap, _cachedSettings!);
+        await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, registry, bioMap, _cachedSettings!);
 
         // 4. Processa storico (Aggiorna tabella PlayerSeasonStats per gli ultimi 5 anni)
         // OTTIMIZZAZIONE: Esegui solo il 1° del mese per risparmiare bandwidth
@@ -123,9 +123,9 @@ public class NbaDataService : INbaDataService
             foreach (var season in historySeasons)
             {
                 _logger.LogInformation($"Sync Storico: {season}...");
+                var historicalRegistry = await GetAllPlayersRegistryAsync(season);
                 var historicalBioMap = await GetPlayerBioMapAsync(season);
-                var historicalRosterMap = await GetAllPlayersRosterMapAsync(season);
-                await ProcessSeasonAsync(context, season, isCurrentSeason: false, historicalBioMap, historicalRosterMap, _cachedSettings!);
+                await ProcessSeasonAsync(context, season, isCurrentSeason: false, historicalRegistry, historicalBioMap, _cachedSettings!);
                 await Task.Delay(5000); // 5s delay to avoid Rate Limiting / IP excessive usage
             }
         }
@@ -735,7 +735,7 @@ public class NbaDataService : INbaDataService
     // --- HELPER PRIVATI (PARSING E UTILITY) ---
 
     // Questo metodo è lungo perché deve mappare decine di colonne statistiche
-    private async Task ProcessSeasonAsync(ApplicationDbContext context, string season, bool isCurrentSeason, Dictionary<int, PlayerBio> bioMap, Dictionary<int, string> rosterMap, LeagueSettings settings)
+    private async Task ProcessSeasonAsync(ApplicationDbContext context, string season, bool isCurrentSeason, Dictionary<int, PlayerRegistryEntry> registry, Dictionary<int, PlayerBio> bioMap, LeagueSettings settings)
     {
         var url = string.Format(URL_LEAGUE_DASH, season);
 
@@ -799,61 +799,49 @@ public class NbaDataService : INbaDataService
                 } catch { return 0; }
             }
 
-            // --- OTTIMIZZAZIONE BATCH (UPSERT) ---
-            var playersToUpsert = new List<Player>();
-            // Lista temporanea per le stats: (ExternalId, StatObject)
+            // --- REGISTRY-FIRST PLAYER PROCESSING ---
+            var playerDict = new Dictionary<int, Player>();
             var statsToSync = new List<(int ExtId, PlayerSeasonStat Stat)>();
 
-            // STEP 1: PRE-INITIALIZE ALL ROSTERED PLAYERS (including 0 GP players)
-            // This ensures EVERY active player has Team + Position, even if they haven't played yet
-            if (isCurrentSeason && rosterMap.Any())
+            // STEP 1: INITIALIZE ALL PLAYERS from MASTER REGISTRY (commonallplayers)
+            // This is the SOURCE OF TRUTH for: ExternalId, FirstName, LastName, Team
+            if (isCurrentSeason && registry.Any())
             {
-                _logger.LogInformation($"Pre-initializing {rosterMap.Count} rostered players from commonallplayers");
-                var existingPlayerIds = await context.Players
-                    .Where(p => rosterMap.Keys.Contains(p.ExternalId))
-                    .Select(p => p.ExternalId)
-                    .ToListAsync();
-
-                foreach (var (externalId, teamName) in rosterMap)
+                _logger.LogInformation($"Initializing {registry.Count} players from master registry (REGISTRY-FIRST approach)");
+                
+                foreach (var (externalId, registryEntry) in registry)
                 {
-                    // Skip if this player will be updated by stats (has played games)
-                    // We'll handle them in the main loop below
-                    // For now, just ensure all 0 GP players exist
-                    if (!existingPlayerIds.Contains(externalId))
+                    // Get bio data for Position/Height/Weight
+                    bioMap.TryGetValue(externalId, out var bio);
+                    
+                    // Create player with REGISTRY data as foundation (NOT stats!)
+                    var p = new Player
                     {
-                        // This is a new player (probably 0 GP)
-                        var p = new Player
-                        {
-                            ExternalId = externalId,
-                            FirstName = "Unknown", // Will be updated if stats arrive
-                            LastName = $"Player {externalId}",
-                            NbaTeam = teamName,
-                            Position = bioMap.TryGetValue(externalId, out var bio) ? bio.Position : "F",
-                            Height = bio.Height ?? "",
-                            Weight = bio.Weight ?? "",
-                            GamesPlayed = 0
-                            // All stats default to 0
-                        };
-                        playersToUpsert.Add(p);
-                    }
+                        ExternalId = externalId,
+                        FirstName = registryEntry.FirstName,   // ✅ From REGISTRY (not "Unknown")
+                        LastName = registryEntry.LastName,     // ✅ From REGISTRY  
+                        NbaTeam = registryEntry.Team,          // ✅ From REGISTRY
+                        Position = bio.Position ?? "F",        // From bioMap
+                        Height = bio.Height ?? "",
+                        Weight = bio.Weight ?? "",
+                        GamesPlayed = 0
+                        // All stats default to 0 (will be enriched if player has stats)
+                    };
+                    
+                    playerDict[externalId] = p;
                 }
             }
 
-            // STEP 2: ENRICH WITH ACTUAL STATS from leaguedashplayerstats
-            var statsExternalIds = new HashSet<int>();
-
+            // STEP 2: ENRICH WITH STATS from leaguedashplayerstats
+            // For players with game time, overlay their statistics (DO NOT override names - registry is source of truth)
             foreach (var row in rows)
             {
                 int externalId = GetInt(row, idxId);
-                statsExternalIds.Add(externalId); // Track as having stats
                 
-                string fullName = row[idxName].ValueKind == JsonValueKind.String ? row[idxName].GetString() ?? "Unknown" : "Unknown";
-                
-                // PREFER TEAM from rosterMap (source of truth for roster assignments)
-                // Fallback to leaguedashplayerstats if not in rosterMap
-                string teamName = rosterMap.TryGetValue(externalId, out var rosterTeam)
-                    ? rosterTeam
-                    : (row[idxTeam].ValueKind == JsonValueKind.String ? row[idxTeam].GetString() ?? "FA" : "FA");
+                // Get team from stats API (used for season stats, not player record)
+                string teamName = (row[idxTeam].ValueKind == JsonValueKind.String) 
+                    ? row[idxTeam].GetString() ?? "FA" 
+                    : "FA";
                     
                 int gamesPlayed = GetInt(row, idxGp);
                 
@@ -866,7 +854,6 @@ public class NbaDataService : INbaDataService
                 double tov = GetVal(row, idxTov);
                 double min = GetVal(row, idxMin);
                 double pf = GetInt(row, idxPf);
-                // double fpts = ... (Replaced by Calculator below)
                 
                 // Advanced & Shooting
                 double fgm = GetVal(row, idxFgm); double fga = GetVal(row, idxFga); double fgPct = GetVal(row, idxFgPct);
@@ -878,47 +865,69 @@ public class NbaDataService : INbaDataService
                 
                 double efficiency = Math.Round((pts + reb + ast + stl + blk) - (fga - fgm) - (fta - ftm) - tov, 1);
                 
-                // Use Shared Calculator (fetch settings once at start of method)
                 double fpts = FantasyPointCalculator.Calculate(
                     pts, reb, ast, stl, blk, tov,
                     fgm, fga, ftm, fta, tpm, tpa,
                     oreb, dreb,
-                    false, // Won handled manually
+                    false,
                     settings
                 ) + (wpct * settings.WinWeight) + ((1.0 - wpct) * settings.LossWeight);
 
                 if (isCurrentSeason)
                 {
-                    var names = fullName.Split(' ');
-                    var firstName = names[0].Replace("'", "''"); // Simple SQL escape for later
-                    var lastName = (names.Length > 1 ? string.Join(" ", names.Skip(1)) : "").Replace("'", "''");
-
-                    var p = new Player
+                    // Check if player exists in dictionary (from registry)
+                    if (playerDict.TryGetValue(externalId, out var existing))
                     {
-                        ExternalId = externalId,
-                        FirstName = firstName,
-                        LastName = lastName,
-                        NbaTeam = teamName,
-                        GamesPlayed = gamesPlayed,
-                        AvgPoints = pts, AvgRebounds = reb, AvgAssists = ast,
-                        AvgSteals = stl, AvgBlocks = blk, AvgMinutes = min,
-                        AvgTurnovers = tov, PersonalFouls = pf,
-                        Fgm = fgm, Fga = fga, FgPercent = fgPct,
-                        ThreePm = tpm, ThreePa = tpa, ThreePtPercent = tpPct,
-                        Ftm = ftm, Fta = fta, FtPercent = ftPct,
-                        OffRebounds = oreb, DefRebounds = dreb,
-                        PlusMinus = pm, WinPct = wpct,
-                        DoubleDoubles = dd, TripleDoubles = td,
-                        FantasyPoints = fpts,
-                        Efficiency = efficiency
-                    };
-                    
-                    if (bioMap.TryGetValue(externalId, out var bio))
-                    {
-                        p.Position = bio.Position; p.Height = bio.Height; p.Weight = bio.Weight;
+                        // ENRICH existing entry with STATS ONLY (DO NOT override name - registry is source!)
+                        existing.GamesPlayed = gamesPlayed;
+                        existing.AvgPoints = pts; existing.AvgRebounds = reb; existing.AvgAssists = ast;
+                        existing.AvgSteals = stl; existing.AvgBlocks = blk; existing.AvgMinutes = min;
+                        existing.AvgTurnovers = tov; existing.PersonalFouls = pf;
+                        existing.Fgm = fgm; existing.Fga = fga; existing.FgPercent = fgPct;
+                        existing.ThreePm = tpm; existing.ThreePa = tpa; existing.ThreePtPercent = tpPct;
+                        existing.Ftm = ftm; existing.Fta = fta; existing.FtPercent = ftPct;
+                        existing.OffRebounds = oreb; existing.DefRebounds = dreb;
+                        existing.PlusMinus = pm; existing.WinPct = wpct;
+                        existing.DoubleDoubles = dd; existing.TripleDoubles = td;
+                        existing.FantasyPoints = fpts;
+                        existing.Efficiency = efficiency;
+                        // FirstName, LastName, Team, Position already set from registry/bioMap - DO NOT OVERRIDE
                     }
-
-                    playersToUpsert.Add(p);
+                    else
+                    {
+                        // Player NOT in registry (edge case - manually added or API mismatch)
+                        string fullName = row[idxName].ValueKind == JsonValueKind.String ? row[idxName].GetString() ?? "Unknown" : "Unknown";
+                        var names = fullName.Split(' ');
+                        string firstName = names[0].Replace("'", "''");
+                        string lastName = (names.Length > 1 ? string.Join(" ", names.Skip(1)) : "").Replace("'", "''");
+                        
+                        var p = new Player
+                        {
+                            ExternalId = externalId,
+                            FirstName = firstName,
+                            LastName = lastName,
+                            NbaTeam = teamName,
+                            GamesPlayed = gamesPlayed,
+                            AvgPoints = pts, AvgRebounds = reb, AvgAssists = ast,
+                            AvgSteals = stl, AvgBlocks = blk, AvgMinutes = min,
+                            AvgTurnovers = tov, PersonalFouls = pf,
+                            Fgm = fgm, Fga = fga, FgPercent = fgPct,
+                            ThreePm = tpm, ThreePa = tpa, ThreePtPercent = tpPct,
+                            Ftm = ftm, Fta = fta, FtPercent = ftPct,
+                            OffRebounds = oreb, DefRebounds = dreb,
+                            PlusMinus = pm, WinPct = wpct,
+                            DoubleDoubles = dd, TripleDoubles = td,
+                            FantasyPoints = fpts,
+                            Efficiency = efficiency
+                        };
+                        
+                        if (bioMap.TryGetValue(externalId, out var bio))
+                        {
+                            p.Position = bio.Position; p.Height = bio.Height; p.Weight = bio.Weight;
+                        }
+                        
+                        playerDict[externalId] = p;
+                    }
                 }
                 
                 // Prepare Season Stat Object
@@ -941,13 +950,15 @@ public class NbaDataService : INbaDataService
                 statsToSync.Add((externalId, s));
             }
 
-            // 1. UPSERT PLAYERS (Solo Current Season)
-            if (isCurrentSeason && playersToUpsert.Any())
+            // STEP 3: BULK UPSERT ALL PLAYERS (from dictionary)
+            if (isCurrentSeason && playerDict.Any())
             {
+                var playersToUpsert = playerDict.Values.ToList();
+                _logger.LogInformation($"Upserting {playersToUpsert.Count} players (includes roster + stats enrichment)");
                 await BulkUpsertPlayersAsync(context, playersToUpsert);
             }
 
-            // 2. RECUPERA MAPPING ID (External -> Internal)
+            // STEP 4: RECUPERA MAPPING ID (External -> Internal)
             // Necessario per assegnare l'ID corretto alle stats
             var idMap = await context.Players
                 .Where(p => statsToSync.Select(s => s.ExtId).Contains(p.ExternalId))
@@ -1033,50 +1044,78 @@ public class NbaDataService : INbaDataService
         return bioMap;
     }
 
-    // Fetches complete roster map from commonallplayers (includes ALL active players, even with 0 GP)
-    private async Task<Dictionary<int, string>> GetAllPlayersRosterMapAsync(string season)
+    // Master Player Registry Entry from commonallplayers
+    private struct PlayerRegistryEntry
     {
-        // CACHING ROSTER MAP (24H Cache - roster changes are infrequent)
-        if (_cache.TryGetValue($"roster_{season}", out Dictionary<int, string>? cachedRoster)) return cachedRoster!;
+        public string FirstName;
+        public string LastName;
+        public string Team;
+    }
 
-        var rosterMap = new Dictionary<int, string>();
+    // Fetches MASTER PLAYER REGISTRY from commonallplayers (source of truth for player identity)
+    // Returns: ExternalId -> (FirstName, LastName, Team)
+    private async Task<Dictionary<int, PlayerRegistryEntry>> GetAllPlayersRegistryAsync(string season)
+    {
+        // CACHING REGISTRY (24H Cache - player ID/name/team data is relatively stable)
+        if (_cache.TryGetValue($"registry_{season}", out Dictionary<int, PlayerRegistryEntry>? cachedRegistry)) 
+            return cachedRegistry!;
+
+        var registry = new Dictionary<int, PlayerRegistryEntry>();
         var url = string.Format(URL_ALL_PLAYERS, season);
 
         try
         {
             var client = _clientFactory.CreateClient("NbaStats");
             var response = await client.GetAsync(url);
-            if (!response.IsSuccessStatusCode) return rosterMap;
+            if (!response.IsSuccessStatusCode) return registry;
 
             var json = await response.Content.ReadAsStringAsync();
             var data = JsonSerializer.Deserialize<NbaStatsResponse>(json);
-            if (data?.ResultSets == null || !data.ResultSets.Any()) return rosterMap;
+            if (data?.ResultSets == null || !data.ResultSets.Any()) return registry;
 
             var rows = data.ResultSets[0].RowSet;
             var headers = data.ResultSets[0].Headers;
             
             int idxId = headers.IndexOf("PERSON_ID");
+            int idxFirstName = headers.IndexOf("DISPLAY_FIRST_LAST"); // Full name like "Jayson Tatum"
             int idxTeam = headers.IndexOf("TEAM_ABBREVIATION");
 
             foreach (var row in rows)
             {
                 if (idxId == -1) continue;
+                
                 int id = row[idxId].GetInt32();
+                
+                // Parse full name into First + Last
+                string fullName = (idxFirstName != -1 && row[idxFirstName].ValueKind == JsonValueKind.String)
+                    ? row[idxFirstName].GetString() ?? $"Player {id}"
+                    : $"Player {id}";
+                
+                var nameParts = fullName.Split(' ', 2); // Split on first space only
+                string firstName = nameParts.Length > 0 ? nameParts[0] : "Unknown";
+                string lastName = nameParts.Length > 1 ? nameParts[1] : $"Player {id}";
+                
                 string team = (idxTeam != -1 && row[idxTeam].ValueKind == JsonValueKind.String)
                     ? row[idxTeam].GetString() ?? "FA"
                     : "FA";
-                rosterMap[id] = team;
+                
+                registry[id] = new PlayerRegistryEntry
+                {
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Team = team
+                };
             }
 
-            _cache.Set($"roster_{season}", rosterMap, TimeSpan.FromHours(24));
-            _logger.LogInformation($"Loaded {rosterMap.Count} players from commonallplayers for season {season}");
+            _cache.Set($"registry_{season}", registry, TimeSpan.FromHours(24));
+            _logger.LogInformation($"Loaded {registry.Count} players from commonallplayers registry for season {season}");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning($"Failed to fetch commonallplayers: {ex.Message}");
+            _logger.LogWarning($"Failed to fetch commonallplayers registry: {ex.Message}");
         }
 
-        return rosterMap;
+        return registry;
     }
 
 
