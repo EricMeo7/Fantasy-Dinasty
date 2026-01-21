@@ -35,7 +35,9 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
         }
 
         // FETCH SETTINGS
-        var settings = await _context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
+        var settings = await _context.LeagueSettings.AsNoTracking()
+            .OrderBy(s => s.Id)
+            .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
         var leagueSettings = settings ?? new Models.LeagueSettings();
 
         // 1. Base Query: Start from Players

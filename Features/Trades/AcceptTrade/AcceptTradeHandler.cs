@@ -61,6 +61,42 @@ public class AcceptTradeHandler : IRequestHandler<AcceptTradeCommand, Result<str
                 // 3. Re-validate Financials within the isolation block
                 await _auctionService.ValidateTradeFinancials(trade.Offers, request.LeagueId);
 
+                // --- ROSTER LIMIT VALIDATION ---
+                var involvedRecipients = trade.Offers.Select(o => o.ToUserId).Distinct().ToList();
+                foreach (var recipientUserId in involvedRecipients)
+                {
+                    // For each recipient, check if they can receive the players assigned to them
+                    var incomingPlayers = trade.Offers.Where(o => o.ToUserId == recipientUserId).Select(o => o.PlayerId).ToList();
+                    var outgoingPlayers = trade.Offers.Where(o => o.FromUserId == recipientUserId).Select(o => o.PlayerId).ToList();
+
+                    // Current state: what they have minus what they are sending away
+                    var currentContracts = await _context.Contracts
+                        .Where(c => c.Team.UserId == recipientUserId && c.Team.LeagueId == request.LeagueId)
+                        .Select(c => new { c.PlayerId, c.Player.Position })
+                        .AsNoTracking()
+                        .ToListAsync();
+
+                    var positionsAfterTrade = currentContracts
+                        .Where(c => !outgoingPlayers.Contains(c.PlayerId))
+                        .Select(c => c.Position)
+                        .ToList();
+
+                    // Add incoming players' positions
+                    var incomingPositions = await _context.Players
+                        .Where(p => incomingPlayers.Contains(p.Id))
+                        .Select(p => p.Position)
+                        .AsNoTracking()
+                        .ToListAsync();
+                    
+                    positionsAfterTrade.AddRange(incomingPositions);
+
+                    var validationResult = await _auctionService.ValidateRosterStateAsync(positionsAfterTrade, request.LeagueId);
+                    if (!validationResult.IsSuccess)
+                    {
+                        return Result<string>.Failure(validationResult.Error ?? ErrorCodes.INTERNAL_ERROR);
+                    }
+                }
+
                 // 4. Bulk update contracts
                 var playerIds = trade.Offers.Select(o => o.PlayerId).ToList();
                 var recipientUserIds = trade.Offers.Select(o => o.ToUserId).Distinct().ToList();

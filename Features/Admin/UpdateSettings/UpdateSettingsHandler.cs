@@ -18,14 +18,17 @@ public class UpdateSettingsHandler : IRequestHandler<UpdateSettingsCommand, Resu
     public async Task<Result<string>> Handle(UpdateSettingsCommand request, CancellationToken cancellationToken)
     {
         // 1. Validate Admin
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId, cancellationToken);
-        if (team == null || !team.IsAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
+        var isAdmin = await _context.Teams
+            .AnyAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId && t.IsAdmin, cancellationToken);
+        if (!isAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
 
         // 2. Update Settings
         var league = await _context.Leagues.FindAsync(new object[] { request.LeagueId }, cancellationToken);
         if (league == null) return Result<string>.Failure(ErrorCodes.LEAGUE_NOT_FOUND);
         
-        var settings = await _context.LeagueSettings.FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
+        var settings = await _context.LeagueSettings
+            .OrderBy(s => s.Id)
+            .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
         if (settings == null)
         {
             settings = new LeagueSettings { LeagueId = request.LeagueId, League = league };

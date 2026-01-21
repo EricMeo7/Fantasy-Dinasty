@@ -76,6 +76,12 @@ public class DraftHub : Hub
         if (leagueId == 0) return;
 
         var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId))
+        {
+            await Clients.Caller.SendAsync("Error", "User not authenticated");
+            return;
+        }
+
         var teamName = await _context.Teams
             .Where(t => t.UserId == userId && t.LeagueId == leagueId)
             .Select(t => t.Name)
@@ -97,6 +103,12 @@ public class DraftHub : Hub
         if (leagueId == 0) return;
 
         var userId = Context.UserIdentifier;
+        if (string.IsNullOrEmpty(userId))
+        {
+            await Clients.Caller.SendAsync("Error", "User not authenticated");
+            return;
+        }
+
         var teamName = await _context.Teams
             .Where(t => t.UserId == userId && t.LeagueId == leagueId)
             .Select(t => t.Name)

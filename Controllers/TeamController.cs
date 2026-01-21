@@ -30,6 +30,8 @@ public class TeamController : ControllerBase
         [FromServices] MediatR.IMediator mediator)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
         var query = new FantasyBasket.API.Features.Roster.GetMyRoster.GetMyRosterQuery(leagueId, userId);
         
         var result = await mediator.Send(query);

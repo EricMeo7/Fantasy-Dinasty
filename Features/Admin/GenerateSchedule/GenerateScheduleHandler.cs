@@ -20,8 +20,9 @@ public class GenerateScheduleHandler : IRequestHandler<GenerateScheduleCommand, 
     public async Task<Result<string>> Handle(GenerateScheduleCommand request, CancellationToken cancellationToken)
     {
         // 1. Validate Admin
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId, cancellationToken);
-        if (team == null || !team.IsAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
+        var isAdmin = await _context.Teams
+            .AnyAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId && t.IsAdmin, cancellationToken);
+        if (!isAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
 
         // 2. Generate Schedule
         // 2. Generate Schedule
@@ -29,7 +30,9 @@ public class GenerateScheduleHandler : IRequestHandler<GenerateScheduleCommand, 
         if (league == null) return Result<string>.Failure(ErrorCodes.LEAGUE_NOT_FOUND);
 
         // Update Playoff Teams Settings
-        var settings = await _context.LeagueSettings.FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
+        var settings = await _context.LeagueSettings
+            .OrderBy(s => s.Id)
+            .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
         if (settings != null)
         {
             settings.PlayoffTeams = request.PlayoffTeams;

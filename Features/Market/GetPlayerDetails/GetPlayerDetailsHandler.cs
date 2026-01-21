@@ -22,6 +22,7 @@ public class GetPlayerDetailsHandler : IRequestHandler<GetPlayerDetailsQuery, Re
 
         var player = await _context.Players
             .AsNoTracking()
+            .OrderBy(p => p.Id)
             .FirstOrDefaultAsync(p => p.Id == request.PlayerId, cancellationToken);
         
         if (player == null) return Result<object>.Failure(ErrorCodes.PLAYER_NOT_FOUND);
@@ -36,6 +37,7 @@ public class GetPlayerDetailsHandler : IRequestHandler<GetPlayerDetailsQuery, Re
         if (request.LeagueId.HasValue)
         {
             settings = await _context.LeagueSettings.AsNoTracking()
+            .OrderBy(s => s.Id)
             .FirstOrDefaultAsync(s => s.LeagueId == (request.LeagueId ?? 0), cancellationToken);
         }
 
@@ -53,12 +55,11 @@ public class GetPlayerDetailsHandler : IRequestHandler<GetPlayerDetailsQuery, Re
 
             var contract = await _context.Contracts
                 .AsNoTracking()
+                .OrderBy(c => c.Id)
                 .FirstOrDefaultAsync(c => c.PlayerId == player.Id && c.Team.LeagueId == (request.LeagueId ?? 0), cancellationToken);
 
             // CALCULATE MIN BID (Standardized Logic)
             // Use previous season stats if available for base valuation
-            var prevSeason = "2024-25"; // Can fetch from service if injected, or assume standard prev season logic
-            // Since we don't have NbaDataService injected here, we can infer or use current stats as fallback
             // Ideally we should inject NbaDataService but to minimize changes here we can check the history list we just fetched
             // Find most recent completed season from history
             var prevStatObj = history.OrderByDescending(s => s.Season).FirstOrDefault(); 

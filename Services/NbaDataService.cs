@@ -44,7 +44,9 @@ public class NbaDataService : INbaDataService
             // Fetch the "Default" or first league settings. 
             // In a multi-league app, this service would need to be league-aware or this method refactored.
             // For now, we assume standard scoring is defined in the first league found or a specific "Template" league.
-            _cachedSettings = await context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync();
+            _cachedSettings = await context.LeagueSettings.AsNoTracking()
+                .OrderBy(s => s.Id)
+                .FirstOrDefaultAsync();
             if (_cachedSettings == null) 
             {
                 // Fallback validation/logging or default
@@ -219,7 +221,7 @@ public class NbaDataService : INbaDataService
                             double blk = stats.GetProperty("blocks").GetDouble();
                             double tov = stats.GetProperty("turnovers").GetDouble();
                             
-                            string minStr = stats.GetProperty("minutesCalculated").GetString(); 
+                            string minStr = stats.GetProperty("minutesCalculated").GetString() ?? "PT0M"; 
                             double min = ParseIsoMinutes(minStr); 
 
                             int fgm = (int)stats.GetProperty("fieldGoalsMade").GetDouble();
@@ -318,8 +320,9 @@ public class NbaDataService : INbaDataService
     }
 
     // Helper per parsare i minuti dal formato ISO8601 usato dal CDN (es: "PT12M30.00S")
-    private double ParseIsoMinutes(string isoDuration)
+    private double ParseIsoMinutes(string? isoDuration)
     {
+        if (string.IsNullOrEmpty(isoDuration)) return 0;
         try {
             // Rimuovi "PT" e parsa grossolanamente o usa XmlConvert
             var time = System.Xml.XmlConvert.ToTimeSpan(isoDuration);
@@ -382,7 +385,7 @@ public class NbaDataService : INbaDataService
                     {
                         NbaGameId = game.GameId,
                         GameDate = parsedDate.Date,
-                        GameTime = game.GameStatusText, // Capture original time text
+                        GameTime = game.GameStatusText ?? string.Empty, // Capture original time text
                         HomeTeam = game.HomeTeam.TeamTricode,
                         AwayTeam = game.AwayTeam.TeamTricode,
                         Status = game.GameStatusText ?? "Scheduled"
@@ -467,7 +470,9 @@ public class NbaDataService : INbaDataService
                 int homeId = row[idxHomeId].GetInt32();
                 int awayId = row[idxAwayId].GetInt32();
 
-                var existingGame = await context.NbaGames.FirstOrDefaultAsync(g => g.NbaGameId == gameId);
+                var existingGame = await context.NbaGames
+                    .OrderBy(g => g.Id)
+                    .FirstOrDefaultAsync(g => g.NbaGameId == gameId);
 
                 if (existingGame != null)
                 {
@@ -596,7 +601,9 @@ public class NbaDataService : INbaDataService
                     
                     if (injuryStatus != "Active" && injuryStatus != "")
                     {
-                        var player = await context.Players.FirstOrDefaultAsync(p => p.ExternalId == externalId);
+                        var player = await context.Players
+                            .OrderBy(p => p.Id)
+                            .FirstOrDefaultAsync(p => p.ExternalId == externalId);
                         if (player != null)
                         {
                             player.InjuryStatus = injuryStatus;
@@ -692,7 +699,9 @@ public class NbaDataService : INbaDataService
 
                             if (status != "Active" && status != "")
                             {
-                                var player = await context.Players.FirstOrDefaultAsync(p => p.ExternalId == externalId);
+                                var player = await context.Players
+                                    .OrderBy(p => p.Id)
+                                    .FirstOrDefaultAsync(p => p.ExternalId == externalId);
                                 if (player != null)
                                 {
                                     player.InjuryStatus = status;

@@ -9,6 +9,7 @@ export const en = {
             "save": "Save",
             "delete": "Delete",
             "edit": "Edit",
+            "close": "Close",
             "team_not_found": "Team not found",
             "lineup_locked": "The week has already started. You can no longer modify the lineup",
             "lineup_not_found": "No lineup found for this date",
@@ -98,6 +99,7 @@ export const en = {
             "settings_updated": "Settings updated successfully",
             "market_reset": "Market reset successfully",
             "schedule_generated": "Schedule generated successfully",
+            "trade_proposed": "Trade proposal submitted successfully",
             "creation_error": "Creation error",
             "join_error": "Join error"
         },
@@ -106,6 +108,8 @@ export const en = {
             "release_player": "Release Player",
             "save_settings": "Save Settings",
             "modify_rules": "Modify Rules & Parameters",
+            "done": "Done",
+            "player_assigned": "Player assigned successfully",
             "bid": {
                 "too_low_msg": "Bid too low. Minimum for {{years}} years is {{min}}M.",
                 "success": "Bid placed successfully!",
@@ -213,7 +217,8 @@ export const en = {
                 "gp": "GP",
                 "fantasy": "FANTASY",
                 "fetching_history": "Fetching NBA archives...",
-                "career_history": "Career History"
+                "career_history": "Career History",
+                "loading_history": "Loading history..."
             },
         },
         "league_settings": {

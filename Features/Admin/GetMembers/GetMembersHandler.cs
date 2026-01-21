@@ -17,8 +17,9 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, Result<List<Le
     public async Task<Result<List<LeagueMemberDto>>> Handle(GetMembersQuery request, CancellationToken cancellationToken)
     {
         // 1. Validate Admin
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId, cancellationToken);
-        if (team == null || !team.IsAdmin) return Result<List<LeagueMemberDto>>.Failure(ErrorCodes.ACCESS_DENIED);
+        var isAdmin = await _context.Teams
+            .AnyAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId && t.IsAdmin, cancellationToken);
+        if (!isAdmin) return Result<List<LeagueMemberDto>>.Failure(ErrorCodes.ACCESS_DENIED);
 
         // 2. Fetch Members
         var members = await _context.Teams
@@ -28,7 +29,7 @@ public class GetMembersHandler : IRequestHandler<GetMembersQuery, Result<List<Le
             {
                 UserId = t.UserId,
                 TeamName = t.Name,
-                OwnerName = t.User.GeneralManagerName ?? t.User.UserName
+                OwnerName = t.User.GeneralManagerName ?? t.User.UserName ?? "Unknown"
             })
             .ToListAsync(cancellationToken);
 

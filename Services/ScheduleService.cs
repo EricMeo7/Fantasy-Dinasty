@@ -319,7 +319,8 @@ public class ScheduleService
              // Reuse existing logic structure but simpler
         }
         
-        // Re-implementing specific scenarios because I cut the original method:
+        // Re-implementing specific scenarios because I
+        // the original method:
         if (numTeams == 4)
         {
              // Week 1

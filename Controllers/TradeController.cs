@@ -32,7 +32,7 @@ public class TradeController : ControllerBase
         var query = new Features.Trades.GetMyTrades.GetMyTradesQuery(leagueId, userId);
         var result = await mediator.Send(query);
 
-        if (!result.IsSuccess) return Ok(new { count = 0 });
+        if (!result.IsSuccess || result.Value == null) return Ok(new { count = 0 });
         
         // Count trades where I'm not the proposer and haven't accepted yet
         int count = result.Value.Count(t => !t.IsMeProposer && !t.DidIAccept);

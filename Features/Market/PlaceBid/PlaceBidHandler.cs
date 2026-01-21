@@ -68,6 +68,13 @@ public class PlaceBidHandler : IRequestHandler<PlaceBidCommand, Result<PlaceBidR
                  return Result<PlaceBidResult>.Failure(ErrorCodes.INVALID_BID);
             }
 
+            // ROSTER LIMIT VALIDATION
+            var rosterValidation = await _auctionService.ValidateRosterLimitsAsync(request.UserId, request.LeagueId, request.PlayerId);
+            if (!rosterValidation.IsSuccess)
+            {
+                return Result<PlaceBidResult>.Failure(rosterValidation.Error ?? ErrorCodes.INTERNAL_ERROR);
+            }
+
             // 3. Validazione Salary Cap
             var salaries = _auctionService.CalculateSalaryStructure(request.TotalAmount, request.Years);
             double firstYearCost = salaries.y1;

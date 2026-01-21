@@ -32,6 +32,7 @@ public class GetMatchDetailsHandler :
 
         var match = await _context.Matchups
             .AsNoTracking()
+            .OrderBy(m => m.Id)
             .FirstOrDefaultAsync(m => m.Id == request.MatchId && m.LeagueId == request.LeagueId, cancellationToken);
 
         if (match == null) return Result<MatchDetailsResponseDto>.Failure(ErrorCodes.MATCH_NOT_FOUND);
@@ -64,11 +65,14 @@ public class GetMatchDetailsHandler :
         var leagueData = await _context.Leagues
             .AsNoTracking()
             .Where(l => l.Id == leagueId)
+            .OrderBy(l => l.Id)
             .Select(l => new { l.SeasonStartDate })
             .FirstOrDefaultAsync(ct);
         
         // FETCH SETTINGS
-        var settings = await _context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync(s => s.LeagueId == leagueId, ct);
+        var settings = await _context.LeagueSettings.AsNoTracking()
+            .OrderBy(s => s.Id)
+            .FirstOrDefaultAsync(s => s.LeagueId == leagueId, ct);
         var weights = new ScoringWeights 
         {
             P = settings?.PointWeight ?? 1.0,

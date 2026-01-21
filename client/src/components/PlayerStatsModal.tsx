@@ -182,7 +182,7 @@ export default function PlayerStatsModal({ player: initialPlayer, isOpen, onClos
                         onClick={() => setActiveTab('history')}
                         className={`flex-1 py-3 text-sm font-bold uppercase tracking-wider transition ${activeTab === 'history' ? 'text-emerald-400 border-b-2 border-emerald-400 bg-slate-800' : 'text-slate-500 hover:text-slate-300'}`}
                     >
-                        {loadingHistory ? <span className="flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={14} /> {t('modals.loading_history')}</span> : t('modals.career_history')}
+                        {loadingHistory ? <span className="flex items-center justify-center gap-2"><Loader2 className="animate-spin" size={14} /> {t('modals.stats.loading_history')}</span> : t('modals.stats.career_history')}
                     </button>
                 </div>
 

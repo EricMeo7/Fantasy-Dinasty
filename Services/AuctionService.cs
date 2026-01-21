@@ -1,4 +1,5 @@
-﻿using FantasyBasket.API.Data;
+﻿using FantasyBasket.API.Common;
+using FantasyBasket.API.Data;
 using FantasyBasket.API.Interfaces;
 using FantasyBasket.API.Models;
 using FantasyBasket.API.Models.Dto;
@@ -66,12 +67,14 @@ public class AuctionService
     // --- BASE D'ASTA (Aggiornato con LeagueId per leggere MinBidAmount corretto) ---
     public async Task<double> GetBaseAuctionPriceAsync(int playerId, int leagueId)
     {
-        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
+        var league = await _context.Leagues.AsNoTracking().OrderBy(l => l.Id).FirstOrDefaultAsync(l => l.Id == leagueId);
         string currentSeason = league?.CurrentSeason ?? _nbaDataService.GetCurrentSeason();
         double defaultMin = league?.MinBidAmount ?? 1.0; 
 
         // FETCH SETTINGS
-        var settings = await _context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync(s => s.LeagueId == leagueId);
+        var settings = await _context.LeagueSettings.AsNoTracking()
+            .OrderBy(s => s.Id)
+            .FirstOrDefaultAsync(s => s.LeagueId == leagueId);
         double wP = settings?.PointWeight ?? 1.0;
         double wR = settings?.ReboundWeight ?? 1.2;
         double wA = settings?.AssistWeight ?? 1.5;
@@ -84,6 +87,7 @@ public class AuctionService
         var prevStat = await _context.PlayerSeasonStats
             .AsNoTracking()
             .Where(s => s.PlayerId == playerId && s.Season == prevSeason)
+            .OrderBy(s => s.Id)
             .FirstOrDefaultAsync();
 
         double calculatedVal = 0;
@@ -138,21 +142,26 @@ public class AuctionService
     public async Task<double> GetTeamCapSpace(string userId, int leagueId)
     {
         // 1. Recupera impostazioni lega
-        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
+        var league = await _context.Leagues.AsNoTracking()
+            .OrderBy(l => l.Id)
+            .FirstOrDefaultAsync(l => l.Id == leagueId);
         if (league == null) return 0;
 
         double cap = league.SalaryCap;
         string currentSeason = league.CurrentSeason;
 
         // 2. Trova il TeamId dell'utente in questa lega
-        var team = await _context.Teams
+        var teamId = await _context.Teams
             .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
-        if (team == null) return 0; // Utente non ha squadra in questa lega
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => t.Id)
+            .OrderBy(id => id)
+            .FirstOrDefaultAsync();
+        if (teamId == 0) return 0; // Utente non ha squadra in questa lega
 
         // 3. Calcola Stipendi Attivi (Usando Contracts, non Players)
         double activeContracts = await _context.Contracts
-            .Where(c => c.TeamId == team.Id)
+            .Where(c => c.TeamId == teamId)
             .SumAsync(c => c.SalaryYear1);
 
         // 4. Calcola Dead Money (Filtrando per LeagueId e UserId)
@@ -191,7 +200,7 @@ public class AuctionService
             LeagueId = leagueId,
             Season = s1,
             Amount = contract.SalaryYear1,
-            Reason = $"Taglio {playerName} (Y1)"
+            Reason = $"Waive {playerName} (Y1)"
         });
 
         // ANNO 2
@@ -204,7 +213,7 @@ public class AuctionService
                 LeagueId = leagueId,
                 Season = s2,
                 Amount = penalty,
-                Reason = $"Taglio {playerName} (Y2)"
+                Reason = $"Waive {playerName} (Y2)"
             });
         }
 
@@ -218,7 +227,7 @@ public class AuctionService
                 LeagueId = leagueId,
                 Season = s3,
                 Amount = penalty,
-                Reason = $"Taglio {playerName} (Y3)"
+                Reason = $"Waive {playerName} (Y3)"
             });
         }
     }
@@ -226,7 +235,7 @@ public class AuctionService
     // --- REPORT FINANZIARIO ---
     public async Task<TeamFinanceOverviewDto> GetTeamFinanceOverview(string userId, int leagueId)
     {
-        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
+        var league = await _context.Leagues.AsNoTracking().OrderBy(l => l.Id).FirstOrDefaultAsync(l => l.Id == leagueId);
         if (league == null) return new TeamFinanceOverviewDto();
 
         double cap = league.SalaryCap;
@@ -235,13 +244,17 @@ public class AuctionService
         string s2 = $"{startYear + 1}-{startYear + 2 - 2000}";
         string s3 = $"{startYear + 2}-{startYear + 3 - 2000}";
 
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
-        if (team == null) return new TeamFinanceOverviewDto();
+        var teamId = await _context.Teams
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => t.Id)
+            .OrderBy(id => id)
+            .FirstOrDefaultAsync();
+        if (teamId == 0) return new TeamFinanceOverviewDto();
 
         // Contratti
         var contracts = await _context.Contracts
             .AsNoTracking()
-            .Where(c => c.TeamId == team.Id)
+            .Where(c => c.TeamId == teamId)
             .Select(c => new { c.SalaryYear1, c.SalaryYear2, c.SalaryYear3, c.ContractYears })
             .ToListAsync();
 
@@ -300,12 +313,17 @@ public class AuctionService
         string s2 = $"{startYear + 1}-{startYear + 2 - 2000}";
         string s3 = $"{startYear + 2}-{startYear + 3 - 2000}";
 
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
-        if (team == null) return new List<DeadCapDetailDto>();
+        var teamId = await _context.Teams
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => t.Id)
+            .OrderBy(id => id)
+            .FirstOrDefaultAsync();
+        if (teamId == 0) return new List<DeadCapDetailDto>();
 
         var contract = await _context.Contracts
             .Include(c => c.Player)
-            .FirstOrDefaultAsync(c => c.PlayerId == playerId && c.TeamId == team.Id);
+            .OrderBy(c => c.Id)
+            .FirstOrDefaultAsync(c => c.PlayerId == playerId && c.TeamId == teamId);
 
         if (contract == null) return new List<DeadCapDetailDto>();
 
@@ -345,7 +363,7 @@ public class AuctionService
 
     public async Task<double> GetFreeSpaceForYear(string userId, int leagueId, int yearIndex)
     {
-        var league = await _context.Leagues.AsNoTracking().FirstOrDefaultAsync(l => l.Id == leagueId);
+        var league = await _context.Leagues.AsNoTracking().OrderBy(l => l.Id).FirstOrDefaultAsync(l => l.Id == leagueId);
         if (league == null) return 0;
 
         double cap = league.SalaryCap;
@@ -356,12 +374,16 @@ public class AuctionService
         // Per ora calcoliamo solo sui contratti, che è la parte grossa.
         // Se vuoi precisione millimetrica sui DeadCaps futuri, dovresti calcolare la stringa stagione esatta.
 
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
-        if (team == null) return 0;
+        var teamId = await _context.Teams
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => t.Id)
+            .OrderBy(id => id)
+            .FirstOrDefaultAsync();
+        if (teamId == 0) return 0;
 
         // Somma Stipendi Contratti
         double contractsSum = await _context.Contracts
-            .Where(c => c.TeamId == team.Id)
+            .Where(c => c.TeamId == teamId)
             .SumAsync(c => yearIndex == 1 ? c.SalaryYear1 :
                            yearIndex == 2 ? c.SalaryYear2 :
                            c.SalaryYear3);
@@ -397,8 +419,11 @@ public class AuctionService
         foreach (var userId in involvedUsers)
         {
             // Recuperiamo il nome per dare un errore chiaro
-            var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
-            string teamName = team?.Name ?? "Una squadra";
+            var teamName = await _context.Teams
+                .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+                .Select(t => t.Name)
+                .OrderBy(n => n)
+                .FirstOrDefaultAsync() ?? "Una squadra";
 
             // 2. Controllo su 3 Anni
             for (int year = 1; year <= 3; year++)
@@ -486,5 +511,72 @@ public class AuctionService
         }
 
         await _context.SaveChangesAsync(ct);
+    }
+
+    public async Task<Result<string>> ValidateRosterLimitsAsync(string userId, int leagueId, int? addingPlayerId = null)
+    {
+        var team = await _context.Teams
+            .AsNoTracking()
+            .OrderBy(t => t.Id)
+            .FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
+
+        if (team == null) return Result<string>.Failure(ErrorCodes.TEAM_NOT_FOUND);
+
+        var currentContracts = await _context.Contracts
+            .Where(c => c.TeamId == team.Id)
+            .Select(c => new { c.PlayerId, c.Player.Position })
+            .AsNoTracking()
+            .ToListAsync();
+
+        var playerPositions = currentContracts.Select(c => c.Position).ToList();
+
+        if (addingPlayerId.HasValue)
+        {
+            var newPlayer = await _context.Players
+                .Where(p => p.Id == addingPlayerId.Value)
+                .Select(p => p.Position)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+            if (!string.IsNullOrEmpty(newPlayer)) playerPositions.Add(newPlayer);
+        }
+
+        return await ValidateRosterStateAsync(playerPositions, leagueId);
+    }
+
+    public async Task<Result<string>> ValidateRosterStateAsync(List<string> positions, int leagueId)
+    {
+        var settings = await _context.LeagueSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.LeagueId == leagueId);
+
+        if (settings == null) return Result<string>.Success("OK");
+
+        int totalLimit = settings.RoleLimitGuards + settings.RoleLimitForwards + settings.RoleLimitCenters;
+        if (positions.Count > totalLimit) return Result<string>.Failure(ErrorCodes.ROSTER_FULL);
+
+        bool canFit = CheckPositionAssignment(positions, settings.RoleLimitGuards, settings.RoleLimitForwards, settings.RoleLimitCenters);
+        if (!canFit) return Result<string>.Failure(ErrorCodes.ROSTER_FULL);
+
+        return Result<string>.Success("OK");
+    }
+
+    public bool CheckPositionAssignment(List<string> positions, int capsG, int capsF, int capsC)
+    {
+        if (positions.Count == 0) return true;
+        var current = positions[0];
+        var rest = positions.Skip(1).ToList();
+        if (current.Contains("G") && capsG > 0)
+        {
+            if (CheckPositionAssignment(rest, capsG - 1, capsF, capsC)) return true;
+        }
+        if (current.Contains("F") && capsF > 0)
+        {
+            if (CheckPositionAssignment(rest, capsG, capsF - 1, capsC)) return true;
+        }
+        if (current.Contains("C") && capsC > 0)
+        {
+            if (CheckPositionAssignment(rest, capsG, capsF, capsC - 1)) return true;
+        }
+        return false;
     }
 }

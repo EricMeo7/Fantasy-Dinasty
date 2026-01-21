@@ -19,6 +19,7 @@ public class LeaveLeagueHandler : IRequestHandler<LeaveLeagueCommand, Result<boo
     public async Task<Result<bool>> Handle(LeaveLeagueCommand request, CancellationToken cancellationToken)
     {
         var team = await _context.Teams
+            .OrderBy(t => t.Id)
             .FirstOrDefaultAsync(t => t.LeagueId == request.LeagueId && t.UserId == request.UserId, cancellationToken);
 
         if (team == null)

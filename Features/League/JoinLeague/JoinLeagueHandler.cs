@@ -18,6 +18,7 @@ public class JoinLeagueHandler : IRequestHandler<JoinLeagueCommand, Result<JoinL
     public async Task<Result<JoinLeagueResponse>> Handle(JoinLeagueCommand request, CancellationToken cancellationToken)
     {
         var league = await _context.Leagues
+            .OrderBy(l => l.Id)
             .FirstOrDefaultAsync(l => l.InvitationCode == request.Code, cancellationToken);
         
         if (league == null) 

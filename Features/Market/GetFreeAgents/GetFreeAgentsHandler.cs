@@ -46,6 +46,7 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
             // FETCH LEAGUE SETTINGS FOR SCORING
             var settings = await _context.LeagueSettings
                 .AsNoTracking()
+                .OrderBy(s => s.Id)
                 .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
             
             // Default weights if settings missing
@@ -242,7 +243,7 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                 {
                     // Recalculate FPT based on previous season stats using CURRENT league weights
                     displayFpt = FantasyPointCalculator.Calculate(
-                        prevStat.AvgPoints, prevStat.AvgRebounds, prevStat.AvgAssists, prevStat.AvgSteals, prevStat.AvgBlocks, prevStat.AvgTurnovers,
+                        prevStat!.AvgPoints, prevStat.AvgRebounds, prevStat.AvgAssists, prevStat.AvgSteals, prevStat.AvgBlocks, prevStat.AvgTurnovers,
                         prevStat.Fgm, prevStat.Fga, prevStat.Ftm, prevStat.Fta, prevStat.ThreePm, prevStat.ThreePa,
                         prevStat.OffRebounds, prevStat.DefRebounds,
                         false,

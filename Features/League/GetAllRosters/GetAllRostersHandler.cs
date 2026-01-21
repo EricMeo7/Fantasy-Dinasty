@@ -27,7 +27,9 @@ public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<Tea
         }
 
         // FETCH SETTINGS
-        var settings = await _context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
+        var settings = await _context.LeagueSettings.AsNoTracking()
+            .OrderBy(s => s.Id)
+            .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
         var leagueSettings = settings ?? new Models.LeagueSettings(); // Default
 
         var teamsData = await _context.Teams
@@ -38,7 +40,7 @@ public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<Tea
                 t.Id,
                 t.UserId,
                 t.Name,
-                OwnerName = t.User.GeneralManagerName ?? t.User.UserName,
+                OwnerName = t.User.GeneralManagerName ?? t.User.UserName ?? "Unknown",
                 Roster = t.Roster.Select(c => new 
                 {
                    c.Id,

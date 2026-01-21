@@ -226,10 +226,17 @@ public class LiveDraftService
             var nominatorTeam = state.Teams.FirstOrDefault(t => t.UserId == userId); // Nota: Teams è aggiornato al momento precedente
             double currentAvailable = nominatorTeam?.RemainingBudget ?? 0;
             
-            // --- VALIDAZIONE PREZZO BASE (Fix rules parity) ---
             using (var scope = _scopeFactory.CreateScope())
             {
                 var auctionService = scope.ServiceProvider.GetRequiredService<AuctionService>();
+                
+                // --- ROSTER LIMIT VALIDATION ---
+                var rosterValidation = await auctionService.ValidateRosterLimitsAsync(userId, leagueId, playerId);
+                if (!rosterValidation.IsSuccess)
+                {
+                    throw new Exception(rosterValidation.Error);
+                }
+
                 double minBid = await auctionService.GetBaseAuctionPriceAsync(playerId, leagueId);
                 
                 if (amount < minBid)
@@ -299,6 +306,17 @@ public class LiveDraftService
             {
                 // FAIL
                 throw new Exception(ErrorCodes.INSUFFICIENT_BUDGET);
+            }
+
+            // --- ROSTER LIMIT VALIDATION ---
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var auctionService = scope.ServiceProvider.GetRequiredService<AuctionService>();
+                var rosterValidation = await auctionService.ValidateRosterLimitsAsync(userId, leagueId, state.CurrentPlayerId);
+                if (!rosterValidation.IsSuccess)
+                {
+                    throw new Exception(rosterValidation.Error);
+                }
             }
 
             state.CurrentBidTotal = totalAmount;

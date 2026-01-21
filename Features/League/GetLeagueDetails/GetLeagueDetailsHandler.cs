@@ -37,7 +37,7 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
                     t.UserId,
                     t.IsAdmin,
                     t.Division,
-                    ManagerName = t.User.GeneralManagerName ?? t.User.UserName
+                    ManagerName = t.User.GeneralManagerName ?? t.User.UserName ?? "Unknown"
                 }).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -47,7 +47,7 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
         // Cache Key for Standings Calculation (Heavy operation)
         string standingCacheKey = $"standings_calc_{request.LeagueId}";
         
-        if (!_cache.TryGetValue(standingCacheKey, out List<LeagueStandingDto> baseStandings))
+        if (!_cache.TryGetValue(standingCacheKey, out List<LeagueStandingDto>? baseStandings) || baseStandings == null)
         {
             // Calculate Standings logic (moved from Controller)
             var matches = await _context.Matchups

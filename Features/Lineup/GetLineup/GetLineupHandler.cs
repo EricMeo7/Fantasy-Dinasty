@@ -33,11 +33,9 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
         int teamId = 0;
         if (request.TargetTeamId.HasValue)
         {
-            teamId = await _context.Teams
-                .AsNoTracking()
-                .Where(t => t.Id == request.TargetTeamId.Value && t.LeagueId == request.LeagueId)
-                .Select(t => t.Id)
-                .FirstOrDefaultAsync(cancellationToken);
+            var exists = await _context.Teams
+                .AnyAsync(t => t.Id == request.TargetTeamId.Value && t.LeagueId == request.LeagueId, cancellationToken);
+            if (exists) teamId = request.TargetTeamId.Value;
         }
         else
         {
@@ -45,6 +43,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                 .AsNoTracking()
                 .Where(t => t.UserId == request.UserId && t.LeagueId == request.LeagueId)
                 .Select(t => t.Id)
+                .OrderBy(id => id)
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
@@ -64,7 +63,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                 d.Slot,
                 d.BenchOrder,
                 Player = new {
-                    d.Player.ExternalId,
+                    d.Player!.ExternalId,
                     d.Player.FirstName,
                     d.Player.LastName,
                     d.Player.Position,
@@ -137,7 +136,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                         d.Slot,
                         d.BenchOrder,
                         Player = new {
-                            d.Player.ExternalId,
+                            d.Player!.ExternalId,
                             d.Player.FirstName,
                             d.Player.LastName,
                             d.Player.Position,
@@ -164,6 +163,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
         // Fetch League Settings for Scoring
         var settings = await _context.LeagueSettings
             .AsNoTracking()
+            .OrderBy(s => s.Id)
             .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
             
         // Default Settings if missing (Fallback)
@@ -321,6 +321,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
             .AsNoTracking()
             .Where(m => m.LeagueId == request.LeagueId && m.StartAt <= startOfDay && m.EndAt > startOfDay)
             .Select(m => new { m.StartAt, m.EndAt })
+            .OrderBy(m => m.StartAt)
             .FirstOrDefaultAsync(cancellationToken);
         
         // If we found a Matchup context (we should if schedule exists)

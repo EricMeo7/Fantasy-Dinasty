@@ -29,6 +29,7 @@ public class GetMatchupsHandler : IRequestHandler<GetMatchupsQuery, Result<List<
             .AsNoTracking()
             .Where(l => l.Id == request.LeagueId)
             .Select(l => l.SeasonStartDate)
+            .OrderBy(l => l)
             .FirstOrDefaultAsync(cancellationToken) ?? DateTime.UtcNow.Date;
 
         // 1. Recupera tutti i match (Proiezione)

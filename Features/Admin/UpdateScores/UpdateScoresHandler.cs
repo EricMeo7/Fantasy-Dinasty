@@ -21,8 +21,9 @@ public class UpdateScoresHandler : IRequestHandler<UpdateScoresCommand, Result<s
     public async Task<Result<string>> Handle(UpdateScoresCommand request, CancellationToken cancellationToken)
     {
         // 1. Validate Admin
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId, cancellationToken);
-        if (team == null || !team.IsAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
+        var isAdmin = await _context.Teams
+            .AnyAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId && t.IsAdmin, cancellationToken);
+        if (!isAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
 
         // 2. Update Scores
         await _matchupService.UpdateLiveScores(request.LeagueId);

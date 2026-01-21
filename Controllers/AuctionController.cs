@@ -33,6 +33,7 @@ public class AuctionController : ControllerBase
         [FromServices] MediatR.IMediator mediator)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
         var command = new Features.Market.PlaceBid.PlaceBidCommand
         {
@@ -45,7 +46,7 @@ public class AuctionController : ControllerBase
 
         var result = await mediator.Send(command);
 
-        if (!result.IsSuccess)
+        if (!result.IsSuccess || result.Value == null)
         {
             return BadRequest(result.Error);
         }

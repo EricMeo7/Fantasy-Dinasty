@@ -1,6 +1,7 @@
 using FantasyBasket.API.Common;
 using FantasyBasket.API.Data;
 using FantasyBasket.API.Models;
+using FantasyBasket.API.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,24 +10,38 @@ namespace FantasyBasket.API.Features.Admin.AssignPlayer;
 public class AssignPlayerHandler : IRequestHandler<AssignPlayerCommand, Result<string>>
 {
     private readonly ApplicationDbContext _context;
+    private readonly AuctionService _auctionService;
 
-    public AssignPlayerHandler(ApplicationDbContext context)
+    public AssignPlayerHandler(ApplicationDbContext context, AuctionService auctionService)
     {
         _context = context;
+        _auctionService = auctionService;
     }
 
     public async Task<Result<string>> Handle(AssignPlayerCommand request, CancellationToken cancellationToken)
     {
         // 1. Validate Admin
-        var adminTeam = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId, cancellationToken);
-        if (adminTeam == null || !adminTeam.IsAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
+        var isAdmin = await _context.Teams
+            .AnyAsync(t => t.UserId == request.RequesterUserId && t.LeagueId == request.LeagueId && t.IsAdmin, cancellationToken);
+        if (!isAdmin) return Result<string>.Failure(ErrorCodes.ACCESS_DENIED);
 
         // 2. Validate Target Team
-        var targetTeam = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == request.TargetUserId && t.LeagueId == request.LeagueId, cancellationToken);
-        if (targetTeam == null) return Result<string>.Failure(ErrorCodes.TARGET_TEAM_NOT_FOUND);
+        var targetTeamId = await _context.Teams
+            .Where(t => t.UserId == request.TargetUserId && t.LeagueId == request.LeagueId)
+            .Select(t => t.Id)
+            .OrderBy(id => id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (targetTeamId == 0) return Result<string>.Failure(ErrorCodes.TARGET_TEAM_NOT_FOUND);
+
+        // 3. Validate Roster Limits (Admin can bypass if we want, but usually better to respect them unless forced)
+        // We assume admin wants to respect limits unless we add a Force flag.
+        var rosterValidation = await _auctionService.ValidateRosterLimitsAsync(request.TargetUserId, request.LeagueId, request.PlayerId);
+        if (!rosterValidation.IsSuccess) return Result<string>.Failure(rosterValidation.Error ?? ErrorCodes.INTERNAL_ERROR);
 
         // 3. Remove Old Contract (Transfer/Correction)
-        var existingContract = await _context.Contracts.FirstOrDefaultAsync(c => c.PlayerId == request.PlayerId && c.Team.LeagueId == request.LeagueId, cancellationToken);
+        var existingContract = await _context.Contracts
+            .OrderBy(c => c.Id)
+            .FirstOrDefaultAsync(c => c.PlayerId == request.PlayerId && c.Team.LeagueId == request.LeagueId, cancellationToken);
         if (existingContract != null) _context.Contracts.Remove(existingContract);
 
         // 4. Calculate Salary Details
@@ -36,7 +51,7 @@ public class AssignPlayerHandler : IRequestHandler<AssignPlayerCommand, Result<s
 
         var newContract = new Contract
         {
-            TeamId = targetTeam.Id,
+            TeamId = targetTeamId,
             PlayerId = request.PlayerId,
             ContractYears = request.Years,
             SalaryYear1 = baseSalary,
