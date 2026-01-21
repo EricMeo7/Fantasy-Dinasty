@@ -23,6 +23,7 @@ public class ScoreUpdateService : BackgroundService
     // Throttling NBA Logic
     private DateTime _lastNbaUpdate = DateTime.MinValue;
     private bool _areGamesLive = false;
+    private DateTime _lastScoreRefresh = DateTime.MinValue;
 
     public ScoreUpdateService(IServiceProvider serviceProvider, ILogger<ScoreUpdateService> logger, IHubContext<FantasyBasket.API.Hubs.MatchupHub> hubContext)
     {
@@ -135,6 +136,37 @@ public class ScoreUpdateService : BackgroundService
                         {
                             // --- MODALITÀ MANUTENZIONE (Off-hours) ---
                             // Eseguiamo ogni volta che entriamo qui (quindi ogni 5 min circa)
+
+                            // 0. POST-GAME REFRESH (Ogni 10 Minuti)
+                            // Serve per catturare i punteggi "Final" appena finiti e correzioni
+                            if (DateTime.UtcNow > _lastScoreRefresh.AddMinutes(10))
+                            {
+                                _logger.LogInformation("Performing post-game score refresh (Final Stats / Corrections)...");
+
+                                // Ensure caching is populated
+                                if (!_cachedActivePlayerIds.Any() || DateTime.UtcNow > _lastContractRefresh.AddMinutes(15))
+                                {
+                                    _cachedActivePlayerIds = await context.Contracts.Select(c => c.PlayerId).Distinct().ToListAsync(stoppingToken);
+                                    _lastContractRefresh = DateTime.UtcNow;
+                                }
+
+                                if (_cachedActivePlayerIds.Any())
+                                {
+                                     // Oggi (Final)
+                                     await nbaService.GetFantasyPointsByDate(today, _cachedActivePlayerIds);
+                                     // Ieri (Corrections)
+                                     await nbaService.GetFantasyPointsByDate(today.AddDays(-1), _cachedActivePlayerIds);
+                                }
+
+                                // Aggiorna Leghe
+                                var leagueIds = await context.Leagues.Select(l => l.Id).ToListAsync(stoppingToken);
+                                foreach (var leagueId in leagueIds)
+                                {
+                                    await matchupService.UpdateLiveScores(leagueId);
+                                }
+
+                                _lastScoreRefresh = DateTime.UtcNow;
+                            }
 
                             // Aggiorniamo calendario e infortuni solo ogni 6 ore
                             if (DateTime.UtcNow > _lastFullScheduleUpdate.AddHours(6))

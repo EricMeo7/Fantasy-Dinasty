@@ -39,6 +39,7 @@ public class PlayerPoolDto
     // Advanced
     public double PlusMinus { get; set; }
     public double Efficiency { get; set; }
+    public double WinPct { get; set; }
     public double DoubleDoubles { get; set; }
     public double TripleDoubles { get; set; }
 

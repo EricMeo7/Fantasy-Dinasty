@@ -161,31 +161,46 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
             .Select(g => new { g.HomeTeam, g.AwayTeam, g.Status, g.GameDate })
             .ToListAsync(cancellationToken);
 
+        // Fetch League Settings for Scoring
+        var settings = await _context.LeagueSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
+            
+        // Default Settings if missing (Fallback)
+        double wP = settings?.PointWeight ?? 1.0;
+        double wR = settings?.ReboundWeight ?? 1.2;
+        double wA = settings?.AssistWeight ?? 1.5;
+        double wS = settings?.StealWeight ?? 3.0;
+        double wB = settings?.BlockWeight ?? 3.0;
+        double wT = settings?.TurnoverWeight ?? -1.0;
+        
+        // Advanced
+        double wFgm = settings?.FgmWeight ?? 0.0;
+        double wFga = settings?.FgaWeight ?? 0.0;
+        double wFtm = settings?.FtmWeight ?? 0.0;
+        double wFta = settings?.FtaWeight ?? 0.0;
+        double w3pm = settings?.ThreePmWeight ?? 0.0;
+        double w3pa = settings?.ThreePaWeight ?? 0.0;
+        double wOr  = settings?.OrebWeight ?? 0.0;
+        double wDr  = settings?.DrebWeight ?? 0.0;
+        double wWin = settings?.WinWeight ?? 0.0;
+        double wLoss = settings?.LossWeight ?? 0.0;
+
+
         var logsToday = await _context.PlayerGameLogs
             .AsNoTracking()
             .Where(l => l.GameDate == startOfDay.ToString("yyyy-MM-dd"))
-            .Select(l => new { l.PlayerId, l.FantasyPoints, l.Points, l.Rebounds, l.Assists, l.Steals, l.Blocks, l.Turnovers, l.Minutes })
+            .Select(l => new { l.PlayerId, l.FantasyPoints, l.Points, l.Rebounds, l.Assists, l.Steals, l.Blocks, l.Turnovers, l.Minutes, l.Fgm, l.Fga, l.ThreePm, l.ThreePa, l.Ftm, l.Fta, l.OffRebounds, l.DefRebounds, l.Won })
             .ToListAsync(cancellationToken);
 
-        var result = new List<DailyLineupDto>();
+        var dtos = new List<DailyLineupDto>();
 
         foreach (var entry in lineupEntries)
         {
             var game = gamesMap.FirstOrDefault(g => g.HomeTeam == entry.Player.NbaTeam || g.AwayTeam == entry.Player.NbaTeam);
             var liveLog = logsToday.FirstOrDefault(l => l.PlayerId == entry.PlayerId);
 
-            string opponent = "";
-            string gameTime = "";
-            bool hasGame = game != null;
-
-            if (hasGame)
-            {
-                bool isHome = game!.HomeTeam == entry.Player.NbaTeam;
-                opponent = isHome ? game.AwayTeam : "@" + game.HomeTeam;
-                gameTime = game.Status;
-            }
-
-            result.Add(new DailyLineupDto
+            var dto = new DailyLineupDto
             {
                 Id = entry.Id,
                 PlayerId = entry.PlayerId,
@@ -196,26 +211,107 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                 IsStarter = entry.IsStarter,
                 Slot = entry.Slot,
                 BenchOrder = entry.BenchOrder,
-                HasGame = hasGame,
-                Opponent = opponent,
-                GameTime = gameTime,
-                InjuryStatus = entry.Player.InjuryStatus,
-                InjuryBodyPart = entry.Player.InjuryBodyPart,
-                RealPoints = liveLog?.FantasyPoints,
-
-                GamePoints = liveLog?.Points,
-                GameRebounds = liveLog?.Rebounds,
-                GameAssists = liveLog?.Assists,
-                GameSteals = liveLog?.Steals,
-                GameBlocks = liveLog?.Blocks,
-                GameTurnovers = liveLog?.Turnovers,
-                GameMinutes = liveLog?.Minutes.ToString() ?? "0",
-
                 AvgPoints = entry.Player.AvgPoints,
                 AvgRebounds = entry.Player.AvgRebounds,
                 AvgAssists = entry.Player.AvgAssists,
-                AvgFantasyPoints = entry.Player.FantasyPoints
-            });
+                AvgFantasyPoints = entry.Player.FantasyPoints,
+                InjuryStatus = entry.Player.InjuryStatus,
+                InjuryBodyPart = entry.Player.InjuryBodyPart
+            };
+
+            // Check Live Game / Log
+            if (liveLog != null)
+            {
+                // We assume liveLog.FantasyPoints is stored correctly, 
+                // BUT for exact correctness relative to Presentation we should recalculate or assume stored is correct.
+                // Stored FP is usually pre-calculated by NbaDataService. 
+                // However, NbaDataService might not know specific league weights if it's a global service?
+                // Actually, NbaDataService usually calculates based on standard or specific logic.
+                // Let's rely on Stored FP for the "Total", but calculate the breakdowns manually for display.
+                
+                dto.RealPoints = liveLog.FantasyPoints;
+
+                dto.GamePoints = liveLog.Points;
+                dto.GameRebounds = liveLog.Rebounds;
+                dto.GameAssists = liveLog.Assists;
+                dto.GameSteals = liveLog.Steals;
+                dto.GameBlocks = liveLog.Blocks;
+                dto.GameTurnovers = liveLog.Turnovers;
+                dto.GameMinutes = liveLog.Minutes;
+                
+                dto.GameFgm = liveLog.Fgm;
+                dto.GameFga = liveLog.Fga;
+                dto.GameThreePm = liveLog.ThreePm;
+                dto.GameThreePa = liveLog.ThreePa;
+                dto.GameFtm = liveLog.Ftm;
+                dto.GameFta = liveLog.Fta;
+                
+                dto.GameOffRebounds = liveLog.OffRebounds;
+                dto.GameDefRebounds = liveLog.DefRebounds;
+
+                // Calculate FP Contributions
+                dto.GamePointsFp = liveLog.Points * wP;
+                dto.GameReboundsFp = liveLog.Rebounds * wR;
+                dto.GameAssistsFp = liveLog.Assists * wA;
+                dto.GameStealsFp = liveLog.Steals * wS;
+                dto.GameBlocksFp = liveLog.Blocks * wB;
+                dto.GameTurnoversFp = liveLog.Turnovers * wT;
+                
+                dto.GameFgmFp = liveLog.Fgm * wFgm;
+                dto.GameFgaFp = liveLog.Fga * wFga;
+                dto.GameThreePmFp = liveLog.ThreePm * w3pm;
+                dto.GameThreePaFp = liveLog.ThreePa * w3pa;
+                dto.GameFtmFp = liveLog.Ftm * wFtm;
+                dto.GameFtaFp = liveLog.Fta * wFta;
+                
+                dto.GameOffReboundsFp = liveLog.OffRebounds * wOr;
+                dto.GameDefReboundsFp = liveLog.DefRebounds * wDr;
+                
+                // Win/Loss Calculation
+                if (liveLog.Won) 
+                {
+                    dto.GameWinFp = wWin;
+                }
+                else
+                {
+                    dto.GameLossFp = wLoss;
+                }
+                
+                // Calculate Real FP (Dynamic) - Summing all parts
+                // Note: Rebounds vs Oreb/Dreb logic. 
+                // If wR > 0 and wOr/wDr == 0, use Total Rebounds.
+                // If wOr/wDr > 0 and wR == 0, use Split.
+                // If BOTH are present, sum BOTH (Double count? Usually commissioner chooses one).
+                // Let's assume additives for now as per simple summation.
+                
+                double totalFp = (dto.GamePointsFp ?? 0) + 
+                                 (dto.GameReboundsFp ?? 0) + 
+                                 (dto.GameAssistsFp ?? 0) + 
+                                 (dto.GameStealsFp ?? 0) + 
+                                 (dto.GameBlocksFp ?? 0) + 
+                                 (dto.GameTurnoversFp ?? 0) +
+                                 (dto.GameFgmFp ?? 0) +
+                                 (dto.GameFgaFp ?? 0) +
+                                 (dto.GameThreePmFp ?? 0) +
+                                 (dto.GameThreePaFp ?? 0) +
+                                 (dto.GameFtmFp ?? 0) +
+                                 (dto.GameFtaFp ?? 0) +
+                                 (dto.GameOffReboundsFp ?? 0) +
+                                 (dto.GameDefReboundsFp ?? 0) +
+                                 (dto.GameWinFp ?? 0) +
+                                 (dto.GameLossFp ?? 0);
+                                 
+                dto.RealPoints = Math.Round(totalFp, 1);
+            }
+
+            if (game != null)
+            {
+                dto.HasGame = true;
+                dto.Opponent = game.HomeTeam == entry.Player.NbaTeam ? game.AwayTeam : game.HomeTeam;
+                dto.GameTime = game.Status; 
+            }
+            
+            dtos.Add(dto);
         }
 
         // --- WEEKLY BEST SCORE CALCULATION ---
@@ -232,7 +328,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
         {
             var mStart = matchup.StartAt.Value.ToString("yyyy-MM-dd");
             var mEnd = matchup.EndAt.Value.ToString("yyyy-MM-dd");
-            var pIds = result.Select(r => r.PlayerId).ToList();
+            var pIds = dtos.Select(r => r.PlayerId).ToList();
 
             // Fetch ALL logs for the week for these players
              var weeklyLogs = await _context.PlayerGameLogs
@@ -245,11 +341,11 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
                 .GroupBy(l => l.PlayerId)
                 .ToDictionary(g => g.Key, g => g.Max(x => x.FantasyPoints));
 
-            foreach (var r in result)
+            foreach (var dto in dtos)
             {
-                if (bestScores.TryGetValue(r.PlayerId, out double best))
+                if (bestScores.TryGetValue(dto.PlayerId, out double best))
                 {
-                    r.WeeklyBestScore = best;
+                    dto.WeeklyBestScore = best;
                 }
             }
         }
@@ -259,7 +355,7 @@ public class GetLineupHandler : IRequestHandler<GetLineupQuery, Result<List<Dail
              // Keep null.
         }
 
-        var finalResult = result
+        var finalResult = dtos
             .OrderByDescending(r => r.IsStarter)
             .ThenBy(r => r.BenchOrder == 0 ? 99 : r.BenchOrder)
             .ThenByDescending(r => r.AvgFantasyPoints)

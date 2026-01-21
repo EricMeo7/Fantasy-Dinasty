@@ -2,6 +2,8 @@ using FantasyBasket.API.Data;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using FantasyBasket.API.Services;
+using FantasyBasket.API.Models;
 
 namespace FantasyBasket.API.Features.League.GetAllRosters;
 
@@ -24,6 +26,10 @@ public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<Tea
             return cachedRosters;
         }
 
+        // FETCH SETTINGS
+        var settings = await _context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
+        var leagueSettings = settings ?? new Models.LeagueSettings(); // Default
+
         var teamsData = await _context.Teams
             .Where(t => t.LeagueId == request.LeagueId)
             .AsNoTracking()
@@ -35,21 +41,21 @@ public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<Tea
                 OwnerName = t.User.GeneralManagerName ?? t.User.UserName,
                 Roster = t.Roster.Select(c => new 
                 {
-                   c.Player.Id,
+                   c.Id,
+                   c.PlayerId,
                    c.Player.FirstName,
                    c.Player.LastName,
                    c.Player.ExternalId,
                    c.Player.Position,
                    c.Player.NbaTeam,
-                   c.Player.AvgPoints,
-                   c.Player.FantasyPoints,
+                   Player = c.Player, // Fetch full player for calculation
                    c.SalaryYear1,
                    c.SalaryYear2,
                    c.SalaryYear3,
                    c.ContractYears,
                    c.Player.InjuryStatus,
                    c.Player.InjuryBodyPart
-                }).ToList() // Removed OrderByDescending from SQL projection
+                }).ToList() 
             })
             .ToListAsync(cancellationToken);
 
@@ -67,8 +73,8 @@ public class GetAllRostersHandler : IRequestHandler<GetAllRostersQuery, List<Tea
                 ExternalId = c.ExternalId,
                 Position = c.Position,
                 NbaTeam = c.NbaTeam,
-                AvgPoints = c.AvgPoints,
-                FantasyPoints = c.FantasyPoints,
+                AvgPoints = c.Player.AvgPoints,
+                FantasyPoints = FantasyPointCalculator.Calculate(c.Player, leagueSettings),
                 SalaryYear1 = (double)c.SalaryYear1,
                 SalaryYear2 = (double)c.SalaryYear2,
                 SalaryYear3 = (double)c.SalaryYear3,

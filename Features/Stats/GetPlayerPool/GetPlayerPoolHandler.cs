@@ -3,6 +3,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using System.Linq.Dynamic.Core;
+using FantasyBasket.API.Services;
+using FantasyBasket.API.Models;
 
 namespace FantasyBasket.API.Features.Stats.GetPlayerPool;
 
@@ -16,6 +18,8 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
         _context = context;
         _cache = cache;
     }
+    
+
 
     public async Task<PlayerPoolResponse> Handle(GetPlayerPoolQuery request, CancellationToken cancellationToken)
     {
@@ -30,14 +34,17 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
             return cachedResponse;
         }
 
+        // FETCH SETTINGS
+        var settings = await _context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
+        var leagueSettings = settings ?? new Models.LeagueSettings();
+
         // 1. Base Query: Start from Players
         var query = _context.Players.AsNoTracking();
 
-        // 2. Filter by Name/Position/NbaTeam
+        // 2. Filter by Name/Position/NbaTeam (Safe for SQL)
         if (!string.IsNullOrWhiteSpace(request.NameSearch))
         {
             var search = request.NameSearch.ToLower();
-            // Optimized: Use separate Where to leverage indexes on LastName/FirstName if possible
             query = query.Where(p => p.FirstName.ToLower().Contains(search) || p.LastName.ToLower().Contains(search));
         }
 
@@ -51,13 +58,12 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
             query = query.Where(p => p.NbaTeam == request.NbaTeam);
         }
 
-        // 3. Select DTO based on Season
-        // If Season is null, use current stats on Player. Otherwise use historical.
-        IQueryable<PlayerPoolDto> dtoQuery;
+        // 3. Select DTO based on Season (Fetch to Memory)
+        List<PlayerPoolDto> rawPlayers;
 
         if (string.IsNullOrEmpty(request.Season))
         {
-            dtoQuery = from p in query
+            rawPlayers = await (from p in query
                        join c in _context.Contracts.Where(x => x.Team.LeagueId == request.LeagueId) on p.Id equals c.PlayerId into gj
                        from subContract in gj.DefaultIfEmpty()
                        select new PlayerPoolDto
@@ -91,17 +97,19 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
                             DefRebounds = p.DefRebounds,
                             PlusMinus = p.PlusMinus,
                             Efficiency = p.Efficiency,
+                            WinPct = p.WinPct, // Added for Calculator
                             DoubleDoubles = p.DoubleDoubles,
                             TripleDoubles = p.TripleDoubles,
-                            FantasyPoints = p.FantasyPoints,
+                            // FantasyPoints will be calculated in memory
                             InjuryStatus = p.InjuryStatus,
                             InjuryBodyPart = p.InjuryBodyPart,
                             InjuryReturnDate = p.InjuryReturnDate
-                        };
+                        })
+                        .ToListAsync(cancellationToken);
         }
         else
         {
-            dtoQuery = from p in query
+            rawPlayers = await (from p in query
                        join s in _context.PlayerSeasonStats.Where(x => x.Season == request.Season) on p.Id equals s.PlayerId
                        join c in _context.Contracts.Where(x => x.Team.LeagueId == request.LeagueId) on p.Id equals c.PlayerId into gj
                        from subContract in gj.DefaultIfEmpty()
@@ -111,7 +119,7 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
                            ExternalId = p.ExternalId,
                            Name = p.FirstName + " " + p.LastName,
                            Position = p.Position,
-                           NbaTeam = s.NbaTeam, // Use team for that season
+                           NbaTeam = s.NbaTeam,
                            FantasyTeamName = subContract != null ? subContract.Team.Name : null,
                            FantasyTeamId = subContract != null ? subContract.TeamId : null,
 
@@ -126,73 +134,97 @@ public class GetPlayerPoolHandler : IRequestHandler<GetPlayerPoolQuery, PlayerPo
                            FgPercent = s.FgPercent,
                            ThreePtPercent = s.ThreePtPercent,
                            FtPercent = s.FtPercent,
-                           FantasyPoints = s.FantasyPoints,
                            
-                           // Use actual historical data from PlayerSeasonStats
                            Fgm = s.Fgm, Fga = s.Fga, ThreePm = s.ThreePm, ThreePa = s.ThreePa, Ftm = s.Ftm, Fta = s.Fta,
                            OffRebounds = s.OffRebounds, DefRebounds = s.DefRebounds, PlusMinus = s.PlusMinus, Efficiency = s.Efficiency,
+                           WinPct = s.WinPct, // Added for Calculator
                            DoubleDoubles = s.DoubleDoubles, TripleDoubles = s.TripleDoubles,
                            InjuryStatus = null, InjuryBodyPart = null, InjuryReturnDate = null
-                       };
+                       })
+                       .ToListAsync(cancellationToken);
         }
 
-        // 4. More Filters
-        if (request.MinPts.HasValue) dtoQuery = dtoQuery.Where(x => x.AvgPoints >= request.MinPts.Value);
-        if (request.MinReb.HasValue) dtoQuery = dtoQuery.Where(x => x.AvgRebounds >= request.MinReb.Value);
-        if (request.MinAst.HasValue) dtoQuery = dtoQuery.Where(x => x.AvgAssists >= request.MinAst.Value);
-        if (request.MinStl.HasValue) dtoQuery = dtoQuery.Where(x => x.AvgSteals >= request.MinStl.Value);
-        if (request.MinBlk.HasValue) dtoQuery = dtoQuery.Where(x => x.AvgBlocks >= request.MinBlk.Value);
-        if (request.MinFpts.HasValue) dtoQuery = dtoQuery.Where(x => x.FantasyPoints >= request.MinFpts.Value);
-        if (request.MinMin.HasValue) dtoQuery = dtoQuery.Where(x => x.AvgMinutes >= request.MinMin.Value);
-        if (request.MinGp.HasValue) dtoQuery = dtoQuery.Where(x => x.GamesPlayed >= request.MinGp.Value);
-        if (request.MinFgPct.HasValue) dtoQuery = dtoQuery.Where(x => x.FgPercent >= request.MinFgPct.Value / 100);
-        if (request.Min3pPct.HasValue) dtoQuery = dtoQuery.Where(x => x.ThreePtPercent >= request.Min3pPct.Value / 100);
-        if (request.MinFtPct.HasValue) dtoQuery = dtoQuery.Where(x => x.FtPercent >= request.MinFtPct.Value / 100);
-        
-        if (request.OnlyFreeAgents == true)
+        // 4. Calculate Fantasy Points & Apply Filters (In Memory)
+        var filteredPlayers = new List<PlayerPoolDto>();
+
+        foreach (var p in rawPlayers)
         {
-            dtoQuery = dtoQuery.Where(x => x.FantasyTeamName == null);
+            // Manual mapping to calculator inputs since we don't have the Entity here, just DTO.
+            // Or create a Calculator Overload for DTO? 
+            // Better: Duplicate calc logic here OR map DTO back to a dummy Player object (ugly).
+            // Actually, PlayerPoolDto has all fields. Defining a helper method inside Handler or Calculator is cleaner.
+            // Let's call a local helper or inline. Inline using Calculator static method is tricky because signature expects Player/PlayerSeasonStat.
+            // I'll create a dummy Calc method here or mapping.
+            // Mapping is easiest.
+            
+            p.FantasyPoints = CalculateDtoFp(p, leagueSettings);
+
+            // Filter
+            if (request.MinPts.HasValue && p.AvgPoints < request.MinPts.Value) continue;
+            if (request.MinReb.HasValue && p.AvgRebounds < request.MinReb.Value) continue;
+            if (request.MinAst.HasValue && p.AvgAssists < request.MinAst.Value) continue;
+            if (request.MinStl.HasValue && p.AvgSteals < request.MinStl.Value) continue;
+            if (request.MinBlk.HasValue && p.AvgBlocks < request.MinBlk.Value) continue;
+            if (request.MinFpts.HasValue && p.FantasyPoints < request.MinFpts.Value) continue;
+            if (request.MinMin.HasValue && p.AvgMinutes < request.MinMin.Value) continue;
+            if (request.MinGp.HasValue && p.GamesPlayed < request.MinGp.Value) continue;
+            if (request.MinFgPct.HasValue && p.FgPercent < request.MinFgPct.Value / 100) continue;
+            if (request.Min3pPct.HasValue && p.ThreePtPercent < request.Min3pPct.Value / 100) continue;
+            if (request.MinFtPct.HasValue && p.FtPercent < request.MinFtPct.Value / 100) continue;
+            
+            if (request.OnlyFreeAgents == true && p.FantasyTeamName != null) continue;
+
+            filteredPlayers.Add(p);
         }
 
         // 5. Sorting
-        var order = request.IsDescending ? "descending" : "ascending";
-        try 
-        {
-            var sortBy = request.SortBy;
-            if (string.IsNullOrEmpty(sortBy)) sortBy = "FantasyPoints";
-            
-            // Map common frontend fields to backend DTO fields
-            if (sortBy == "name") sortBy = "Name";
-            if (sortBy == "fantasyPoints") sortBy = "FantasyPoints";
-            if (sortBy == "avgPoints") sortBy = "AvgPoints";
-            if (sortBy == "avgRebounds") sortBy = "AvgRebounds";
-            if (sortBy == "avgAssists") sortBy = "AvgAssists";
-            if (sortBy == "gamesPlayed") sortBy = "GamesPlayed";
-            if (sortBy == "avgMinutes") sortBy = "AvgMinutes";
-            
-            dtoQuery = dtoQuery.OrderBy($"{sortBy} {order}");
-        }
-        catch 
-        {
-            // Fallback sort
-            dtoQuery = dtoQuery.OrderByDescending(x => x.FantasyPoints);
-        }
+        var sortProp = request.SortBy?.ToLower() ?? "fantasypoints";
+        var isDesc = request.IsDescending;
 
-        // 6. Pagination & Execution
-        var totalCount = await dtoQuery.CountAsync(cancellationToken);
-        var players = await dtoQuery
+        Func<PlayerPoolDto, object> keySelector = sortProp switch 
+        {
+            "name" => x => x.Name,
+            "avgpoints" => x => x.AvgPoints,
+            "avgrebounds" => x => x.AvgRebounds,
+            "avgassists" => x => x.AvgAssists,
+            "gamesplayed" => x => x.GamesPlayed,
+            "avgminutes" => x => x.AvgMinutes,
+            _ => x => x.FantasyPoints
+        };
+
+        if (isDesc)
+            filteredPlayers = filteredPlayers.OrderByDescending(keySelector).ToList();
+        else
+            filteredPlayers = filteredPlayers.OrderBy(keySelector).ToList();
+
+
+        // 6. Pagination
+        var totalCount = filteredPlayers.Count;
+        var pagedPlayers = filteredPlayers
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .ToListAsync(cancellationToken);
+            .ToList();
 
         var finalResult = new PlayerPoolResponse
         {
-            Players = players,
+            Players = pagedPlayers,
             TotalCount = totalCount
         };
 
         _cache.Set(cacheKey, finalResult, TimeSpan.FromSeconds(120));
 
         return finalResult;
+    }
+
+    private double CalculateDtoFp(PlayerPoolDto p, Models.LeagueSettings settings)
+    {
+        return FantasyPointCalculator.Calculate(
+            p.AvgPoints, p.AvgRebounds, p.AvgAssists, p.AvgSteals, p.AvgBlocks, p.AvgTurnovers,
+            p.Fgm, p.Fga, p.Ftm, p.Fta, p.ThreePm, p.ThreePa,
+            p.OffRebounds, p.DefRebounds, 
+            false, // Won is false (handled by win bonus below)
+            settings
+        ) - settings.LossWeight // Neutralize implicit LossWeight
+          + (p.WinPct * settings.WinWeight) + ((1.0 - p.WinPct) * settings.LossWeight);
     }
 }

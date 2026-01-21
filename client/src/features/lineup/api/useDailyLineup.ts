@@ -15,6 +15,44 @@ export interface DailyPlayer {
     gameTime: string;
     injuryStatus: string | null;
     realPoints: number | null;
+
+    // Detailed Stats
+    gamePoints?: number;
+    gameRebounds?: number;
+    gameAssists?: number;
+    gameSteals?: number;
+    gameBlocks?: number;
+    gameTurnovers?: number;
+    gameMinutes?: number;
+
+    gameFgm?: number;
+    gameFga?: number;
+    gameThreePm?: number;
+    gameThreePa?: number;
+    gameFtm?: number;
+    gameFta?: number;
+
+    gameOffRebounds?: number;
+    gameDefRebounds?: number;
+
+    // FP Contributions
+    gamePointsFp?: number;
+    gameReboundsFp?: number;
+    gameAssistsFp?: number;
+    gameStealsFp?: number;
+    gameBlocksFp?: number;
+    gameTurnoversFp?: number;
+    gameOffReboundsFp?: number;
+    gameDefReboundsFp?: number;
+    gameFgmFp?: number;
+    gameFgaFp?: number;
+    gameFtmFp?: number;
+    gameFtaFp?: number;
+    gameThreePmFp?: number;
+    gameThreePaFp?: number;
+    gameWinFp?: number;
+    gameLossFp?: number;
+
     avgFantasyPoints: number;
     weeklyBestScore?: number;
     slot: string; // "PG", "C", "BN" etc.

@@ -4,6 +4,7 @@ using FantasyBasket.API.Common;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using FantasyBasket.API.Services;
 
 namespace FantasyBasket.API.Features.League.GetMatchDetails;
 
@@ -124,15 +125,15 @@ public class GetMatchDetailsHandler :
             AwayScore = match.AwayScore
         };
 
-        response.HomePlayers = await GetRosterWithStats(homeTeam.Id, weekStart, weights, ct);
-        response.AwayPlayers = await GetRosterWithStats(awayTeam.Id, weekStart, weights, ct);
+        response.HomePlayers = await GetRosterWithStats(homeTeam.Id, weekStart, settings ?? new LeagueSettings(), ct);
+        response.AwayPlayers = await GetRosterWithStats(awayTeam.Id, weekStart, settings ?? new LeagueSettings(), ct);
 
         return Result<MatchDetailsResponseDto>.Success(response);
     }
 
     private class ScoringWeights { public double P; public double R; public double A; public double S; public double B; public double T; }
 
-    private async Task<List<MatchPlayerDto>> GetRosterWithStats(int teamId, DateTime weekStart, ScoringWeights w, CancellationToken ct)
+    private async Task<List<MatchPlayerDto>> GetRosterWithStats(int teamId, DateTime weekStart, LeagueSettings settings, CancellationToken ct)
     {
         var rosterData = await _context.Contracts
             .AsNoTracking()
@@ -170,7 +171,9 @@ public class GetMatchDetailsHandler :
                     l.Assists,
                     l.Steals,
                     l.Blocks,
-                    l.Turnovers
+                    l.Turnovers,
+                    l.Fgm, l.Fga, l.Ftm, l.Fta, l.ThreePm, l.ThreePa,
+                    l.OffRebounds, l.DefRebounds, l.Won
                 })
                 .ToListAsync(ct);
 
@@ -178,8 +181,12 @@ public class GetMatchDetailsHandler :
             {
                 l.PlayerId,
                 l.GameDate,
-                FantasyPoints = (l.Points * w.P) + (l.Rebounds * w.R) + (l.Assists * w.A) +
-                                (l.Steals * w.S) + (l.Blocks * w.B) + (l.Turnovers * w.T)
+                FantasyPoints = FantasyPointCalculator.Calculate(
+                    l.Points, l.Rebounds, l.Assists, l.Steals, l.Blocks, l.Turnovers,
+                    l.Fgm, l.Fga, l.Ftm, l.Fta, l.ThreePm, l.ThreePa,
+                    l.OffRebounds, l.DefRebounds, l.Won,
+                    settings
+                )
             }).ToList();
 
             dailyLogs = calculatedLogs

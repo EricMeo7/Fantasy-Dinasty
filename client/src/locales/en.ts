@@ -212,7 +212,8 @@ export const en = {
                 "team": "Team",
                 "gp": "GP",
                 "fantasy": "FANTASY",
-                "fetching_history": "Fetching NBA archives..."
+                "fetching_history": "Fetching NBA archives...",
+                "career_history": "Career History"
             },
         },
         "league_settings": {

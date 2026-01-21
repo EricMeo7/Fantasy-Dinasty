@@ -47,7 +47,7 @@ public class LeagueSettings
     public double ThreePaWeight { get; set; } = 0.0;
     public double OrebWeight { get; set; } = 0.5;
     public double DrebWeight { get; set; } = 0.0;
-    public double WinWeight { get; set; } = 3.0;
+    public double WinWeight { get; set; } = 3.0; // Win Bonus
     public double LossWeight { get; set; } = 0.0;
 
     // Roster Configuration - Detailed slots removed as per user request

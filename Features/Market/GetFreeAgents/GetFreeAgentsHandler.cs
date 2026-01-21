@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using FantasyBasket.API.Services;
 using FantasyBasket.API.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
+using FantasyBasket.API.Models;
 
 namespace FantasyBasket.API.Features.Market.GetFreeAgents;
 
@@ -35,6 +36,8 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
             return Result<List<FreeAgentDto>>.Success(cachedResults);
         }
 
+        // ...
+
         // 1. Process expired auctions ON DEMAND to ensure instant updates
         await _auctionService.ProcessExpiredAuctionsAsync(cancellationToken, leagueId);
 
@@ -43,7 +46,7 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
             // FETCH LEAGUE SETTINGS FOR SCORING
             var settings = await _context.LeagueSettings
                 .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.LeagueId == leagueId, cancellationToken);
+                .FirstOrDefaultAsync(s => s.LeagueId == request.LeagueId, cancellationToken);
             
             // Default weights if settings missing
             double wP = settings?.PointWeight ?? 1.0;
@@ -52,6 +55,18 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
             double wS = settings?.StealWeight ?? 3.0;
             double wB = settings?.BlockWeight ?? 3.0;
             double wT = settings?.TurnoverWeight ?? -1.0;
+            
+            // Advanced Weights
+            double wFgm = settings?.FgmWeight ?? 0.0;
+            double wFga = settings?.FgaWeight ?? 0.0;
+            double wFtm = settings?.FtmWeight ?? 0.0;
+            double wFta = settings?.FtaWeight ?? 0.0;
+            double w3Pm = settings?.ThreePmWeight ?? 0.0;
+            double w3Pa = settings?.ThreePaWeight ?? 0.0;
+            double wOr = settings?.OrebWeight ?? 0.0;
+            double wDr = settings?.DrebWeight ?? 0.0;
+            double wWin = settings?.WinWeight ?? 0.0;
+            double wLoss = settings?.LossWeight ?? 0.0;
 
             // STEP 1: LIGHTWEIGHT QUERY (Ids Only)
             // Improves Performance & Avoids RESOURCE_SEMAPHORE
@@ -69,12 +84,22 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                             from auction in auctions.DefaultIfEmpty()
 
                             // DYNAMIC SCORING CALCULATION
+                            // Must match FantasyPointCalculator logic
+                            let winBonus = p.WinPct * wWin
+                            let lossMalus = (1.0 - p.WinPct) * wLoss
+                            
                             let dynFpt = (p.AvgPoints * wP) + 
                                          (p.AvgRebounds * wR) + 
                                          (p.AvgAssists * wA) + 
                                          (p.AvgSteals * wS) + 
                                          (p.AvgBlocks * wB) + 
-                                         (p.AvgTurnovers * wT)
+                                         (p.AvgTurnovers * wT) +
+                                         (p.OffRebounds * wOr) +
+                                         (p.DefRebounds * wDr) +
+                                         (p.Fgm * wFgm) + (p.Fga * wFga) +
+                                         (p.Ftm * wFtm) + (p.Fta * wFta) +
+                                         (p.ThreePm * w3Pm) + (p.ThreePa * w3Pa) +
+                                         winBonus + lossMalus
 
                             select new 
                             { 
@@ -111,6 +136,9 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                     p.AvgBlocks,
                     p.AvgTurnovers,
                     p.FgPercent,
+                    p.Fgm, p.Fga, p.Ftm, p.Fta, p.ThreePm, p.ThreePa,
+                    p.OffRebounds, p.DefRebounds, p.WinPct,
+                    p.GamesPlayed,
                     p.InjuryStatus,
                     p.InjuryBodyPart,
                     SeasonStats = p.SeasonStats
@@ -121,7 +149,10 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                             s.AvgRebounds,
                             s.AvgAssists,
                             s.AvgSteals,
-                            s.AvgBlocks
+                            s.AvgBlocks,
+                            s.AvgTurnovers,
+                            s.Fgm, s.Fga, s.Ftm, s.Fta, s.ThreePm, s.ThreePa,
+                            s.OffRebounds, s.DefRebounds, s.WinPct
                         })
                         .ToList()
                 })
@@ -168,9 +199,14 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                 }
 
                 // DYNAMIC FPT CALCULATION (In Memory for specific players)
-                double currentFpt = Math.Round(
-                    (p.AvgPoints * wP) + (p.AvgRebounds * wR) + (p.AvgAssists * wA) + 
-                    (p.AvgSteals * wS) + (p.AvgBlocks * wB) + (p.AvgTurnovers * wT), 1);
+                double currentFpt = FantasyPointCalculator.Calculate(
+                    p.AvgPoints, p.AvgRebounds, p.AvgAssists, p.AvgSteals, p.AvgBlocks, p.AvgTurnovers,
+                    p.Fgm, p.Fga, p.Ftm, p.Fta, p.ThreePm, p.ThreePa,
+                    p.OffRebounds, p.DefRebounds, 
+                    false, // Won handled by win bonus
+                    settings ?? new LeagueSettings()
+                ) - (settings?.LossWeight ?? 0) // Neutralize implicit LossWeight
+                  + (p.WinPct * (settings?.WinWeight ?? 0)) + ((1.0 - p.WinPct) * (settings?.LossWeight ?? 0));
 
                 // Calculate Base Price (Min Bid) using DYNAMIC STATS from Previous Season if available
                 var prevStatObj = p.SeasonStats.FirstOrDefault(s => s.Season == prevSeason);
@@ -179,14 +215,14 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                 if (prevStatObj != null)
                 {
                     // Recalculate based on historical averages using current weights
-                    baseVal = (prevStatObj.AvgPoints * wP) + 
-                              (prevStatObj.AvgRebounds * wR) + 
-                              (prevStatObj.AvgAssists * wA) + 
-                              (prevStatObj.AvgSteals * wS) + 
-                              (prevStatObj.AvgBlocks * wB);
-                              // Note: SeasonStats might not have AvgTurnovers? Let's check.
-                              // If missing, we ignore or use 0. Assuming 0 for now to avoid crash.
-                              // Actually PlayerSeasonStat usually mirrors Player stats structure.
+                    baseVal = FantasyPointCalculator.Calculate(
+                        prevStatObj.AvgPoints, prevStatObj.AvgRebounds, prevStatObj.AvgAssists, prevStatObj.AvgSteals, prevStatObj.AvgBlocks, prevStatObj.AvgTurnovers,
+                        prevStatObj.Fgm, prevStatObj.Fga, prevStatObj.Ftm, prevStatObj.Fta, prevStatObj.ThreePm, prevStatObj.ThreePa,
+                        prevStatObj.OffRebounds, prevStatObj.DefRebounds,
+                        false,
+                        settings ?? new LeagueSettings()
+                    ) - (settings?.LossWeight ?? 0) // Neutralize implicit LossWeight from Calculate(false)
+                      + (prevStatObj.WinPct * (settings?.WinWeight ?? 0)) + ((1.0 - prevStatObj.WinPct) * (settings?.LossWeight ?? 0));
                 }
 
                 double minBid = Math.Max(1, Math.Round(baseVal, MidpointRounding.AwayFromZero));
@@ -205,9 +241,14 @@ public class GetFreeAgentsHandler : IRequestHandler<GetFreeAgentsQuery, Result<L
                 if (useFallback)
                 {
                     // Recalculate FPT based on previous season stats using CURRENT league weights
-                    displayFpt = Math.Round(
-                        (prevStat!.AvgPoints * wP) + (prevStat!.AvgRebounds * wR) + (prevStat!.AvgAssists * wA) +
-                        (prevStat!.AvgSteals * wS) + (prevStat!.AvgBlocks * wB), 1);
+                    displayFpt = FantasyPointCalculator.Calculate(
+                        prevStat.AvgPoints, prevStat.AvgRebounds, prevStat.AvgAssists, prevStat.AvgSteals, prevStat.AvgBlocks, prevStat.AvgTurnovers,
+                        prevStat.Fgm, prevStat.Fga, prevStat.Ftm, prevStat.Fta, prevStat.ThreePm, prevStat.ThreePa,
+                        prevStat.OffRebounds, prevStat.DefRebounds,
+                        false,
+                        settings ?? new LeagueSettings()
+                    ) - (settings?.LossWeight ?? 0)
+                      + (prevStat.WinPct * (settings?.WinWeight ?? 0)) + ((1.0 - prevStat.WinPct) * (settings?.LossWeight ?? 0));
                 }
 
                 result.Add(new FreeAgentDto

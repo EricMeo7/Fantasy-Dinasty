@@ -16,6 +16,7 @@ public class NbaDataService : INbaDataService
     private readonly IMemoryCache _cache;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<NbaDataService> _logger;
+    private LeagueSettings? _cachedSettings; // Cached for the scope of the request/operation
 
     // --- CONSTANTS ---
     private const string URL_PLAYER_BIO = "playerindex?Historical=1&LeagueID=00&Season={0}&SeasonType=Regular%20Season";
@@ -34,6 +35,26 @@ public class NbaDataService : INbaDataService
         _cache = cache;
         _serviceProvider = serviceProvider;
         _logger = logger;
+    }
+
+    private async Task EnsureSettingsLoadedAsync(ApplicationDbContext context)
+    {
+        if (_cachedSettings == null)
+        {
+            // Fetch the "Default" or first league settings. 
+            // In a multi-league app, this service would need to be league-aware or this method refactored.
+            // For now, we assume standard scoring is defined in the first league found or a specific "Template" league.
+            _cachedSettings = await context.LeagueSettings.AsNoTracking().FirstOrDefaultAsync();
+            if (_cachedSettings == null) 
+            {
+                // Fallback validation/logging or default
+                _cachedSettings = new LeagueSettings 
+                { 
+                    PointWeight=1, ReboundWeight=1.2, AssistWeight=1.5, 
+                    StealWeight=3, BlockWeight=3, TurnoverWeight=-1 
+                };
+            }
+        }
     }
 
     public string GetCurrentSeason() => CalculateSeasons().Current;
@@ -81,12 +102,14 @@ public class NbaDataService : INbaDataService
 
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        
+        await EnsureSettingsLoadedAsync(context);
 
         // 1. Scarica mappa dati fisici (Altezza/Peso/Ruolo)
         var bioMap = await GetPlayerBioMapAsync(currentSeason);
 
         // 2. Processa stagione corrente (Aggiorna tabella Players)
-        await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, bioMap);
+        await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, bioMap, _cachedSettings!);
 
         // 3. Processa storico (Aggiorna tabella PlayerSeasonStats per gli ultimi 5 anni)
         // OTTIMIZZAZIONE: Esegui solo il 1° del mese per risparmiare bandwidth
@@ -95,7 +118,7 @@ public class NbaDataService : INbaDataService
             foreach (var season in historySeasons)
             {
                 _logger.LogInformation($"Sync Storico: {season}...");
-                await ProcessSeasonAsync(context, season, isCurrentSeason: false, bioMap);
+                await ProcessSeasonAsync(context, season, isCurrentSeason: false, bioMap, _cachedSettings!);
                 await Task.Delay(5000); // 5s delay to avoid Rate Limiting / IP excessive usage
             }
         }
@@ -143,6 +166,9 @@ public class NbaDataService : INbaDataService
         }
 
         // --- STEP 3: DOWNLOAD & PARSING (CONCURRENT) ---
+        await EnsureSettingsLoadedAsync(context);
+        var settings = _cachedSettings ?? new LeagueSettings();
+        
         var gamesToday = await context.NbaGames
             .Where(g => g.GameDate == nbaDate.Date)
             .Select(g => g.NbaGameId)
@@ -205,7 +231,19 @@ public class NbaDataService : INbaDataService
                             int oreb = (int)stats.GetProperty("reboundsOffensive").GetDouble();
                             int dreb = (int)stats.GetProperty("reboundsDefensive").GetDouble();
 
-                            double fpts = Math.Round(pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov, 1);
+                            // Fetch Settings (Optimized: Fetch once outside loop ideally, but inside async select requires care. 
+                            // Since this is inside a Task.Select loop which runs in parallel, we need settings access.
+                            // We should have fetched settings at start of method.
+                            
+                            // USING CALCULATOR
+                            // Construct temp object or overload?
+                            // Create dummy storage for calc
+                            double fpts = FantasyPointCalculator.Calculate(
+                                pts, reb, ast, stl, blk, tov,
+                                fgm, fga, ftm, fta, tpm, tpa,
+                                oreb, dreb, isWinner,
+                                settings
+                            );
 
                             // Aggiorna Risultato (Thread-Safe)
                             resultArray[internalId] = fpts;
@@ -683,7 +721,8 @@ public class NbaDataService : INbaDataService
     // --- HELPER PRIVATI (PARSING E UTILITY) ---
 
     // Questo metodo è lungo perché deve mappare decine di colonne statistiche
-    private async Task ProcessSeasonAsync(ApplicationDbContext context, string season, bool isCurrentSeason, Dictionary<int, PlayerBio> bioMap)
+    // Questo metodo è lungo perché deve mappare decine di colonne statistiche
+    private async Task ProcessSeasonAsync(ApplicationDbContext context, string season, bool isCurrentSeason, Dictionary<int, PlayerBio> bioMap, LeagueSettings settings)
     {
         var url = string.Format(URL_LEAGUE_DASH, season);
 
@@ -768,7 +807,7 @@ public class NbaDataService : INbaDataService
                 double tov = GetVal(row, idxTov);
                 double min = GetVal(row, idxMin);
                 double pf = GetInt(row, idxPf);
-                double fpts = Math.Round(pts + (reb * 1.2) + (ast * 1.5) + (stl * 3) + (blk * 3) - tov, 1);
+                // double fpts = ... (Replaced by Calculator below)
                 
                 // Advanced & Shooting
                 double fgm = GetVal(row, idxFgm); double fga = GetVal(row, idxFga); double fgPct = GetVal(row, idxFgPct);
@@ -779,6 +818,15 @@ public class NbaDataService : INbaDataService
                 double dd = GetVal(row, idxDd2); double td = GetVal(row, idxTd3);
                 
                 double efficiency = Math.Round((pts + reb + ast + stl + blk) - (fga - fgm) - (fta - ftm) - tov, 1);
+                
+                // Use Shared Calculator (fetch settings once at start of method)
+                double fpts = FantasyPointCalculator.Calculate(
+                    pts, reb, ast, stl, blk, tov,
+                    fgm, fga, ftm, fta, tpm, tpa,
+                    oreb, dreb,
+                    false, // Won handled manually
+                    settings
+                ) + (wpct * settings.WinWeight) + ((1.0 - wpct) * settings.LossWeight);
 
                 if (isCurrentSeason)
                 {
