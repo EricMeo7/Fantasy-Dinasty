@@ -24,6 +24,7 @@ public class LeagueSettings
 
     public string CurrentSeason { get; set; } = "2025-26";
     public int PlayoffTeams { get; set; } = 4; // 2 East + 2 West
+    public int NumberOfTeams { get; set; } = 12; // Totale squadre nella lega (per generazione draft picks)
 
     // Regole economiche
     public double SalaryCap { get; set; } = 200.0;

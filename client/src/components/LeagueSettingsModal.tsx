@@ -173,7 +173,7 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in text-slate-300 pt-24 md:pt-0">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in text-slate-300">
             <div className="bg-slate-900 border border-slate-700 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
 
                 {/* Header */}
@@ -193,7 +193,7 @@ export default function LeagueSettingsModal({ isOpen, onClose }: Props) {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-slate-800 bg-slate-950/30 px-6 gap-6 responsive-table-container">
+                <div className="flex border-b border-slate-800 bg-slate-950/30 px-6 gap-6 overflow-x-auto no-scrollbar scroll-smooth">
                     <TabButton active={activeTab === 'GENERAL'} onClick={() => setActiveTab('GENERAL')} label={t('modals.league_settings.general')} icon={<Sliders size={14} />} />
                     <TabButton active={activeTab === 'RULES'} onClick={() => setActiveTab('RULES')} label={t('modals.league_settings.rules')} icon={<Target size={14} />} />
                     <TabButton active={activeTab === 'MEMBERS'} onClick={() => setActiveTab('MEMBERS')} label={t('modals.league_settings.members')} icon={<Users size={14} />} />
@@ -451,7 +451,7 @@ function TabButton({ active, onClick, label, icon, color }: any) {
                 }`}
         >
             <span className={active ? (color || 'text-indigo-500') : ''}>{icon}</span>
-            <span className={`text-[10px] font-black uppercase tracking-widest ${active ? 'text-white' : ''}`}>{label}</span>
+            <span className={`text-[10px] font-black uppercase tracking-widest whitespace-nowrap ${active ? 'text-white' : ''}`}>{label}</span>
         </button>
     );
 }

@@ -172,7 +172,23 @@ public class LeagueController : ControllerBase
         var league = await _context.Leagues.FindAsync(id);
         if (league == null) return NotFound();
 
-        _context.Leagues.Remove(league); // Cascading delete should handle teams? Need to check foreign keys
+        // 1. Manual Cleanup to handle Restricted FKs
+        // Trades first because they might reference DraftPicks (via TradePickOffer)
+        var trades = await _context.Trades.Where(t => t.LeagueId == id).ToListAsync();
+        if (trades.Any()) _context.Trades.RemoveRange(trades);
+
+        // DraftPicks reference Teams with Restrict, so they must go after trades but before teams
+        var picks = await _context.DraftPicks.Where(p => p.LeagueId == id).ToListAsync();
+        if (picks.Any()) _context.DraftPicks.RemoveRange(picks);
+
+        var matchups = await _context.Matchups.Where(m => m.LeagueId == id).ToListAsync();
+        if (matchups.Any()) _context.Matchups.RemoveRange(matchups);
+
+        var auctions = await _context.Auctions.Where(a => a.LeagueId == id).ToListAsync();
+        if (auctions.Any()) _context.Auctions.RemoveRange(auctions);
+
+        // 2. Remove the League (cascades to Teams and Settings)
+        _context.Leagues.Remove(league);
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "League deleted" });

@@ -3,6 +3,7 @@ using System;
 using FantasyBasket.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FantasyBasket.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260121133950_AddDraftPickSystem")]
+    partial class AddDraftPickSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -272,9 +275,6 @@ namespace FantasyBasket.API.Migrations
 
                     b.Property<int>("CurrentOwnerTeamId")
                         .HasColumnType("integer");
-
-                    b.Property<bool>("IsRevealed")
-                        .HasColumnType("boolean");
 
                     b.Property<int>("LeagueId")
                         .HasColumnType("integer");

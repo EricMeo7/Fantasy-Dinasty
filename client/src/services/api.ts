@@ -144,6 +144,17 @@ const api = {
     getSeasons: <T = any>() => axiosInstance.get<T>('/stats/seasons'),
   },
 
+  // --- DRAFT ---
+  draft: {
+    getMyAssets: () => axiosInstance.get('/draft/my-assets'),
+    getBoard: (season: number) => axiosInstance.get(`/draft/board?season=${season}`),
+    runLottery: (season: number) => axiosInstance.post('/draft/lottery', { season }),
+    assignPick: (pickId: number, playerId: number) => axiosInstance.post('/draft/assign-pick', { pickId, playerId }),
+    init: () => axiosInstance.post('/draft/init'),
+    revealLottery: (season: number) => axiosInstance.post('/draft/lottery/reveal', { season }),
+    getLotteryProbabilities: (season: number) => axiosInstance.get(`/draft/lottery-probabilities?season=${season}`),
+  },
+
   // --- PROFILE ---
 
   getProfile: () => axiosInstance.get('/profile'), // Assumendo tu abbia questo endpoint

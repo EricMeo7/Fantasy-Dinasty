@@ -28,6 +28,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<DailyLineup> DailyLineups { get; set; }
     public DbSet<NbaGame> NbaGames { get; set; }
     public DbSet<LeagueSettings> LeagueSettings { get; set; } // New DbSet
+    public DbSet<DraftPick> DraftPicks { get; set; }
+    public DbSet<TradePickOffer> TradePickOffers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -129,6 +131,40 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(p => p.LastName);
         builder.Entity<Player>()
             .HasIndex(p => p.FirstName);
+
+        // 9. Draft Picks System
+        builder.Entity<DraftPick>()
+            .HasIndex(d => new { d.LeagueId, d.Season, d.Round });
+        builder.Entity<DraftPick>()
+            .HasIndex(d => d.CurrentOwnerTeamId);
+        builder.Entity<DraftPick>()
+            .HasIndex(d => d.OriginalOwnerTeamId);
+
+        // Configure DraftPick relationships to avoid cascade delete issues
+        builder.Entity<DraftPick>()
+            .HasOne(d => d.OriginalOwner)
+            .WithMany()
+            .HasForeignKey(d => d.OriginalOwnerTeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<DraftPick>()
+            .HasOne(d => d.CurrentOwner)
+            .WithMany()
+            .HasForeignKey(d => d.CurrentOwnerTeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<DraftPick>()
+            .HasOne(d => d.League)
+            .WithMany()
+            .HasForeignKey(d => d.LeagueId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // TradePickOffer index
+        builder.Entity<TradePickOffer>()
+            .HasIndex(t => t.TradeId);
+        builder.Entity<TradePickOffer>()
+            .HasIndex(t => t.DraftPickId);
+
 
     }
 }
