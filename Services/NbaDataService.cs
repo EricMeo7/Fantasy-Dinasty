@@ -117,8 +117,8 @@ public class NbaDataService : INbaDataService
     // ==============================================================================
     public async Task<Dictionary<int, double>> GetFantasyPointsByDate(DateTime date, List<int> internalPlayerIds)
     {
-        var nbaDate = ConvertToNbaDate(date);
-        bool isPast = nbaDate.Date < ConvertToNbaDate(DateTime.UtcNow).Date;
+        var nbaDate = date.Date;
+        bool isPast = nbaDate < ConvertToNbaDate(DateTime.UtcNow).Date;
         string cacheKey = $"fpts_{nbaDate:yyyyMMdd}";
 
         if (isPast && _cache.TryGetValue(cacheKey, out Dictionary<int, double>? cachedResult))
