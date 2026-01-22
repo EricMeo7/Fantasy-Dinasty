@@ -21,8 +21,10 @@ public class League
     public double MinBidAmount { get; set; } = 1.0;
     
     // Logo Storage
+    [System.Text.Json.Serialization.JsonIgnore]
     public byte[]? LogoData { get; set; }
     public string? LogoContentType { get; set; }
+    public int LogoVersion { get; set; } = 1;
     // -------------------------
 
     public LeagueSettings? Settings { get; set; } // Navigator

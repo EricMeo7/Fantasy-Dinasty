@@ -3,7 +3,9 @@ using FantasyBasket.API.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using FantasyBasket.API.Features.Draft.RunLottery; // For LotteryResultDto
+using FantasyBasket.API.Features.Draft.RunLottery;
+using FantasyBasket.API.Common;
+using Microsoft.Extensions.Logging;
 
 namespace FantasyBasket.API.Features.Draft.RevealLotteryPick;
 
@@ -11,11 +13,13 @@ public class RevealLotteryPickHandler : IRequestHandler<RevealLotteryPickCommand
 {
     private readonly ApplicationDbContext _context;
     private readonly IHubContext<LotteryHub, ILotteryClient> _hubContext;
+    private readonly ILogger<RevealLotteryPickHandler> _logger;
 
-    public RevealLotteryPickHandler(ApplicationDbContext context, IHubContext<LotteryHub, ILotteryClient> hubContext)
+    public RevealLotteryPickHandler(ApplicationDbContext context, IHubContext<LotteryHub, ILotteryClient> hubContext, ILogger<RevealLotteryPickHandler> logger)
     {
         _context = context;
         _hubContext = hubContext;
+        _logger = logger;
     }
 
     public async Task<LotteryResultDto?> Handle(RevealLotteryPickCommand request, CancellationToken cancellationToken)
@@ -78,6 +82,7 @@ public class RevealLotteryPickHandler : IRequestHandler<RevealLotteryPickCommand
         };
 
         // Broadcast to SignalR Group
+        _logger.LogInformation($"[SignalR-Outbound] PickRevealed for League {request.LeagueId}. {SignalRLoggingHelper.GetPayloadInfo(resultDto)}");
         await _hubContext.Clients.Group($"Lottery-{request.LeagueId}").PickRevealed(resultDto);
 
         return resultDto;

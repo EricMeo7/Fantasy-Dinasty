@@ -135,10 +135,11 @@ public class LeagueController : ControllerBase
             await file.CopyToAsync(memoryStream);
             league.LogoData = memoryStream.ToArray();
             league.LogoContentType = file.ContentType;
+            league.LogoVersion++; // Cache Busting
         }
 
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Logo uploaded successfully" });
+        return Ok(new { message = "Logo uploaded successfully", logoVersion = league.LogoVersion });
     }
 
     [HttpGet("{id}/logo")]
@@ -156,7 +157,7 @@ public class LeagueController : ControllerBase
             return NotFound(ErrorCodes.NOT_FOUND);
         }
 
-        Response.Headers.Append("Cache-Control", "public, max-age=86400");
+        Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
 
         return File(league.LogoData, league.LogoContentType ?? "image/png");
     }

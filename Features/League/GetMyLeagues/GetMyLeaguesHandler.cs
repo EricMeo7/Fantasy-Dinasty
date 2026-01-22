@@ -23,7 +23,8 @@ public class GetMyLeaguesHandler : IRequestHandler<GetMyLeaguesQuery, List<Leagu
                 LeagueId = t.League.Id,
                 LeagueName = t.League.Name,
                 MyTeamName = t.Name,
-                IsAdmin = t.IsAdmin
+                IsAdmin = t.IsAdmin,
+                LogoVersion = t.League.LogoVersion
             })
             .ToListAsync(cancellationToken);
     }

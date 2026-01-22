@@ -72,6 +72,7 @@ export default function Dashboard() {
               shape="square"
               className="relative z-10 scale-110 group-hover:scale-125 transition-transform duration-700 bg-transparent border-none"
               fallbackType="team"
+              version={myTeam?.logoVersion}
             />
             <div>
               <h2 className="text-3xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-none break-words">

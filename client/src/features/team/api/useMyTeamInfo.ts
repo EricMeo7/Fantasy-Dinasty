@@ -7,6 +7,7 @@ export interface TeamInfo {
     userId: string;
     leagueId: number;
     isAdmin: boolean;
+    logoVersion: number;
 }
 
 export const useMyTeamInfo = () => {

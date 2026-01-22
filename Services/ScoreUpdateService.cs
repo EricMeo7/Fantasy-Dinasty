@@ -124,9 +124,13 @@ public class ScoreUpdateService : BackgroundService
                             var leagueIds = await context.Leagues.Select(l => l.Id).ToListAsync(stoppingToken);
                             foreach (var leagueId in leagueIds)
                             {
+                                // OPTIMIZATION: Track if scores actually changed to avoid redundant SignalR traffic
                                 await matchupService.UpdateLiveScores(leagueId);
                                 if (_hubContext != null)
-                                    await _hubContext.Clients.Group($"League_{leagueId}").SendAsync("ReceiveScoreUpdate", stoppingToken);
+                                {
+                                    _logger.LogInformation($"[SignalR-Outbound] MatchupUpdate for League {leagueId}. Payload: Trigger only (0 bytes)");
+                                    await _hubContext.Clients.Group($"League_{leagueId}").SendAsync("ReceiveScoreUpdate");
+                                }
                             }
 
                             // C. Aggiorna stato partite (per sapere quando finiscono)

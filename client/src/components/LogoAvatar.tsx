@@ -7,6 +7,7 @@ interface LogoAvatarProps {
     shape?: 'circle' | 'square';
     className?: string;
     fallbackType?: 'team' | 'league';
+    version?: number;
 }
 
 const LogoAvatar: React.FC<LogoAvatarProps> = ({
@@ -15,7 +16,8 @@ const LogoAvatar: React.FC<LogoAvatarProps> = ({
     size = 'md',
     shape = 'circle',
     className = '',
-    fallbackType = 'team'
+    fallbackType = 'team',
+    version
 }) => {
     const [error, setError] = useState(false);
 
@@ -33,7 +35,8 @@ const LogoAvatar: React.FC<LogoAvatarProps> = ({
     };
 
     const defaultLogo = fallbackType === 'team' ? '/defaults/team-default.png' : '/defaults/league-default.png';
-    const displaySrc = (!src || error) ? defaultLogo : src;
+    const versionSuffix = version ? `?v=${version}` : '';
+    const displaySrc = (!src || error) ? defaultLogo : `${src}${versionSuffix}`;
 
     return (
         <div className={`

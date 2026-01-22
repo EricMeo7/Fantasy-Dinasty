@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using FantasyBasket.API.Services;
 using FantasyBasket.API.Data;
 using Microsoft.EntityFrameworkCore;
+using FantasyBasket.API.Common;
 
 namespace FantasyBasket.API.Hubs;
 
@@ -57,6 +58,7 @@ public class LotteryHub : Hub<ILotteryClient>
             {
                 // Send current state to caller even if not authenticated/tracked
                 var state = _lotteryService.GetState(leagueId);
+                Console.WriteLine($"[SignalR-Outbound] Initial LotteryState for Connection {Context.ConnectionId}. {SignalRLoggingHelper.GetPayloadInfo(state)}");
                 await Clients.Caller.LotteryStateUpdated(state);
             }
         }

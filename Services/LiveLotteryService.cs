@@ -1,8 +1,11 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
+using FantasyBasket.API.Common;
 using FantasyBasket.API.Data;
 using FantasyBasket.API.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace FantasyBasket.API.Services;
 
@@ -24,7 +27,8 @@ public class LotteryTeamDto
 public class LiveLotteryService
 {
     private readonly IServiceScopeFactory _scopeFactory;
-    private readonly IHubContext<LotteryHub> _hubContext;
+    private readonly IHubContext<LotteryHub, ILotteryClient> _hubContext;
+    private readonly ILogger<LiveLotteryService> _logger;
 
     // LeagueId -> State
     private readonly ConcurrentDictionary<int, LotteryState> _leagueStates = new();
@@ -32,10 +36,11 @@ public class LiveLotteryService
     // LeagueId -> Concurrent Set of UserIds
     private readonly ConcurrentDictionary<int, HashSet<string>> _onlineUsers = new();
 
-    public LiveLotteryService(IServiceScopeFactory scopeFactory, IHubContext<LotteryHub> hubContext)
+    public LiveLotteryService(IServiceScopeFactory scopeFactory, IHubContext<LotteryHub, ILotteryClient> hubContext, ILogger<LiveLotteryService> logger)
     {
         _scopeFactory = scopeFactory;
         _hubContext = hubContext;
+        _logger = logger;
     }
 
     public LotteryState GetState(int leagueId)
@@ -131,7 +136,8 @@ public class LiveLotteryService
     private async Task BroadcastState(int leagueId)
     {
         var state = GetState(leagueId);
+        _logger.LogInformation($"[SignalR-Outbound] LotteryUpdate for League {leagueId}. {SignalRLoggingHelper.GetPayloadInfo(state)}");
         // The Hub expects "LotteryStateUpdated" method on client, based on ILotteryClient interface
-        await _hubContext.Clients.Group($"Lottery-{leagueId}").SendAsync("LotteryStateUpdated", state);
+        await _hubContext.Clients.Group($"Lottery-{leagueId}").LotteryStateUpdated(state);
     }
 }

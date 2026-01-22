@@ -279,6 +279,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
 // Localization
@@ -288,6 +289,10 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 
 builder.Services.AddHostedService<ScoreUpdateService>();
 builder.Services.AddHealthChecks();
@@ -322,6 +327,7 @@ app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization(); // Questo attiva i controlli [Authorize]
+app.UseResponseCompression();
 
 app.MapHub<DraftHub>("/drafthub");
 app.MapHub<LotteryHub>("/lotteryhub");
