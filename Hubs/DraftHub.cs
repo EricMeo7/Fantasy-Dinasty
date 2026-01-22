@@ -2,6 +2,7 @@
 using FantasyBasket.API.Services;
 using FantasyBasket.API.Data;
 using Microsoft.EntityFrameworkCore;
+using FantasyBasket.API.Common;
 
 namespace FantasyBasket.API.Hubs;
 
@@ -43,16 +44,14 @@ public class DraftHub : Hub
             // 3. Aggiungi al gruppo
             await Groups.AddToGroupAsync(Context.ConnectionId, $"League_{leagueId}");
 
+            var state = _draftService.GetState(leagueId);
+            Console.WriteLine($"[SignalR-Outbound] Initial State for Connection {Context.ConnectionId}. {SignalRLoggingHelper.GetPayloadInfo(state)}");
+            await Clients.Caller.SendAsync("UpdateState", state);
+
             // 4. Notifica connessione al Service (Presence)
             if (userId != null)
             {
                 await _draftService.UserConnectedAsync(leagueId, userId);
-            }
-            else
-            {
-                // Se anonimo (improbabile), manda solo lo stato al chiamante
-                var state = _draftService.GetState(leagueId);
-                await Clients.Caller.SendAsync("UpdateState", state);
             }
         }
     }

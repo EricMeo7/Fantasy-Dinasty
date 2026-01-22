@@ -103,7 +103,8 @@ public class TeamController : ControllerBase
                 t.UserId,
                 t.LeagueId,
                 t.IsAdmin,
-                t.Division
+                t.Division,
+                t.LogoVersion
             })
             .FirstOrDefaultAsync();
 
@@ -124,7 +125,8 @@ public class TeamController : ControllerBase
                 t.UserId,
                 t.LeagueId,
                 t.IsAdmin,
-                t.Division
+                t.Division,
+                t.LogoVersion
             })
             .FirstOrDefaultAsync();
 
@@ -149,10 +151,11 @@ public class TeamController : ControllerBase
             await file.CopyToAsync(memoryStream);
             team.LogoData = memoryStream.ToArray();
             team.LogoContentType = file.ContentType;
+            team.LogoVersion++; // Cache Busting
         }
 
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Logo uploaded successfully" });
+        return Ok(new { message = "Logo uploaded successfully", logoVersion = team.LogoVersion });
     }
 
     [HttpGet("{id}/logo")]
@@ -169,7 +172,7 @@ public class TeamController : ControllerBase
             return NotFound(ErrorCodes.NOT_FOUND);
         }
 
-        Response.Headers.Append("Cache-Control", "public, max-age=86400");
+        Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
 
         return File(team.LogoData, team.LogoContentType ?? "image/png");
     }

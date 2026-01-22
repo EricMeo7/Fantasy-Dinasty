@@ -28,6 +28,9 @@ const Rules = lazy(() => import('./pages/Rules'));
 const PlayerPool = lazy(() => import('./pages/PlayerPool'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Contact = lazy(() => import('./pages/Contact'));
+const DraftAssets = lazy(() => import('./pages/DraftAssets'));
+const DraftBoard = lazy(() => import('./pages/DraftBoard'));
+const Lottery = lazy(() => import('./pages/Lottery')); // Added
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -147,6 +150,9 @@ function AppContent() {
             <Route path="/commissioner" element={<Commissioner />} />
             <Route path="/rules" element={<Rules />} />
             <Route path="/pool" element={<PlayerPool />} />
+            <Route path="/draft-assets" element={<DraftAssets />} />
+            <Route path="/draft-board" element={<DraftBoard />} />
+            <Route path="/lottery" element={<Lottery />} /> {/* Added */}
             {/* Dashboard Landing Page (Public) */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/contact" element={<Contact />} />

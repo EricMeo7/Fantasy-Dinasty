@@ -88,18 +88,22 @@ export default function PlayerStatsModal({ player: initialPlayer, isOpen, onClos
 
     useEffect(() => {
         if (isOpen && initialPlayer) {
-            setFullPlayer(initialPlayer);
-            // Se mancano i dati storici o dettagliati, li carichiamo
-            fetchFullDetails(initialPlayer.id);
+            // OPTIMIZATION: Check if we already have the full details (e.g. seasonStats is present)
+            // to avoid a redundant fetch and flicker.
+            if (initialPlayer.seasonStats && initialPlayer.seasonStats.length > 0) {
+                setFullPlayer(initialPlayer);
+                setLoadingHistory(false);
+            } else {
+                setFullPlayer(initialPlayer); // Set initial for header info
+                fetchFullDetails(initialPlayer.id);
+            }
             setActiveTab('season');
         }
-    }, [isOpen, initialPlayer]);
+    }, [isOpen, initialPlayer?.id]); // Depend on ID to avoid excessive re-runs
 
     const fetchFullDetails = async (id: number) => {
         setLoadingHistory(true);
         try {
-            // Assumiamo che ci sia un endpoint per i dettagli completi, 
-            // altrimenti il backend deve restituire tutto già nella lista roster
             const { data } = await api.getPlayerDetails(id);
             setFullPlayer(data);
         } catch (error) {

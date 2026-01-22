@@ -73,7 +73,8 @@ builder.Services.AddAuthentication(options =>
         {
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/drafthub"))
+            if (!string.IsNullOrEmpty(accessToken) && 
+                (path.StartsWithSegments("/drafthub") || path.StartsWithSegments("/lotteryhub")))
             {
                 context.Token = accessToken;
             }
@@ -117,8 +118,14 @@ builder.Services.AddCors(options =>
 builder.Services.AddScoped<AuctionService>();
 builder.Services.AddScoped<MatchupService>();
 builder.Services.AddScoped<ScheduleService>();
+
+// Draft System Services
+builder.Services.AddScoped<IRookieSalaryScale, RookieSalaryScale>();
+builder.Services.AddScoped<IDraftService, DraftService>();
+builder.Services.AddScoped<ILotteryService, LotteryService>();
+
 builder.Services.AddSingleton<LiveDraftService>();
-builder.Services.AddScoped<OfficialInjuryService>();
+builder.Services.AddSingleton<LiveLotteryService>();
 builder.Services.AddScoped<OfficialInjuryService>();
 
 if (builder.Environment.IsDevelopment())
@@ -272,6 +279,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
 // Localization
@@ -281,6 +289,10 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 
 builder.Services.AddHostedService<ScoreUpdateService>();
 builder.Services.AddHealthChecks();
@@ -315,8 +327,10 @@ app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization(); // Questo attiva i controlli [Authorize]
+app.UseResponseCompression();
 
 app.MapHub<DraftHub>("/drafthub");
+app.MapHub<LotteryHub>("/lotteryhub");
 app.MapHub<MatchupHub>("/matchuphub");
 app.MapHealthChecks("/health");
 app.MapControllers();

@@ -6,12 +6,14 @@ public class LeagueDetailsDto
 {
     public string Name { get; set; } = string.Empty;
     public string InviteCode { get; set; } = string.Empty;
+    public int LogoVersion { get; set; }
     public List<LeagueStandingDto> Standings { get; set; } = new();
 }
 
 public class LeagueStandingDto
 {
     public int TeamId { get; set; }
+    public int LogoVersion { get; set; }
     public string FantasyTeamName { get; set; } = string.Empty;
     public string GeneralManagerName { get; set; } = string.Empty;
     public bool IsAdmin { get; set; }

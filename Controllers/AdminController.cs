@@ -26,12 +26,14 @@ public class GenerateScheduleDto
 public class AdminController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IDraftService _draftService;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public AdminController(ApplicationDbContext context, IStringLocalizer<SharedResource> localizer)
+    public AdminController(ApplicationDbContext context, IStringLocalizer<SharedResource> localizer, IDraftService draftService)
     {
         _context = context;
         _localizer = localizer;
+        _draftService = draftService;
     }
 
     [HttpPost("force-update-scores")]
@@ -225,4 +227,5 @@ public class AdminController : ControllerBase
             return StatusCode(500, new { message = "Error clearing season stats", error = ex.Message });
         }
     }
+
 }

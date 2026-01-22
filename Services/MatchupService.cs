@@ -69,16 +69,15 @@ public class MatchupService
         // 2a. Carica Teams per avere la mappa UserId -> Id
         var teams = await _context.Teams
             .Where(t => t.LeagueId == leagueId && userIds.Contains(t.UserId))
+            .AsNoTracking()
             .ToListAsync();
         
         // Mappa UserId -> TeamId
         var userToTeamMap = teams.ToDictionary(t => t.UserId, t => t.Id);
         var teamIntIds = teams.Select(t => t.Id).ToList();
 
-        foreach (var team in teams)
-        {
-            await EnsureLineupsExistAsync(team.Id, minDate, maxDate);
-        }
+        // OPTIMIZATION: One call for all teams to check/generate lineups
+        await BulkEnsureLineupsExistAsync(teamIntIds, minDate, maxDate);
 
         // 2b. CARICAMENTO BULK LINEUP (Usa int IDs)
         var allLineups = await _context.DailyLineups
@@ -222,89 +221,95 @@ public class MatchupService
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task EnsureLineupsExistAsync(int teamId, DateTime start, DateTime end)
+    private async Task BulkEnsureLineupsExistAsync(List<int> teamIds, DateTime start, DateTime end)
     {
-        // Recupera le lineup esistenti nel range
-        var existingDates = await _context.DailyLineups
-            .Where(d => d.TeamId == teamId && d.Date >= start && d.Date < end)
-            .Select(d => d.Date.Date)
-            .Distinct()
+        // 1. Fetch all existing lineups for these teams in the range
+        var existingLineups = await _context.DailyLineups
+            .Where(d => teamIds.Contains(d.TeamId) && d.Date >= start && d.Date < end)
+            .Select(d => new { d.TeamId, d.Date })
+            .AsNoTracking()
             .ToListAsync();
 
-        var missingDates = new List<DateTime>();
-        for (DateTime d = start; d < end; d = d.AddDays(1))
-        {
-            if (d > DateTime.UtcNow.Date) continue; // Non generiamo futuri
-            if (!existingDates.Contains(d.Date)) missingDates.Add(d.Date);
-        }
-
-        if (!missingDates.Any()) return;
-
-        // Ordina le date mancanti
-        missingDates.Sort();
-
-        // Recupera l'ultima lineup valida PRIMA del range (per il primo carry-over)
-        var lastValidLineup = await _context.DailyLineups
-            .Where(d => d.TeamId == teamId && d.Date < start)
-            .OrderByDescending(d => d.Date)
-            .FirstOrDefaultAsync();
-
-        List<DailyLineup>? templateLineup = null;
-
-        if (lastValidLineup != null)
-        {
-            templateLineup = await _context.DailyLineups
-                .Where(d => d.TeamId == teamId && d.Date == lastValidLineup.Date)
-                .AsNoTracking()
-                .ToListAsync();
-        }
-        else
-        {
-            // Fallback: Genera from Contracts (Default)
-            var contracts = await _context.Contracts
-                .Where(c => c.TeamId == teamId)
-                .Include(c => c.Player)
-                .AsNoTracking()
-                .ToListAsync();
-
-            templateLineup = contracts.Select(c => new DailyLineup
-            {
-                TeamId = teamId,
-                PlayerId = c.PlayerId,
-                IsStarter = false, // Default: tutti in panchina, l'utente li schiera manualmente
-                Slot = c.Player.Position,
-                BenchOrder = 0
-            }).ToList();
-        }
+        var existingMap = existingLineups
+            .GroupBy(l => l.TeamId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.Date.Date).ToHashSet());
 
         var newEntriesBuffer = new List<DailyLineup>();
+        var now = DateTime.UtcNow.Date;
 
-        foreach (var date in missingDates)
+        foreach (var teamId in teamIds)
         {
-            // Clona il template per la nuova data
-            if (templateLineup != null)
+            var missingDates = new List<DateTime>();
+            var teamExisting = existingMap.ContainsKey(teamId) ? existingMap[teamId] : new HashSet<DateTime>();
+
+            for (DateTime d = start.Date; d < end.Date; d = d.AddDays(1))
             {
-                foreach (var templateItem in templateLineup)
+                if (d > now) continue;
+                if (!teamExisting.Contains(d)) missingDates.Add(d);
+            }
+
+            if (!missingDates.Any()) continue;
+
+            // Load last valid lineup OR contracts as template
+            var lastValidDate = await _context.DailyLineups
+                .Where(d => d.TeamId == teamId && d.Date < missingDates.First())
+                .OrderByDescending(d => d.Date)
+                .Select(d => (DateTime?)d.Date)
+                .FirstOrDefaultAsync();
+
+            List<DailyLineup> template;
+            if (lastValidDate != null)
             {
-                newEntriesBuffer.Add(new DailyLineup
+                template = await _context.DailyLineups
+                    .Where(d => d.TeamId == teamId && d.Date == lastValidDate)
+                    .AsNoTracking()
+                    .ToListAsync();
+            }
+            else
+            {
+                var contracts = await _context.Contracts
+                    .Where(c => c.TeamId == teamId)
+                    .Include(c => c.Player)
+                    .AsNoTracking()
+                    .ToListAsync();
+
+                template = contracts.Select(c => new DailyLineup
                 {
                     TeamId = teamId,
-                    PlayerId = templateItem.PlayerId,
-                    Date = date,
-                    IsStarter = templateItem.IsStarter,
-                    Slot = templateItem.Slot,
-                    BenchOrder = templateItem.BenchOrder
-                });
+                    PlayerId = c.PlayerId,
+                    IsStarter = false,
+                    Slot = c.Player.Position,
+                    BenchOrder = 0
+                }).ToList();
             }
+
+            foreach (var date in missingDates)
+            {
+                foreach (var item in template)
+                {
+                    newEntriesBuffer.Add(new DailyLineup
+                    {
+                        TeamId = teamId,
+                        PlayerId = item.PlayerId,
+                        Date = date,
+                        IsStarter = item.IsStarter,
+                        Slot = item.Slot,
+                        BenchOrder = item.BenchOrder
+                    });
+                }
             }
         }
 
         if (newEntriesBuffer.Any())
         {
-            // Salvataggio Bulk
             await _context.DailyLineups.AddRangeAsync(newEntriesBuffer);
             await _context.SaveChangesAsync();
         }
+    }
+
+    private async Task EnsureLineupsExistAsync(int teamId, DateTime start, DateTime end)
+    {
+        await BulkEnsureLineupsExistAsync(new List<int> { teamId }, start, end);
     }
 
     // Refactored to Best Score of the Week (Best Ball) Logic

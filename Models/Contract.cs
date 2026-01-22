@@ -21,5 +21,12 @@ public class Contract
     public double SalaryYear2 { get; set; }
     public double SalaryYear3 { get; set; }
     public int ContractYears { get; set; }
+
+    // Rookie Contract Fields
+    public bool IsRookieContract { get; set; } = false;
+    public bool IsYear3TeamOption { get; set; } = false;
+    public DateTime? OptionDeadline { get; set; }
+    public bool OptionExercised { get; set; } = false;
+
     // NOTA: IsStarter rimosso - ora esiste solo in DailyLineup
 }

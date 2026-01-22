@@ -187,6 +187,18 @@ namespace FantasyBasket.API.Migrations
                     b.Property<int>("ContractYears")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("IsRookieContract")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsYear3TeamOption")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("OptionDeadline")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("OptionExercised")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer");
 
@@ -248,6 +260,51 @@ namespace FantasyBasket.API.Migrations
                     b.HasIndex("TeamId", "Date");
 
                     b.ToTable("DailyLineups");
+                });
+
+            modelBuilder.Entity("FantasyBasket.API.Models.DraftPick", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CurrentOwnerTeamId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsRevealed")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LeagueId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OriginalOwnerTeamId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PlayerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Round")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Season")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SlotNumber")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CurrentOwnerTeamId");
+
+                    b.HasIndex("OriginalOwnerTeamId");
+
+                    b.HasIndex("PlayerId");
+
+                    b.HasIndex("LeagueId", "Season", "Round");
+
+                    b.ToTable("DraftPicks");
                 });
 
             modelBuilder.Entity("FantasyBasket.API.Models.League", b =>
@@ -337,6 +394,9 @@ namespace FantasyBasket.API.Migrations
 
                     b.Property<double>("MinBidAmount")
                         .HasColumnType("double precision");
+
+                    b.Property<int>("NumberOfTeams")
+                        .HasColumnType("integer");
 
                     b.Property<double>("OrebWeight")
                         .HasColumnType("double precision");
@@ -854,6 +914,37 @@ namespace FantasyBasket.API.Migrations
                     b.ToTable("TradeOffers");
                 });
 
+            modelBuilder.Entity("FantasyBasket.API.Models.TradePickOffer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("DraftPickId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FromUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ToUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TradeId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DraftPickId");
+
+                    b.HasIndex("TradeId");
+
+                    b.ToTable("TradePickOffers");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -1155,6 +1246,39 @@ namespace FantasyBasket.API.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("FantasyBasket.API.Models.DraftPick", b =>
+                {
+                    b.HasOne("FantasyBasket.API.Models.Team", "CurrentOwner")
+                        .WithMany()
+                        .HasForeignKey("CurrentOwnerTeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FantasyBasket.API.Models.League", "League")
+                        .WithMany()
+                        .HasForeignKey("LeagueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FantasyBasket.API.Models.Team", "OriginalOwner")
+                        .WithMany()
+                        .HasForeignKey("OriginalOwnerTeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("FantasyBasket.API.Models.Player", "Player")
+                        .WithMany()
+                        .HasForeignKey("PlayerId");
+
+                    b.Navigation("CurrentOwner");
+
+                    b.Navigation("League");
+
+                    b.Navigation("OriginalOwner");
+
+                    b.Navigation("Player");
+                });
+
             modelBuilder.Entity("FantasyBasket.API.Models.LeagueSettings", b =>
                 {
                     b.HasOne("FantasyBasket.API.Models.League", "League")
@@ -1239,6 +1363,25 @@ namespace FantasyBasket.API.Migrations
                     b.Navigation("Player");
                 });
 
+            modelBuilder.Entity("FantasyBasket.API.Models.TradePickOffer", b =>
+                {
+                    b.HasOne("FantasyBasket.API.Models.DraftPick", "DraftPick")
+                        .WithMany()
+                        .HasForeignKey("DraftPickId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("FantasyBasket.API.Models.Trade", "Trade")
+                        .WithMany("PickOffers")
+                        .HasForeignKey("TradeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DraftPick");
+
+                    b.Navigation("Trade");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -1317,6 +1460,8 @@ namespace FantasyBasket.API.Migrations
                     b.Navigation("Acceptances");
 
                     b.Navigation("Offers");
+
+                    b.Navigation("PickOffers");
                 });
 #pragma warning restore 612, 618
         }

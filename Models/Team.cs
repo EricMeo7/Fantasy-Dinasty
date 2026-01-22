@@ -13,8 +13,10 @@ public class Team
     public string Name { get; set; } = string.Empty; // Nome Fantasquadra (es. "Milano Bulls")
 
     // Logo Storage
+    [System.Text.Json.Serialization.JsonIgnore]
     public byte[]? LogoData { get; set; }
     public string? LogoContentType { get; set; }
+    public int LogoVersion { get; set; } = 1;
 
     public bool IsAdmin { get; set; } = false; // Se è il commissioner DI QUESTA lega
 

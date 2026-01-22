@@ -14,6 +14,9 @@ public class Trade
 
     public List<TradeOffer> Offers { get; set; } = new();
 
+    // Draft picks incluse nella trade
+    public List<TradePickOffer> PickOffers { get; set; } = new();
+
     // NUOVO: Lista di chi ha già accettato
     public List<TradeAcceptance> Acceptances { get; set; } = new();
 }

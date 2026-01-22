@@ -30,6 +30,7 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
             .Where(l => l.Id == request.LeagueId)
             .Select(l => new {
                 l.Name,
+                l.LogoVersion, // Add this
                 l.InvitationCode,
                 Teams = l.Teams.Select(t => new {
                     t.Id,
@@ -37,6 +38,7 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
                     t.UserId,
                     t.IsAdmin,
                     t.Division,
+                    t.LogoVersion, // Add this
                     ManagerName = t.User.GeneralManagerName ?? t.User.UserName ?? "Unknown"
                 }).ToList()
             })
@@ -90,7 +92,9 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
                     Wins = wins,
                     Losses = losses,
                     TotalPoints = points,
-                    Division = team.Division
+                    Division = team.Division,
+                    LogoVersion = team.LogoVersion // Add this
+                    // TeamId (int) or UserId (string) needed?
                     // TeamId (int) or UserId (string) needed? 
                     // Previous logic used Team.UserId for matching matches, but returning TeamId int for FE might be better or mixed.
                     // Let's stick to DTO: TeamId is int. BUT we need UserId to check IsMe.
@@ -130,13 +134,15 @@ public class GetLeagueDetailsHandler : IRequestHandler<GetLeagueDetailsQuery, Re
             Losses = s.Losses,
             TotalPoints = s.TotalPoints,
             IsMe = s.TeamId == myTeamId,
-            Division = s.Division
-        }).ToList();
+            Division = s.Division,
+            LogoVersion = s.LogoVersion
+        }).ToList(); // Add this mapping
 
         var finalResult = new LeagueDetailsDto
         {
             Name = leagueData.Name,
             InviteCode = leagueData.InvitationCode,
+            LogoVersion = leagueData.LogoVersion,
             Standings = finalStandings
         };
 

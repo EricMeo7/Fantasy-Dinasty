@@ -4,8 +4,10 @@
 <head>
   <meta charset="UTF-8" />
 
-  <link rel="icon" type="image/png" href="/logo.png" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="/logo.png?v=3" />
+  <link rel="apple-touch-icon" href="/logo.png?v=3">
+  <link rel="manifest" href="/manifest.json">
+
   <meta name="theme-color" content="#2563eb">
 
   <meta name="viewport"
@@ -21,14 +23,14 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Fantasy Dynasty NBA | Manager Game">
   <meta property="og:description" content="Play the ultimate NBA Dynasty Manager with Real Salary Cap & Live Auctions.">
-  <meta property="og:image" content="https://fantasy-dinasty.pages.dev/logo.png">
+  <meta property="og:image" content="https://fantasy-dinasty.pages.dev/logo.png?v=3">
   <meta property="og:url" content="https://fantasy-dinasty.pages.dev/">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Fantasy Dynasty NBA | Manager Game">
   <meta name="twitter:description" content="The ultimate NBA Dynasty Manager simulation.">
-  <meta name="twitter:image" content="https://fantasy-dinasty.pages.dev/logo.png">
+  <meta name="twitter:image" content="https://fantasy-dinasty.pages.dev/logo.png?v=3">
 
   <script type="application/ld+json">
   {
@@ -57,7 +59,7 @@
   <script type="module" src="/src/main.tsx"></script>
   <script src='https://storage.ko-fi.com/cdn/scripts/overlay-widget.js'></script>
   <script>
-    if (typeof kofiWidgetOverlay !== 'undefined') {
+    if (typeof kofiWidgetOverlay !== 'undefined' && window.innerWidth >= 768) {
       kofiWidgetOverlay.draw('fantasydynasty', {
         'type': 'floating-chat',
         'floating-chat.donatebutton.text': 'Support Us',

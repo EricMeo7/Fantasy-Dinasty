@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
 using FantasyBasket.API.Common;
 using FantasyBasket.API.Models.DTOs;
+using Microsoft.Extensions.Logging; // Added for logging
+using System.Text.Json; // Added for SignalRLoggingHelper.GetPayloadInfo
 
 namespace FantasyBasket.API.Services;
 
@@ -37,6 +39,7 @@ public class LiveDraftService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IHubContext<DraftHub> _hubContext;
+    private readonly ILogger<LiveDraftService> _logger; // Added for logging
 
     // Gestione Multi-Lega: Un dizionario di stati, chiave = LeagueId
     private readonly ConcurrentDictionary<int, DraftState> _leagueStates = new();
@@ -48,10 +51,11 @@ public class LiveDraftService
     // Presence Tracking: LeagueId -> Set of UserIds
     private readonly ConcurrentDictionary<int, HashSet<string>> _onlineUsers = new();
 
-    public LiveDraftService(IServiceScopeFactory scopeFactory, IHubContext<DraftHub> hubContext)
+    public LiveDraftService(IServiceScopeFactory scopeFactory, IHubContext<DraftHub> hubContext, ILogger<LiveDraftService> logger) // Injected ILogger
     {
         _scopeFactory = scopeFactory;
         _hubContext = hubContext;
+        _logger = logger; // Assigned logger
     }
 
     // Helper per ottenere (o creare) il lock per una lega specifica
@@ -440,12 +444,9 @@ public class LiveDraftService
             // Fuori dal lock invieremo la notifica
             if (wasSold) 
             {
-                 _ = _hubContext.Clients.Group($"League_{leagueId}").SendAsync("PlayerSold", new
-                {
-                    PlayerName = notifPlayer,
-                    Winner = notifWinner,
-                    Amount = notifAmount
-                });
+                var payload = new { PlayerName = notifPlayer, Winner = notifWinner, Amount = notifAmount };
+                _logger.LogInformation($"[SignalR-Outbound] PlayerSold for League {leagueId}. {SignalRLoggingHelper.GetPayloadInfo(payload)}");
+                 _ = _hubContext.Clients.Group($"League_{leagueId}").SendAsync("PlayerSold", payload);
             }
         }
         finally
@@ -562,7 +563,7 @@ public class LiveDraftService
              var state = GetState(leagueId);
              await RefreshTeamSummariesInternal(leagueId, state);
              
-             // Segnala ai client di ricaricare la lista Free Agents
+             _logger.LogInformation($"[SignalR-Outbound] RefreshList for League {leagueId}."); // Added logging
              await _hubContext.Clients.Group($"League_{leagueId}").SendAsync("RefreshList");
         }
         finally
@@ -581,12 +582,6 @@ public class LiveDraftService
         var state = GetState(leagueId);
         
         // Build minimal update with only affected teams' budgets
-        var affectedUserIds = new List<string> { state.HighBidderId };
-        if (!string.IsNullOrEmpty(previousBidderId) && previousBidderId != state.HighBidderId)
-        {
-            affectedUserIds.Add(previousBidderId);
-        }
-
         var bidUpdate = new BidUpdateDto
         {
             CurrentBidTotal = state.CurrentBidTotal,
@@ -596,7 +591,7 @@ public class LiveDraftService
             HighBidderName = state.HighBidderName,
             BidEndTime = state.BidEndTime,
             UpdatedBudgets = state.Teams
-                .Where(t => affectedUserIds.Contains(t.UserId))
+                .Where(t => t.UserId == state.HighBidderId || t.UserId == previousBidderId) // Simplified condition
                 .Select(t => new TeamBudgetDto
                 {
                     UserId = t.UserId,
@@ -607,6 +602,7 @@ public class LiveDraftService
                 .ToList()
         };
 
+        _logger.LogInformation($"[SignalR-Outbound] BidUpdate for League {leagueId}. {SignalRLoggingHelper.GetPayloadInfo(bidUpdate)}"); // Added logging
         await _hubContext.Clients.Group($"League_{leagueId}").SendAsync("BidUpdate", bidUpdate);
     }
 
@@ -617,6 +613,7 @@ public class LiveDraftService
     private async Task BroadcastFullState(int leagueId)
     {
         var state = GetState(leagueId);
+        _logger.LogInformation($"[SignalR-Outbound] FullStateUpdate for League {leagueId}. {SignalRLoggingHelper.GetPayloadInfo(state)}"); // Added logging
         await _hubContext.Clients.Group($"League_{leagueId}").SendAsync("UpdateState", state);
     }
 }

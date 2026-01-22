@@ -135,10 +135,11 @@ public class LeagueController : ControllerBase
             await file.CopyToAsync(memoryStream);
             league.LogoData = memoryStream.ToArray();
             league.LogoContentType = file.ContentType;
+            league.LogoVersion++; // Cache Busting
         }
 
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Logo uploaded successfully" });
+        return Ok(new { message = "Logo uploaded successfully", logoVersion = league.LogoVersion });
     }
 
     [HttpGet("{id}/logo")]
@@ -156,7 +157,7 @@ public class LeagueController : ControllerBase
             return NotFound(ErrorCodes.NOT_FOUND);
         }
 
-        Response.Headers.Append("Cache-Control", "public, max-age=86400");
+        Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
 
         return File(league.LogoData, league.LogoContentType ?? "image/png");
     }
@@ -172,7 +173,23 @@ public class LeagueController : ControllerBase
         var league = await _context.Leagues.FindAsync(id);
         if (league == null) return NotFound();
 
-        _context.Leagues.Remove(league); // Cascading delete should handle teams? Need to check foreign keys
+        // 1. Manual Cleanup to handle Restricted FKs
+        // Trades first because they might reference DraftPicks (via TradePickOffer)
+        var trades = await _context.Trades.Where(t => t.LeagueId == id).ToListAsync();
+        if (trades.Any()) _context.Trades.RemoveRange(trades);
+
+        // DraftPicks reference Teams with Restrict, so they must go after trades but before teams
+        var picks = await _context.DraftPicks.Where(p => p.LeagueId == id).ToListAsync();
+        if (picks.Any()) _context.DraftPicks.RemoveRange(picks);
+
+        var matchups = await _context.Matchups.Where(m => m.LeagueId == id).ToListAsync();
+        if (matchups.Any()) _context.Matchups.RemoveRange(matchups);
+
+        var auctions = await _context.Auctions.Where(a => a.LeagueId == id).ToListAsync();
+        if (auctions.Any()) _context.Auctions.RemoveRange(auctions);
+
+        // 2. Remove the League (cascades to Teams and Settings)
+        _context.Leagues.Remove(league);
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "League deleted" });

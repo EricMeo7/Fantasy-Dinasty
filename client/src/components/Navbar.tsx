@@ -77,7 +77,7 @@ export default function Navbar() {
 
     useEffect(() => {
         loadData();
-        const timer = setInterval(checkTrades, 30000);
+        const timer = setInterval(checkTrades, 120000); // 2 mins polling to reduced Network Transfer
         return () => clearInterval(timer);
     }, [currentLeagueId]);
 

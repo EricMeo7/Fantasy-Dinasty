@@ -133,3 +133,13 @@ button:focus-visible {
 .premium-select-minimal {
   @apply appearance-none bg-transparent text-sm font-bold text-white focus:outline-none cursor-pointer pr-6;
 }
+
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
