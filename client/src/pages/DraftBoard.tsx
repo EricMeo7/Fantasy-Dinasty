@@ -199,7 +199,7 @@ export default function DraftBoard() {
                 onConfirm={executeRunLottery}
                 title={t('draft.lottery')}
                 message={t('draft.start_confirm_msg')}
-                confirmText={t('common.confirm')}
+                confirmLabel={t('common.confirm')}
                 variant="warning"
             />
         </div>
