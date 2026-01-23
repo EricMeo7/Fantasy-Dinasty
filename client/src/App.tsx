@@ -30,7 +30,9 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Contact = lazy(() => import('./pages/Contact'));
 const DraftAssets = lazy(() => import('./pages/DraftAssets'));
 const DraftBoard = lazy(() => import('./pages/DraftBoard'));
-const Lottery = lazy(() => import('./pages/Lottery')); // Added
+const Lottery = lazy(() => import('./pages/Lottery'));
+const RookieDraft = lazy(() => import('./pages/RookieDraft'));
+const WageScale = lazy(() => import('./pages/WageScale'));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-900">
@@ -89,19 +91,35 @@ function AppContent() {
   const shouldHideFooter = noFooterRoutes.includes(location.pathname);
 
   // KO-FI WIDGET HANDLING
-  // The widget is injected via index.html and is global. We need to hide it on pages where it obstructs UI (e.g. Trades)
+  // The widget is injected via index.html and is global. We need to hide it on pages where it obstructs UI
   useEffect(() => {
-    const kofiWidget = document.getElementById('kofi-widget-overlay-container');
-    if (kofiWidget) {
-      // Routes where the widget should be HIDDEN
-      const hideWidgetRoutes = ['/trades', '/draft', '/live-draft'];
+    const hideWidgetRoutes = ['/trades', '/draft', '/live-draft', '/rookie-draft', '/lottery'];
+    const shouldHide = hideWidgetRoutes.some(route => location.pathname.includes(route));
 
-      if (hideWidgetRoutes.some(route => location.pathname.includes(route))) {
-        kofiWidget.style.display = 'none';
-      } else {
-        kofiWidget.style.display = 'block';
-      }
-    }
+    const toggleWidget = (hide: boolean) => {
+      const selectors = [
+        '#kofi-widget-overlay-container',
+        '.kofi-widget-overlay-container',
+        'iframe[src*="ko-fi.com"]'
+      ];
+
+      selectors.forEach(selector => {
+        const element = document.querySelector(selector) as HTMLElement;
+        if (element) {
+          element.style.setProperty('display', hide ? 'none' : 'block', 'important');
+          element.style.setProperty('visibility', hide ? 'hidden' : 'visible', 'important');
+          element.style.setProperty('opacity', hide ? '0' : '1', 'important');
+        }
+      });
+    };
+
+    // Initial toggle
+    toggleWidget(shouldHide);
+
+    // Dynamic check (Ko-fi script might inject later)
+    const interval = setInterval(() => toggleWidget(shouldHide), 1000);
+
+    return () => clearInterval(interval);
   }, [location.pathname]);
 
   return (
@@ -150,9 +168,13 @@ function AppContent() {
             <Route path="/commissioner" element={<Commissioner />} />
             <Route path="/rules" element={<Rules />} />
             <Route path="/pool" element={<PlayerPool />} />
+            {/* DRAFT ROUTES */}
+            <Route path="/draft/wage-scale" element={<WageScale />} />
+            <Route path="/draft/my-picks" element={<DraftAssets />} />
             <Route path="/draft-assets" element={<DraftAssets />} />
             <Route path="/draft-board" element={<DraftBoard />} />
-            <Route path="/lottery" element={<Lottery />} /> {/* Added */}
+            <Route path="/lottery" element={<Lottery />} />
+            <Route path="/rookie-draft" element={<RookieDraft />} />
             {/* Dashboard Landing Page (Public) */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/contact" element={<Contact />} />

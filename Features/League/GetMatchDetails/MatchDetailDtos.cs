@@ -30,5 +30,6 @@ public class MatchPlayerDto
     public string NbaTeam { get; set; } = string.Empty;
     public double TodayScore { get; set; }
     public double WeeklyScore { get; set; }
+    public string? BestScoreDate { get; set; }  // The date when WeeklyScore was achieved
     public string Status { get; set; } = "Active";
 }

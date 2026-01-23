@@ -47,3 +47,47 @@ export interface AssignPickResult {
     contractId: number | null;
     rookieSalary: number | null;
 }
+
+export interface RookieDraftDto {
+    id: number;
+    fullName: string;
+    position: string;
+    nbaTeam: string;
+    externalId: number;
+    realRank?: number;
+}
+
+export interface DraftPlayerDto {
+    name: string;
+    salary: number;
+    position: string;
+}
+
+export interface TeamDraftSummaryDto {
+    userId: string;
+    teamName: string;
+    remainingBudget: number;
+    rosterCount: number;
+    players: DraftPlayerDto[];
+}
+
+export interface CurrentPickDto {
+    id: number;
+    round: number;
+    pickNumber: number;
+    teamId: number;
+    teamName: string;
+    teamLogoUrl: string;
+    deadline?: string; // ISO Date
+}
+
+export interface RookieDraftStateDto {
+    leagueId: number;
+    isActive: boolean;
+    isPaused: boolean;
+    currentPick?: CurrentPickDto;
+    upcomingPicks: CurrentPickDto[];
+    recentHistory: CurrentPickDto[];
+    teams: TeamDraftSummaryDto[];
+    onlineParticipants: string[];
+}

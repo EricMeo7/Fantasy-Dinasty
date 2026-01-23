@@ -35,12 +35,11 @@ export const MatchupCard = ({ match }: Props) => {
     const homeWinner = match.homeScore > match.awayScore;
     const awayWinner = match.awayScore > match.homeScore;
 
-    const isPlaceholder = match.homeTeamId === 0 || match.awayTeamId === 0;
 
     return (
         <div
-            onClick={() => !match.isBye && !isPlaceholder && navigate(`/matchup/${match.id}`)}
-            className={`bg-slate-800 rounded-xl border border-slate-700 p-0 overflow-hidden transition shadow-lg group ${!match.isBye && !isPlaceholder ? 'hover:border-slate-500 cursor-pointer hover:scale-[1.02]' : ''}`}
+            onClick={() => !match.isBye && match.id > 0 && navigate(`/matchup/${match.id}`)}
+            className={`bg-slate-800 rounded-xl border border-slate-700 p-0 overflow-hidden transition shadow-lg group ${!match.isBye && match.id > 0 ? 'hover:border-slate-500 cursor-pointer hover:scale-[1.02]' : ''}`}
         >
             {/* Header Status */}
             <div className={`h-1 w-full ${match.isPlayed ? 'bg-slate-600' : isLive ? 'bg-red-500 animate-pulse' : 'bg-blue-500'}`}></div>

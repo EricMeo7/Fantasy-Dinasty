@@ -5,7 +5,7 @@ import { CONFIG } from '../config';
 import {
     ChevronDown, LogOut,
     RefreshCcw, ArrowLeftRight, Shield, List, LayoutDashboard, Book, Activity, Send,
-    ShoppingBag, Calendar, Trophy, Users, Coffee
+    ShoppingBag, Calendar, Trophy, Users, Coffee, Radio
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLeagueStatus } from '../features/admin/api/useLeagueStatus';
@@ -155,6 +155,19 @@ export default function Navbar() {
             items: [
                 { label: t('navbar.matches'), path: '/matches', icon: <Calendar size={16} /> },
                 { label: t('navbar.standings'), path: '/league', icon: <Trophy size={16} /> },
+            ]
+        },
+        {
+            key: 'draft',
+            label: t('draft.menu'),
+            icon: <Activity size={18} />, // Placeholder icon, maybe Ticket or Vote better but Activity is imported
+            color: 'purple',
+            items: [
+                { label: t('draft.lottery'), path: '/lottery', icon: <Trophy size={16} /> },
+                { label: t('draft.board'), path: '/draft-board', icon: <LayoutDashboard size={16} /> },
+                { label: t('draft.myPicks'), path: '/draft-assets', icon: <ShoppingBag size={16} /> }, // Using Existing Route
+                { label: t('draft.wageScale'), path: '/draft/wage-scale', icon: <Book size={16} /> },
+                { label: t('draft.liveRoom'), path: '/rookie-draft', icon: <Radio size={16} /> },
             ]
         },
         {

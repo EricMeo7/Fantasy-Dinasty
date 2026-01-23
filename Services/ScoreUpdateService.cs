@@ -43,14 +43,41 @@ public class ScoreUpdateService : BackgroundService
         {
             using (var scope = _serviceProvider.CreateScope())
             {
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 var nbaService = scope.ServiceProvider.GetRequiredService<INbaDataService>();
-                // Scarichiamo il calendario solo se serve (o forziamo all'avvio per sicurezza)
-                await nbaService.ImportSeasonScheduleAsync();
+                var matchupService = scope.ServiceProvider.GetRequiredService<MatchupService>();
+
+                // Scarichiamo il calendario SOLO se il database è vuoto per risparmiare banda
+                bool hasGames = await context.NbaGames.AnyAsync(stoppingToken);
+                if (!hasGames)
+                {
+                    _logger.LogInformation("Database vuoto: Avvio download massivo Calendario NBA...");
+                    await nbaService.ImportSeasonScheduleAsync();
+                }
+                else
+                {
+                    _logger.LogInformation("Calendario NBA già presente. Skip download iniziale.");
+                }
+
+                // FORCE REFRESH ON STARTUP:
+                // Ensure correct standings/scores immediately (fixes stale cache from 403 errors)
+                
+                // 1. Force Process Completed Matchups (Standings)
+                _logger.LogInformation("Startup: Forcing matchup finalization to correct potential stale data...");
+                await matchupService.ProcessCompletedMatchups(stoppingToken);
+
+                // 2. Force Live Update (Current Week)
+                var leagueIds = await context.Leagues.Select(l => l.Id).ToListAsync(stoppingToken);
+                foreach (var leagueId in leagueIds)
+                {
+                    await matchupService.UpdateLiveScores(leagueId);
+                }
+                _logger.LogInformation("Startup: Boostrap Score Refresh Completed.");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Errore durante il download iniziale del calendario NBA.");
+            _logger.LogError(ex, "Errore durante il bootstrap iniziale (Schedule/Scores).");
         }
 
         // ==============================================================================

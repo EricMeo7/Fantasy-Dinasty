@@ -99,8 +99,20 @@ export default function Matchup() {
     // I'll keep a local state that syncs with query data to allow snappy UX.
     const [roster, setRoster] = useState<DailyPlayer[]>([]);
     useEffect(() => {
-        if (rosterRaw.length > 0) setRoster(rosterRaw);
-    }, [rosterRaw]);
+        if (rosterRaw.length > 0) {
+            // Merge weeklyScore from matchup.homePlayers/awayPlayers into roster
+            const playersWithWeekly = rosterRaw.map(p => {
+                const matchPlayers = viewingTeamId === matchup?.homeTeamId ? matchup?.homePlayers : matchup?.awayPlayers;
+                const matchP = matchPlayers?.find(mp => mp.id === p.playerId);
+                return {
+                    ...p,
+                    weeklyScore: matchP?.weeklyScore || p.weeklyBestScore || 0,
+                    bestScoreDate: matchP?.bestScoreDate || null
+                };
+            });
+            setRoster(playersWithWeekly);
+        }
+    }, [rosterRaw, matchup, viewingTeamId]);
 
     // 2. SIGNALR CONNECTION
     useEffect(() => {
@@ -332,7 +344,6 @@ export default function Matchup() {
         setIsStatsOpen(true);
     };
 
-    const dailyTotal = roster.filter(p => p.isStarter).reduce((sum, p) => sum + (p.realPoints || 0), 0);
     const allBench = roster.filter(p => !p.isStarter).sort((a, b) => (a.benchOrder || 99) - (b.benchOrder || 99));
 
     if (loadingMatch) return (
@@ -383,9 +394,11 @@ export default function Matchup() {
                             <ArrowLeft size={16} className="mr-2 group-hover:-translate-x-1 transition-transform" /> {t('navbar.calendar')}
                         </button>
                         <div className="text-right">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">{t('dashboard.daily_score')}</span>
-                            <span className="text-3xl font-black text-emerald-400">{dailyTotal.toFixed(1)}</span>
-                            <button onClick={() => setIsWeeklyRecapOpen(true)} className="block ml-auto mt-1 text-[9px] font-black text-blue-400 hover:text-blue-300 uppercase tracking-widest underline decoration-blue-500/30 hover:decoration-blue-400 transition-all">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">{t('matchup.weekly_total')}</span>
+                            <span className="text-4xl font-black text-emerald-400">
+                                {(viewingTeamId === matchup.homeTeamId ? matchup.homeScore : matchup.awayScore).toFixed(1)}
+                            </span>
+                            <button onClick={() => setIsWeeklyRecapOpen(true)} className="block ml-auto mt-1 text-[10px] font-black text-blue-400 hover:text-blue-300 uppercase tracking-widest underline decoration-blue-500/30 hover:decoration-blue-400 transition-all">
                                 {t('matchup.weekly_recap')}
                             </button>
                         </div>
@@ -456,18 +469,18 @@ export default function Matchup() {
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">{t('matchup.preparing_court')}</span>
                     </div>
                 ) : (
-                    <div className="relative w-full aspect-[3/4] md:aspect-video bg-[#0f111a] border-4 border-slate-800 rounded-[3rem] overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] mb-10">
-                        <div className="absolute inset-0 z-10 p-8 grid grid-rows-3 gap-8">
+                    <div className="relative w-full aspect-[3/4.5] md:aspect-video bg-[#0f111a] border-4 border-slate-800 rounded-[3rem] overflow-hidden shadow-[0_0_80px_rgba(0,0,0,0.6)] mb-10">
+                        <div className="absolute inset-0 z-10 p-8 flex flex-col justify-around py-12">
                             <div className="flex justify-around items-center">
-                                <CourtPlayerCard slot="PG" player={assignedMap['PG']} onSelect={() => setShowBenchForSlot('PG')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} />
-                                <CourtPlayerCard slot="SG" player={assignedMap['SG']} onSelect={() => setShowBenchForSlot('SG')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} />
+                                <CourtPlayerCard slot="PG" player={assignedMap['PG']} onSelect={() => setShowBenchForSlot('PG')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} selectedDate={selectedDate} />
+                                <CourtPlayerCard slot="SG" player={assignedMap['SG']} onSelect={() => setShowBenchForSlot('SG')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} selectedDate={selectedDate} />
                             </div>
                             <div className="flex justify-around items-center">
-                                <CourtPlayerCard slot="SF" player={assignedMap['SF']} onSelect={() => setShowBenchForSlot('SF')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} />
-                                <CourtPlayerCard slot="PF" player={assignedMap['PF']} onSelect={() => setShowBenchForSlot('PF')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} />
+                                <CourtPlayerCard slot="SF" player={assignedMap['SF']} onSelect={() => setShowBenchForSlot('SF')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} selectedDate={selectedDate} />
+                                <CourtPlayerCard slot="PF" player={assignedMap['PF']} onSelect={() => setShowBenchForSlot('PF')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} selectedDate={selectedDate} />
                             </div>
                             <div className="flex justify-center items-center">
-                                <CourtPlayerCard slot="C" player={assignedMap['C']} onSelect={() => setShowBenchForSlot('C')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} />
+                                <CourtPlayerCard slot="C" player={assignedMap['C']} onSelect={() => setShowBenchForSlot('C')} onRemove={handleRemoveStarter} onStats={handleOpenStats} isReadOnly={isReadOnly} selectedDate={selectedDate} />
                             </div>
                         </div>
                     </div>
@@ -588,7 +601,7 @@ export default function Matchup() {
     );
 }
 
-function CourtPlayerCard({ slot, player, onSelect, onRemove, onStats, isReadOnly }: any) {
+function CourtPlayerCard({ slot, player, onSelect, onRemove, onStats, isReadOnly, selectedDate }: any) {
     const { t } = useTranslation();
     if (!player) {
         return (
@@ -600,30 +613,47 @@ function CourtPlayerCard({ slot, player, onSelect, onRemove, onStats, isReadOnly
     }
     return (
         <div className="relative w-32 flex flex-col items-center animate-in zoom-in duration-500 group">
-            <div onClick={() => onStats(player)} className={`relative w-20 h-20 rounded-2xl border-2 overflow-hidden bg-slate-900 shadow-2xl cursor-pointer hover:scale-110 transition-transform ${player.injuryStatus === 'Out' ? 'border-red-500' : 'border-emerald-500'}`}>
+            {/* Player Image & Weekly Score */}
+            <div onClick={() => onStats(player)} className={`relative w-26 h-26 rounded-[1.5rem] border-2 shadow-2xl cursor-pointer hover:scale-105 transition-all flex items-center justify-center overflow-hidden ${player.injuryStatus === 'Out' ? 'border-red-500 bg-slate-900' : 'border-emerald-500 bg-slate-900'} ${player.gameTime && !player.gameTime.includes("FINAL") && player.realPoints != null ? 'ring-2 ring-emerald-400/60' : ''}`}>
                 <img src={`https://cdn.nba.com/headshots/nba/latest/260x190/${player.externalId}.png`} alt={player.name} className="w-full h-full object-cover object-top" />
+
+                {/* Weekly Best Indicator Overlay - REMOVED AS REQUESTED */}
+
+                {/* GOLD CROWN: This is the day that counts for Best Ball! */}
+                {player.bestScoreDate && player.bestScoreDate === selectedDate.toLocaleDateString('sv').split(' ')[0] && (
+                    <div className="absolute top-0 left-0 bg-amber-500 text-white rounded-br-xl px-1.5 py-1 shadow-lg border-r border-b border-amber-300/40 animate-pulse z-20">
+                        <span className="text-lg">👑</span>
+                    </div>
+                )}
+
+                {/* Status Badge */}
+                {player.injuryStatus === 'Out' && (
+                    <div className="absolute inset-x-0 bottom-0 bg-red-600/90 py-1 text-[8px] font-black uppercase tracking-widest text-center text-white border-t border-white/20">
+                        {t('common.out')}
+                    </div>
+                )}
             </div>
-            <div onClick={() => onStats(player)} className="mt-[-15px] bg-slate-900/95 backdrop-blur-md border border-slate-700/50 rounded-xl px-3 py-2 text-center shadow-2xl min-w-[120px] z-10 cursor-pointer hover:bg-slate-800 transition">
-                <div className="text-[10px] font-black text-white uppercase italic tracking-tight truncate">{player.name}</div>
-                <div className="flex justify-center items-center gap-1 text-[9px] mt-0.5 font-bold uppercase">
-                    {player.hasGame ? (
-                        <>
-                            <span className="text-blue-400">{player.opponent}</span>
-                            <span className="text-slate-700">•</span>
-                            {player.realPoints !== null ? (
-                                <span className={`${player.weeklyBestScore && player.realPoints === player.weeklyBestScore && player.realPoints > 0 ? 'text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.5)]' : 'text-emerald-400'} font-black`}>
-                                    {player.realPoints} {player.weeklyBestScore && player.realPoints === player.weeklyBestScore && player.realPoints > 0 && "★"}
-                                </span>
-                            ) : (
-                                <span className="text-slate-500 font-mono tracking-tighter">{player.gameTime}</span>
-                            )}
-                        </>
-                    ) : <span className="text-slate-600 italic">{t('matchup.no_game')}</span>}
-                    {player.injuryStatus === 'Out' && <span className="ml-1 text-[8px] bg-red-600 text-white px-1 rounded font-black">{t('common.out')}</span>}
+
+            <div onClick={() => onStats(player)} className="mt-[-15px] bg-slate-900 border border-white/10 rounded-[1.5rem] p-3 text-center shadow-2xl min-w-[160px] z-10 cursor-pointer hover:bg-slate-800 transition-all border-white/5 hover:border-emerald-500/40">
+                <div className="text-[13px] font-black text-white uppercase italic tracking-tighter truncate mb-1">{player.name}</div>
+
+                <div className="flex justify-between items-center px-1">
+                    <span className="text-[10px] font-black text-blue-400 uppercase">{player.opponent || t('matchup.no_game')}</span>
+
+                    <div className="flex items-center gap-1">
+                        {player.realPoints != null && (
+                            <span className="text-xs font-black text-emerald-400 italic">
+                                {player.realPoints.toFixed(1)}
+                            </span>
+                        )}
+                        {!player.realPoints && player.hasGame && (
+                            <span className="text-[9px] text-slate-500 font-mono font-bold">{player.gameTime}</span>
+                        )}
+                    </div>
                 </div>
             </div>
             {!isReadOnly && (
-                <button onClick={(e) => { e.stopPropagation(); onRemove(player); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-xl hover:scale-125 transition-transform border-2 border-slate-950"><X size={12} strokeWidth={4} /></button>
+                <button onClick={(e) => { e.stopPropagation(); onRemove(player); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-xl hover:scale-110 transition-transform border-2 border-slate-950"><X size={12} strokeWidth={4} /></button>
             )}
         </div>
     );
@@ -696,7 +726,7 @@ function BenchPlayerCard({ p, idx, displayIdx, onMoveUp, onMoveDown, onStats, on
                 </div>
             </div>
             <div className="text-right pointer-events-none">
-                {p.realPoints !== null ? (
+                {p.realPoints != null ? (
                     <div><div className="text-[9px] text-slate-600 uppercase font-black tracking-widest">Live</div><div className="text-xl font-black text-emerald-500 italic leading-none">{p.realPoints.toFixed(1)}</div></div>
                 ) : (
                     <div className="flex flex-col items-end">

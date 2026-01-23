@@ -36,7 +36,10 @@ const LogoAvatar: React.FC<LogoAvatarProps> = ({
 
     const defaultLogo = fallbackType === 'team' ? '/defaults/team-default.png' : '/defaults/league-default.png';
     const versionSuffix = version ? `?v=${version}` : '';
-    const displaySrc = (!src || error) ? defaultLogo : `${src}${versionSuffix}`;
+
+    // If version is explicitly 0, we know there is no logo, so satisfy fallback immediately without triggering 404
+    const shouldFetch = src && (version === undefined || version > 0);
+    const displaySrc = (shouldFetch && !error) ? `${src}${versionSuffix}` : defaultLogo;
 
     return (
         <div className={`

@@ -83,14 +83,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// --- AGGIUNTA FONDAMENTALE PER L'ERRORE ---
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireClaim("IsAdmin", "true")); // Definisce la regola per l'Admin
-});
-// -------------------------------------------
-
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -120,11 +112,12 @@ builder.Services.AddScoped<MatchupService>();
 builder.Services.AddScoped<ScheduleService>();
 
 // Draft System Services
-builder.Services.AddScoped<IRookieSalaryScale, RookieSalaryScale>();
+builder.Services.AddSingleton<IRookieSalaryScale, RookieSalaryScale>();
 builder.Services.AddScoped<IDraftService, DraftService>();
 builder.Services.AddScoped<ILotteryService, LotteryService>();
 
 builder.Services.AddSingleton<LiveDraftService>();
+builder.Services.AddSingleton<RookieDraftService>();
 builder.Services.AddSingleton<LiveLotteryService>();
 builder.Services.AddScoped<OfficialInjuryService>();
 
@@ -196,9 +189,31 @@ builder.Services.AddHttpClient("NbaStats", client =>
 
 builder.Services.AddHttpClient("NbaCdn", client =>
 {
+    // OPTIMIZATION: Advanced mimicking of Chrome Client
     client.Timeout = TimeSpan.FromMinutes(5);
-    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0 Safari/537.36");
+    client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+    client.DefaultRequestHeaders.Add("Accept", "application/json, text/plain, */*");
+    client.DefaultRequestHeaders.Add("Accept-Language", "en-US,en;q=0.9");
     client.DefaultRequestHeaders.Add("Referer", "https://www.nba.com/");
+    client.DefaultRequestHeaders.Add("Origin", "https://www.nba.com");
+    
+    // Critical Hints
+    client.DefaultRequestHeaders.Add("Sec-Ch-Ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"");
+    client.DefaultRequestHeaders.Add("Sec-Ch-Ua-Mobile", "?0");
+    client.DefaultRequestHeaders.Add("Sec-Ch-Ua-Platform", "\"Windows\"");
+    client.DefaultRequestHeaders.Add("Sec-Fetch-Dest", "empty");
+    client.DefaultRequestHeaders.Add("Sec-Fetch-Mode", "cors");
+    client.DefaultRequestHeaders.Add("Sec-Fetch-Site", "same-site");
+    client.DefaultRequestHeaders.Add("x-nba-stats-origin", "stats");
+    client.DefaultRequestHeaders.Add("x-nba-stats-token", "true");
+})
+.ConfigurePrimaryHttpMessageHandler(() => 
+{
+    var handler = new HttpClientHandler
+    {
+        AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate | System.Net.DecompressionMethods.Brotli
+    };
+    return handler;
 })
 .AddPolicyHandler(retryPolicy);
 

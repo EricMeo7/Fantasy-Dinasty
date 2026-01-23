@@ -7,6 +7,8 @@ export interface MatchPlayer {
     position: string;
     nbaTeam: string;
     todayScore: number;
+    weeklyScore: number;
+    bestScoreDate?: string;  // Date when weeklyScore was achieved (yyyy-MM-dd)
     status: string;
 }
 

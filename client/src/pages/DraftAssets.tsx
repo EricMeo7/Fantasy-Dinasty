@@ -5,19 +5,21 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import SEO from '../components/SEO/SEO';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next'; // Added
 
 export default function DraftAssets() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { data: assets, isLoading, error, refetch } = useDraftAssets();
 
     const handleInitDraft = async () => {
         try {
             await api.draft.init();
-            toast.success('Draft system initialized!');
+            toast.success(t('draft.initializing_engine'));
             refetch();
         } catch (error) {
             console.error('Failed to init draft:', error);
-            toast.error('Failed to initialize draft. Ensure you are Admin.');
+            toast.error(t('common.error'));
         }
     };
 
@@ -34,7 +36,7 @@ export default function DraftAssets() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 relative overflow-hidden">
-            <SEO title="My Draft Assets | Fantasy Basket" description="View and manage your draft picks." />
+            <SEO title={`${t('draft.myPicks')} | Fantasy Basket`} description="View and manage your draft picks." />
 
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
@@ -47,13 +49,13 @@ export default function DraftAssets() {
                 <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
                     <div>
                         <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-blue-400 mb-4">
-                            My Portfolio
+                            {t('draft.portfolio')}
                         </div>
                         <h1 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">
-                            Draft Assets
+                            {t('draft.myPicks')}
                         </h1>
                         <p className="text-slate-500 font-bold uppercase tracking-widest mt-2 max-w-xl">
-                            Future draft capital for the next 3 seasons
+                            {t('draft.assets_subtitle')}
                         </p>
                     </div>
 
@@ -61,32 +63,29 @@ export default function DraftAssets() {
                         onClick={() => navigate('/draft-board')}
                         className="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-black uppercase tracking-widest text-sm rounded-xl transition-all shadow-lg shadow-purple-600/20 active:scale-95"
                     >
-                        View Full Board
+                        {t('draft.view_board')}
                     </button>
                 </div>
 
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-500">
                         <Loader2 className="animate-spin text-purple-500 mb-4" size={48} />
-                        <p className="font-mono animate-pulse tracking-[0.3em] uppercase text-xs">Fetching Assets...</p>
+                        <p className="font-mono animate-pulse tracking-[0.3em] uppercase text-xs">{t('common.loading')}</p>
                     </div>
                 ) : error ? (
                     <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-3xl text-center text-red-400">
-                        Error loading draft assets
+                        {t('common.error')}
                     </div>
                 ) : (!assets || assets.length === 0) ? (
                     <div className="glass-card p-12 text-center rounded-3xl border border-dashed border-white/10 bg-slate-900/40">
-                        <p className="text-slate-300 text-lg mb-6">You don't own any draft picks yet.</p>
+                        <p className="text-slate-300 text-lg mb-6">{t('draft.no_players', { defaultValue: 'You don\'t own any draft picks yet.' })}</p>
 
                         <div className="p-6 bg-blue-500/10 border border-blue-500/20 rounded-2xl max-w-lg mx-auto">
-                            <p className="text-xs font-bold text-blue-300 uppercase tracking-wide mb-6">
-                                If this is a new league, the draft system needs to be initialized.
-                            </p>
                             <button
                                 onClick={handleInitDraft}
                                 className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-xs rounded-xl transition-colors shadow-lg shadow-blue-600/20"
                             >
-                                Initialize Draft System
+                                {t('common.confirm')} (Init)
                             </button>
                         </div>
                     </div>
@@ -96,12 +95,12 @@ export default function DraftAssets() {
                             <div key={season} className="animate-in fade-in slide-in-from-bottom-5 duration-700">
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-                                    <h2 className="text-3xl font-black text-white/20 uppercase italic tracking-tighter">{season}</h2>
+                                    <h2 className="text-3xl font-black text-white/20 uppercase italic tracking-tighter">{t('common.season')} {season}</h2>
                                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {assetsBySeason![season].map((asset) => (
-                                        <DraftPickCard key={asset.id} asset={asset} />
+                                        <DraftPickCard key={asset.id} asset={asset} t={t} />
                                     ))}
                                 </div>
                             </div>
@@ -113,8 +112,8 @@ export default function DraftAssets() {
     );
 }
 
-function DraftPickCard({ asset }: { asset: DraftAsset }) {
-    const roundLabel = asset.round === 1 ? 'Round 1' : 'Round 2';
+function DraftPickCard({ asset, t }: { asset: DraftAsset, t: any }) {
+    const roundLabel = `${t('draft.round')} ${asset.round}`;
     const slotText = asset.slotNumber ? `#${asset.slotNumber}` : 'TBD';
     const isTradedPick = !asset.isOwn;
 
@@ -143,7 +142,7 @@ function DraftPickCard({ asset }: { asset: DraftAsset }) {
             <div className="text-center mb-6 relative z-10">
                 <div className="text-6xl font-black text-white italic tracking-tighter drop-shadow-2xl">{slotText}</div>
                 {asset.slotNumber && (
-                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-2">Overall Selection</div>
+                    <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-2">{t('draft.pick')}</div>
                 )}
             </div>
 

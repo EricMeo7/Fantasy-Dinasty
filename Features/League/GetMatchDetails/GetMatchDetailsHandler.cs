@@ -132,6 +132,10 @@ public class GetMatchDetailsHandler :
         response.HomePlayers = await GetRosterWithStats(homeTeam.Id, weekStart, settings ?? new LeagueSettings(), ct);
         response.AwayPlayers = await GetRosterWithStats(awayTeam.Id, weekStart, settings ?? new LeagueSettings(), ct);
 
+        // BEST BALL LOGIC: The team score is the SUM of the WeeklyScores (which are the MAX valid starter scores)
+        response.HomeScore = response.HomePlayers.Sum(p => p.WeeklyScore);
+        response.AwayScore = response.AwayPlayers.Sum(p => p.WeeklyScore);
+
         return Result<MatchDetailsResponseDto>.Success(response);
     }
 
@@ -139,6 +143,26 @@ public class GetMatchDetailsHandler :
 
     private async Task<List<MatchPlayerDto>> GetRosterWithStats(int teamId, DateTime weekStart, LeagueSettings settings, CancellationToken ct)
     {
+        var todayStr = DateTime.UtcNow.ToString("yyyy-MM-dd");
+        var weekEnd = weekStart.AddDays(7);
+        var sDateStr = weekStart.ToString("yyyy-MM-dd");
+        var eDateStr = weekEnd.ToString("yyyy-MM-dd");
+
+        // 1. Get ALL DailyLineups for the week where the player was a STARTER
+        // Capture the SLOT (PG, SG, etc.) to enforce "Best per Slot" logic
+        var weekStarterLineups = await _context.DailyLineups
+            .AsNoTracking()
+            .Where(d => d.TeamId == teamId && d.Date >= weekStart.Date && d.Date < weekEnd.Date && d.IsStarter)
+            .Select(d => new { d.PlayerId, DateStr = d.Date.ToString("yyyy-MM-dd"), d.Slot })
+            .ToListAsync(ct);
+        
+        // Dictionary to map (Player, Date) -> List of Slots (in case of double headers? rare but possible)
+        // Usually 1 slot per day.
+        var starterSlots = weekStarterLineups
+            .GroupBy(x => new { x.PlayerId, x.DateStr })
+            .ToDictionary(g => g.Key, g => g.First().Slot); // Assume 1 slot per player per day
+
+        // 2. Get roster data
         var rosterData = await _context.Contracts
             .AsNoTracking()
             .Where(c => c.TeamId == teamId)
@@ -152,16 +176,33 @@ public class GetMatchDetailsHandler :
             })
             .ToListAsync(ct);
 
-        var todayStr = DateTime.UtcNow.ToString("yyyy-MM-dd");
-        var weekEnd = weekStart.AddDays(7);
-        var sDateStr = weekStart.ToString("yyyy-MM-dd");
-        var eDateStr = weekEnd.ToString("yyyy-MM-dd");
-
         var playerIds = rosterData.Select(x => x.PlayerId).ToList();
-
         var dailyLogs = new Dictionary<int, double>();
-        var weeklyLogs = new Dictionary<int, double>();
-
+        // We will repurpose weeklyLogs to hold personal bests, but identifying slot winners is separate
+        var personalWeeklyBests = new Dictionary<int, double>(); 
+        var bestScoreDates = new Dictionary<int, string>();
+        
+        // This will hold the "Winning Score" for the team calculation, not attached to typical map
+        // But we need to calculate it for the handler's summation logic. 
+        // Actually, the handler sums `MatchPlayerDto.WeeklyScore`. 
+        // So we must ensure that ONLY Slot Winners have a WeeklyScore > 0? 
+        // OR we return a special calculation.
+        // The user wants "TOTALE SETTIMANA: 128.8" which is sum of ONLY winners.
+        // So `WeeklyScore` should be 0 if you are not a winner? 
+        // That hides performance. 
+        // Let's create `FantasyContribution` property? No, DTO change.
+        // Let's set `WeeklyScore` to Contribution (0 for Bam) to ensure total is correct.
+        // Visuals can still show personal performance via `TodayScore` or real points in game.
+        // But `CourtPlayerCard` shows `WeeklyScore`. showing 0 for Bam (42.9) is harsh.
+        // However, `HomeScore` calculation in `BuildMatchResponse` is `Sum(p => p.WeeklyScore)`.
+        // To fix Total WITHOUT hiding Bam's max:
+        // We should calculate `HomeScore` differently in `BuildMatchResponse` (NOT filtering roster).
+        // But `GetRosterWithStats` returns the list.
+        // Let's stick to: `WeeklyScore` = Contribution.
+        // Bam sees 0.0 (Green Badge removed anyway).
+        // So user just sees Bam 42.9 (Real points daily) but no "Weekly" total.
+        // This is consistent with Best Ball: If you didn't count, you got 0.
+        
         if (playerIds.Any())
         {
             var logs = await _context.PlayerGameLogs
@@ -193,13 +234,48 @@ public class GetMatchDetailsHandler :
                 )
             }).ToList();
 
+            // 3. Daily score (what they did TODAY, regardless of lineup)
             dailyLogs = calculatedLogs
                 .Where(l => l.GameDate == todayStr)
                 .ToDictionary(l => l.PlayerId, l => l.FantasyPoints);
             
-            weeklyLogs = calculatedLogs
-                .GroupBy(l => l.PlayerId)
-                .ToDictionary(g => g.Key, g => g.Sum(x => x.FantasyPoints));
+            // 4. Map Valid Logs to Slots
+            var slotPerformances = calculatedLogs
+                .Where(l => starterSlots.ContainsKey(new { l.PlayerId, DateStr = l.GameDate }))
+                .Select(l => new 
+                {
+                    l.PlayerId,
+                    l.GameDate,
+                    l.FantasyPoints,
+                    Slot = starterSlots[new { l.PlayerId, DateStr = l.GameDate }]
+                })
+                .ToList();
+
+            // 5. Determine Slot Winners (Best Ball Logic)
+            // Group by SLOT -> Take Max
+            var slotWinners = slotPerformances
+                .GroupBy(x => x.Slot)
+                .Select(g => g.OrderByDescending(x => x.FantasyPoints).First())
+                .ToList();
+
+            // 6. Map contributions
+            // A player can technically win multiple slots on different days. Sum their contributions.
+            var playerContributions = slotWinners
+                .GroupBy(x => x.PlayerId)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.FantasyPoints)); // Sum in case of multi-slot wins
+
+            // 7. Track Winning Dates for Crown
+            var winningEvents = new HashSet<(int, string)>(slotWinners.Select(x => (x.PlayerId, x.GameDate)));
+            
+            bestScoreDates = slotWinners
+                .GroupBy(x => x.PlayerId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(x => x.FantasyPoints).First().GameDate // Show the date of their biggest win
+                );
+            
+            // To ensure HomeScore/AwayScore is correct, we populate WeeklyScore with the Contribution
+            personalWeeklyBests = playerContributions; 
         }
 
         return rosterData.Select(c => new MatchPlayerDto
@@ -209,7 +285,10 @@ public class GetMatchDetailsHandler :
             Position = c.Position,
             NbaTeam = c.NbaTeam,
             TodayScore = dailyLogs.GetValueOrDefault(c.PlayerId, 0),
-            WeeklyScore = weeklyLogs.GetValueOrDefault(c.PlayerId, 0),
+            // WeeklyScore now represents CONTRIBUTION to the Best Ball total
+            // Bam (42.9) gets 0 here because Duren (48.0) beat him in C slot.
+            WeeklyScore = personalWeeklyBests.GetValueOrDefault(c.PlayerId, 0),
+            BestScoreDate = bestScoreDates.ContainsKey(c.PlayerId) ? bestScoreDates[c.PlayerId] : null,
             Status = "Active"
         }).ToList();
     }

@@ -3,6 +3,7 @@ using System;
 using FantasyBasket.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace FantasyBasket.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260122113241_AddLogoVersion")]
+    partial class AddLogoVersion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -550,9 +553,6 @@ namespace FantasyBasket.API.Migrations
                     b.Property<double>("DoubleDoubles")
                         .HasColumnType("double precision");
 
-                    b.Property<int>("DraftYear")
-                        .HasColumnType("integer");
-
                     b.Property<double>("Efficiency")
                         .HasColumnType("double precision");
 
@@ -600,9 +600,6 @@ namespace FantasyBasket.API.Migrations
                     b.Property<string>("InjuryStatus")
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsRookie")
-                        .HasColumnType("boolean");
-
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("text");
@@ -623,9 +620,6 @@ namespace FantasyBasket.API.Migrations
                     b.Property<string>("Position")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<int?>("RealNbaDraftRank")
-                        .HasColumnType("integer");
 
                     b.Property<double>("ThreePa")
                         .HasColumnType("double precision");
@@ -762,36 +756,6 @@ namespace FantasyBasket.API.Migrations
                     b.HasIndex("PlayerId", "Season");
 
                     b.ToTable("PlayerSeasonStats");
-                });
-
-            modelBuilder.Entity("FantasyBasket.API.Models.RookieWageScale", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("LeagueId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PickNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("Year1Salary")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Year2Salary")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Year3OptionPercentage")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LeagueId");
-
-                    b.ToTable("RookieWageScales");
                 });
 
             modelBuilder.Entity("FantasyBasket.API.Models.Team", b =>
@@ -1361,17 +1325,6 @@ namespace FantasyBasket.API.Migrations
                         .IsRequired();
 
                     b.Navigation("Player");
-                });
-
-            modelBuilder.Entity("FantasyBasket.API.Models.RookieWageScale", b =>
-                {
-                    b.HasOne("FantasyBasket.API.Models.League", "League")
-                        .WithMany()
-                        .HasForeignKey("LeagueId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("League");
                 });
 
             modelBuilder.Entity("FantasyBasket.API.Models.Team", b =>

@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<LeagueSettings> LeagueSettings { get; set; } // New DbSet
     public DbSet<DraftPick> DraftPicks { get; set; }
     public DbSet<TradePickOffer> TradePickOffers { get; set; }
+    public DbSet<RookieWageScale> RookieWageScales { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

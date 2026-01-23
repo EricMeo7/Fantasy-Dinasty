@@ -9,11 +9,13 @@ namespace FantasyBasket.API.Hubs;
 public class DraftHub : Hub
 {
     private readonly LiveDraftService _draftService;
+    private readonly RookieDraftService _rookieDraftService;
     private readonly ApplicationDbContext _context;
 
-    public DraftHub(LiveDraftService draftService, ApplicationDbContext context)
+    public DraftHub(LiveDraftService draftService, RookieDraftService rookieDraftService, ApplicationDbContext context)
     {
         _draftService = draftService;
+        _rookieDraftService = rookieDraftService;
         _context = context;
     }
 
@@ -52,6 +54,8 @@ public class DraftHub : Hub
             if (userId != null)
             {
                 await _draftService.UserConnectedAsync(leagueId, userId);
+                // Also broadcast for Rookie Draft so the lobby updates
+                await _rookieDraftService.BroadcastState(leagueId);
             }
         }
     }
@@ -64,6 +68,8 @@ public class DraftHub : Hub
         if (leagueId != 0 && userId != null)
         {
             await _draftService.UserDisconnectedAsync(leagueId, userId);
+            // Also broadcast for Rookie Draft
+            await _rookieDraftService.BroadcastState(leagueId);
         }
 
         await base.OnDisconnectedAsync(exception);
@@ -192,7 +198,59 @@ public class DraftHub : Hub
         int leagueId = GetConnectionLeagueId();
         if (leagueId == 0) return false;
 
-        var team = await _context.Teams.FirstOrDefaultAsync(t => t.UserId == userId && t.LeagueId == leagueId);
-        return team?.IsAdmin ?? false;
+        return await _context.Teams
+            .Where(t => t.UserId == userId && t.LeagueId == leagueId)
+            .Select(t => t.IsAdmin)
+            .FirstOrDefaultAsync();
+    }
+    // --- ROOKIE DRAFT METHODS ---
+
+    public async Task StartRookieDraft(int leagueId)
+    {
+        if (!await IsAdmin()) return;
+        await _rookieDraftService.StartDraftAsync(leagueId);
+    }
+
+    public async Task GetRookieDraftState(int leagueId)
+    {
+        // Simple getter, useful for re-sync
+        var state = await _rookieDraftService.GetStateAsync(leagueId);
+        await Clients.Caller.SendAsync("UpdateRookieDraftState", state);
+    }
+
+    public async Task SelectRookie(int playerId)
+    {
+        int leagueId = GetConnectionLeagueId();
+        if (leagueId == 0) return;
+
+        var userId = Context.UserIdentifier;
+        if (userId == null) return;
+
+        try 
+        {
+            await _rookieDraftService.SelectPlayerAsync(leagueId, playerId, userId);
+        }
+        catch (Exception ex)
+        {
+            await Clients.Caller.SendAsync("Error", ex.Message);
+        }
+    }
+
+    public async Task GetAvailableRookies(int leagueId)
+    {
+        var rookies = await _rookieDraftService.GetAvailableRookiesAsync(leagueId);
+        await Clients.Caller.SendAsync("UpdateAvailableRookies", rookies);
+    }
+
+    public async Task PauseRookieDraft(int leagueId)
+    {
+        if (!await IsAdmin()) return;
+        await _rookieDraftService.PauseDraftAsync(leagueId);
+    }
+
+    public async Task UndoRookiePick(int leagueId)
+    {
+        if (!await IsAdmin()) return;
+        await _rookieDraftService.UndoLastPickAsync(leagueId);
     }
 }

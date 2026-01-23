@@ -14,7 +14,7 @@ public class RookieSalaryScale : IRookieSalaryScale
 
         // NBA Rookie Scale - Linear decrease from first pick to last
         // Slot #1 = $10M, decreasing linearly to slot #maxSlots = $1M
-        const double maxSalary = 10.0;
+        const double maxSalary = 12.0;
         const double minSalary = 1.0;
 
         // Calculate linear progression

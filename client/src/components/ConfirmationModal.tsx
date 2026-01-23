@@ -1,6 +1,5 @@
-import { Fragment } from 'react';
-import { Dialog, Transition } from '@headlessui/react';
-import { AlertTriangle } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -8,8 +7,8 @@ interface ConfirmationModalProps {
     onConfirm: () => void;
     title: string;
     message: string;
-    confirmText?: string;
-    cancelText?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
     variant?: 'danger' | 'warning' | 'info';
 }
 
@@ -19,94 +18,85 @@ export default function ConfirmationModal({
     onConfirm,
     title,
     message,
-    confirmText = "Confirm",
-    cancelText = "Cancel",
-    variant = 'warning'
+    confirmLabel,
+    cancelLabel,
+    variant = 'info'
 }: ConfirmationModalProps) {
+    const { t } = useTranslation();
 
-    const getColors = () => {
-        switch (variant) {
-            case 'danger': return { icon: 'text-red-500', bg: 'bg-red-500', border: 'border-red-500' };
-            case 'info': return { icon: 'text-blue-500', bg: 'bg-blue-500', border: 'border-blue-500' };
-            default: return { icon: 'text-yellow-500', bg: 'bg-yellow-500', border: 'border-yellow-500' };
-        }
+    if (!isOpen) return null;
+
+    const variantStyles = {
+        danger: 'bg-red-600 hover:bg-red-500 shadow-[0_0_30px_rgba(220,38,38,0.3)]',
+        warning: 'bg-amber-600 hover:bg-amber-500 shadow-[0_0_30px_rgba(217,119,6,0.3)]',
+        info: 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_30px_rgba(37,99,235,0.3)]'
     };
 
-    const colors = getColors();
+    const variantBorders = {
+        danger: 'border-red-500/30',
+        warning: 'border-amber-500/30',
+        info: 'border-blue-500/30'
+    };
+
+    const variantIcons = {
+        danger: 'text-red-400',
+        warning: 'text-amber-400',
+        info: 'text-blue-400'
+    };
 
     return (
-        <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div" className="relative z-50" onClose={onClose}>
-                <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0"
-                    enterTo="opacity-100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100"
-                    leaveTo="opacity-0"
-                >
-                    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" />
-                </Transition.Child>
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300"
+                onClick={onClose}
+            />
 
-                <div className="fixed inset-0 overflow-y-auto">
-                    <div className="flex min-h-full items-center justify-center p-4 text-center">
-                        <Transition.Child
-                            as={Fragment}
-                            enter="ease-out duration-300"
-                            enterFrom="opacity-0 scale-95"
-                            enterTo="opacity-100 scale-100"
-                            leave="ease-in duration-200"
-                            leaveFrom="opacity-100 scale-100"
-                            leaveTo="opacity-0 scale-95"
+            {/* Modal Container */}
+            <div className="relative w-full max-w-md bg-slate-900/40 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                {/* Decoration */}
+                <div className={`absolute -top-24 -right-24 w-48 h-48 rounded-full blur-[80px] opacity-20 ${variant === 'danger' ? 'bg-red-600' : variant === 'warning' ? 'bg-amber-600' : 'bg-blue-600'}`} />
+
+                <div className="relative z-10 p-8">
+                    <div className="flex justify-between items-start mb-6">
+                        <div className={`p-4 rounded-2xl bg-white/5 border ${variantBorders[variant]} shadow-inner`}>
+                            <AlertCircle className={variantIcons[variant]} size={32} />
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white"
                         >
-                            <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-3xl bg-slate-900 border border-white/10 p-6 text-left align-middle shadow-xl transition-all relative">
-                                {/* Gradient Background */}
-                                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                            <X size={20} />
+                        </button>
+                    </div>
 
-                                <div className="relative z-10 flex flex-col items-center text-center">
-                                    <div className={`p-4 rounded-full bg-slate-800 border ${colors.border}/30 mb-4`}>
-                                        <AlertTriangle size={32} className={colors.icon} />
-                                    </div>
+                    <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter mb-3 leading-none break-words">
+                        {title}
+                    </h3>
 
-                                    <Dialog.Title
-                                        as="h3"
-                                        className="text-2xl font-black text-white italic uppercase tracking-tighter mb-2"
-                                    >
-                                        {title}
-                                    </Dialog.Title>
+                    <p className="text-slate-400 font-medium leading-relaxed mb-10">
+                        {message}
+                    </p>
 
-                                    <div className="mt-2">
-                                        <p className="text-slate-400 font-medium">
-                                            {message}
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-8 flex gap-4 w-full">
-                                        <button
-                                            type="button"
-                                            className="flex-1 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold uppercase tracking-widest text-xs transition-colors"
-                                            onClick={onClose}
-                                        >
-                                            {cancelText}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`flex-1 px-6 py-3 rounded-xl ${colors.bg} hover:brightness-110 text-black font-black uppercase tracking-widest text-xs transition-transform transform active:scale-95`}
-                                            onClick={() => {
-                                                onConfirm();
-                                                onClose();
-                                            }}
-                                        >
-                                            {confirmText}
-                                        </button>
-                                    </div>
-                                </div>
-                            </Dialog.Panel>
-                        </Transition.Child>
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <button
+                            onClick={onClose}
+                            className="flex-1 px-8 py-4 bg-slate-800/50 hover:bg-slate-800 border border-white/5 text-slate-300 font-black uppercase italic tracking-widest text-[10px] rounded-2xl transition-all active:scale-95"
+                        >
+                            {cancelLabel || t('common.cancel')}
+                        </button>
+                        <button
+                            onClick={() => {
+                                onConfirm();
+                                onClose();
+                            }}
+                            className={`flex-1 px-8 py-4 ${variantStyles[variant]} text-white font-black uppercase italic tracking-widest text-[10px] rounded-2xl transition-all active:scale-95 border border-white/10`}
+                        >
+                            {confirmLabel || t('common.confirm')}
+                        </button>
                     </div>
                 </div>
-            </Dialog>
-        </Transition>
+            </div>
+        </div>
     );
 }

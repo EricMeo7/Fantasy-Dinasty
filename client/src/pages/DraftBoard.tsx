@@ -10,8 +10,10 @@ import SEO from '../components/SEO/SEO';
 import { PremiumSelect } from '../components/PremiumSelect';
 import { Loader2, Calendar } from 'lucide-react';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { useTranslation } from 'react-i18next'; // Added
 
 export default function DraftBoard() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const currentYear = new Date().getFullYear();
     const [selectedSeason, setSelectedSeason] = useState(currentYear + 1);
@@ -19,7 +21,7 @@ export default function DraftBoard() {
     // Admin Modal State
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
     const [selectedSlotForAssign, setSelectedSlotForAssign] = useState<DraftBoardSlot | null>(null);
-    const [isLotteryConfirmOpen, setIsLotteryConfirmOpen] = useState(false); // NEW
+    const [isLotteryConfirmOpen, setIsLotteryConfirmOpen] = useState(false);
 
     const { data: slots, isLoading, error, refetch } = useDraftBoard(selectedSeason);
     const { data: teamInfo } = useMyTeamInfo();
@@ -32,11 +34,11 @@ export default function DraftBoard() {
     const executeRunLottery = async () => {
         try {
             await api.draft.runLottery(selectedSeason);
-            toast.success('Lottery simulation completed!');
+            toast.success(t('draft.lottery') + ' ' + t('common.success'));
             navigate('/lottery');
         } catch (error) {
             console.error('Lottery failed:', error);
-            toast.error('Failed to run lottery');
+            toast.error(t('common.error'));
         }
     };
 
@@ -48,7 +50,7 @@ export default function DraftBoard() {
 
     // Get available seasons (current + 3)
     const availableSeasons = [currentYear, currentYear + 1, currentYear + 2, currentYear + 3];
-    const seasonOptions = availableSeasons.map(s => ({ value: s.toString(), label: `Season ${s}` }));
+    const seasonOptions = availableSeasons.map(s => ({ value: s.toString(), label: `${t('common.season')} ${s}` }));
 
     // Group by round
     const round1 = slots?.filter(s => s.round === 1).sort((a, b) => {
@@ -65,7 +67,7 @@ export default function DraftBoard() {
 
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 relative overflow-hidden">
-            <SEO title="Draft Board | Fantasy Basket" description="View the complete draft order and pick ownership." />
+            <SEO title={t('draft.board')} description="View the complete draft order and pick ownership." />
 
             {/* Background decoration */}
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
@@ -81,10 +83,10 @@ export default function DraftBoard() {
                             Draft Center
                         </div>
                         <h1 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter leading-none">
-                            Draft Board
+                            {t('draft.board')}
                         </h1>
                         <p className="text-slate-500 font-bold uppercase tracking-widest mt-2 max-w-xl">
-                            Complete draft order & pick ownership for {selectedSeason}
+                            Overview for {selectedSeason}
                         </p>
                     </div>
 
@@ -94,14 +96,14 @@ export default function DraftBoard() {
                                 onClick={handleRunLottery}
                                 className="px-6 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-black uppercase tracking-widest text-sm rounded-xl transition-all shadow-lg shadow-yellow-500/20 active:scale-95"
                             >
-                                🎲 Run Lottery
+                                🎲 {t('draft.lottery')} (Run)
                             </button>
                         )}
                         <button
                             onClick={() => navigate('/draft-assets')}
                             className="px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-white/5 text-slate-200 font-black uppercase tracking-widest text-sm rounded-xl transition-all active:scale-95"
                         >
-                            My Assets
+                            {t('draft.myPicks')}
                         </button>
                     </div>
                 </div>
@@ -109,7 +111,7 @@ export default function DraftBoard() {
                 {/* Filters */}
                 <div className="mb-10 w-full md:w-64">
                     <PremiumSelect
-                        label="Select Season"
+                        label={t('common.season')}
                         value={selectedSeason.toString()}
                         onChange={(val) => setSelectedSeason(parseInt(val))}
                         options={seasonOptions}
@@ -120,15 +122,15 @@ export default function DraftBoard() {
                 {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-20 text-slate-500">
                         <Loader2 className="animate-spin text-blue-500 mb-4" size={48} />
-                        <p className="font-mono animate-pulse tracking-[0.3em] uppercase text-xs">Loading Board...</p>
+                        <p className="font-mono animate-pulse tracking-[0.3em] uppercase text-xs">{t('common.loading')}</p>
                     </div>
                 ) : error ? (
                     <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-3xl text-center text-red-400">
-                        Error loading draft board. Please try again.
+                        {t('common.error')}
                     </div>
                 ) : (!slots || slots.length === 0) ? (
                     <div className="glass-card p-12 text-center rounded-3xl border border-dashed border-white/10 bg-slate-900/40">
-                        <p className="text-slate-500 font-bold uppercase tracking-widest">No draft picks generated for {selectedSeason}.</p>
+                        <p className="text-slate-500 font-bold uppercase tracking-widest">{t('draft.empty', { defaultValue: 'No draft picks found' })}</p>
                     </div>
                 ) : (
                     <div className="space-y-12">
@@ -137,7 +139,7 @@ export default function DraftBoard() {
                             <div className="animate-in fade-in slide-in-from-bottom-5 duration-700">
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent"></div>
-                                    <h2 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">Round 1</h2>
+                                    <h2 className="text-2xl font-black text-yellow-500 uppercase italic tracking-tighter">{t('draft.round')} 1</h2>
                                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent"></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -147,6 +149,7 @@ export default function DraftBoard() {
                                             slot={slot}
                                             isAdmin={isLeagueAdmin}
                                             onClick={() => handleSlotClick(slot)}
+                                            t={t} // Pass translation function
                                         />
                                     ))}
                                 </div>
@@ -158,7 +161,7 @@ export default function DraftBoard() {
                             <div className="animate-in fade-in slide-in-from-bottom-5 duration-700 delay-100">
                                 <div className="flex items-center gap-4 mb-6">
                                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
-                                    <h2 className="text-2xl font-black text-blue-400 uppercase italic tracking-tighter">Round 2</h2>
+                                    <h2 className="text-2xl font-black text-blue-400 uppercase italic tracking-tighter">{t('draft.round')} 2</h2>
                                     <div className="h-px flex-1 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent"></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -168,6 +171,7 @@ export default function DraftBoard() {
                                             slot={slot}
                                             isAdmin={isLeagueAdmin}
                                             onClick={() => handleSlotClick(slot)}
+                                            t={t}
                                         />
                                     ))}
                                 </div>
@@ -183,7 +187,7 @@ export default function DraftBoard() {
                     isOpen={isAssignModalOpen}
                     onClose={() => setIsAssignModalOpen(false)}
                     pickId={selectedSlotForAssign.id}
-                    pickLabel={`Round ${selectedSlotForAssign.round}, Pick ${selectedSlotForAssign.slotNumber || 'TBD'}`}
+                    pickLabel={`${t('draft.round')} ${selectedSlotForAssign.round}, ${t('draft.pick')} ${selectedSlotForAssign.slotNumber || 'TBD'}`}
                     onAssign={refetch}
                 />
             )}
@@ -193,16 +197,16 @@ export default function DraftBoard() {
                 isOpen={isLotteryConfirmOpen}
                 onClose={() => setIsLotteryConfirmOpen(false)}
                 onConfirm={executeRunLottery}
-                title="Run Lottery?"
-                message="Are you sure you want to run the lottery simulation? This will efficiently randomize the top 4 picks and assign the remaining slots based on league rules."
-                confirmText="Yes, Run Simulation"
+                title={t('draft.lottery')}
+                message={t('draft.start_confirm_msg')}
+                confirmText={t('common.confirm')}
                 variant="warning"
             />
         </div>
     );
 }
 
-function DraftSlotCard({ slot, isAdmin, onClick }: { slot: DraftBoardSlot, isAdmin: boolean, onClick: () => void }) {
+function DraftSlotCard({ slot, isAdmin, onClick, t }: { slot: DraftBoardSlot, isAdmin: boolean, onClick: () => void, t: any }) {
     const slotText = slot.slotNumber ? `#${slot.slotNumber}` : 'TBD';
     const isTradedPick = slot.isTradedPick;
 
@@ -218,7 +222,7 @@ function DraftSlotCard({ slot, isAdmin, onClick }: { slot: DraftBoardSlot, isAdm
             {/* Admin Edit Overlay Hint */}
             {isAdmin && (
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[9px] font-black bg-blue-500 text-white px-2 py-0.5 rounded uppercase tracking-widest">Edit</span>
+                    <span className="text-[9px] font-black bg-blue-500 text-white px-2 py-0.5 rounded uppercase tracking-widest">{t('common.edit')}</span>
                 </div>
             )}
 
@@ -229,20 +233,20 @@ function DraftSlotCard({ slot, isAdmin, onClick }: { slot: DraftBoardSlot, isAdm
                     {slotText}
                 </div>
                 {slot.slotNumber && (
-                    <div className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">Overall Pick</div>
+                    <div className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1">{t('draft.pick')}</div>
                 )}
             </div>
 
             {/* Current Owner */}
             <div className="mb-3">
-                <div className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">Owner</div>
+                <div className="text-[8px] text-slate-500 font-black uppercase tracking-widest mb-1">{t('trades.to_label')}</div>
                 <div className="text-white font-bold text-sm truncate">{slot.currentOwnerTeamName}</div>
             </div>
 
             {/* Original Owner (if traded) */}
             {isTradedPick && (
                 <div className="mb-3 pt-2 border-t border-white/5">
-                    <div className="text-[8px] text-purple-400 font-black uppercase tracking-widest mb-1">From</div>
+                    <div className="text-[8px] text-purple-400 font-black uppercase tracking-widest mb-1">{t('trades.from_label')}</div>
                     <div className="text-slate-300 text-xs truncate">{slot.originalOwnerTeamName}</div>
                 </div>
             )}

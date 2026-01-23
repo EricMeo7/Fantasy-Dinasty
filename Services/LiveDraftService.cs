@@ -130,18 +130,37 @@ public class LiveDraftService
         await BroadcastFullState(leagueId);
     }
 
+    public async Task RefreshStateAsync(int leagueId)
+    {
+        var semaphore = GetLock(leagueId);
+        await semaphore.WaitAsync();
+        try
+        {
+            var state = GetState(leagueId);
+            await RefreshTeamSummariesInternal(leagueId, state);
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
     private async Task RefreshTeamSummariesInternal(int leagueId, DraftState state)
     {
         using (var scope = _scopeFactory.CreateScope())
         {
             var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // 1. Recupera la Lega per il Cap (Cruciale: Fallback consistente con AuctionService)
-            var league = await context.Leagues.FindAsync(leagueId);
-            if (league == null) return;
+            // 1. Recupera la Lega per il Cap (Ottimizzato: solo campi necessari)
+            var leagueData = await context.Leagues
+                .Where(l => l.Id == leagueId)
+                .Select(l => new { l.SalaryCap, l.CurrentSeason })
+                .FirstOrDefaultAsync();
 
-            double cap = league.SalaryCap;
-            string currentSeason = league.CurrentSeason; 
+            if (leagueData == null) return;
+
+            double cap = leagueData.SalaryCap;
+            string currentSeason = leagueData.CurrentSeason;
 
             // 2. Recupera i Teams di QUESTA lega
             var teams = await context.Teams

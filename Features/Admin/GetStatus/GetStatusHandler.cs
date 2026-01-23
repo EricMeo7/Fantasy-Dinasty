@@ -17,9 +17,18 @@ public class GetStatusHandler : IRequestHandler<GetStatusQuery, Result<LeagueSta
 
     public async Task<Result<LeagueState>> Handle(GetStatusQuery request, CancellationToken cancellationToken)
     {
-        var league = await _context.Leagues.FindAsync(new object[] { request.LeagueId }, cancellationToken);
-        if (league == null) return Result<LeagueState>.Success(LeagueState.DraftMode); // Default or error?
+        var status = await _context.Leagues
+            .Where(l => l.Id == request.LeagueId)
+            .Select(l => l.Status)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return Result<LeagueState>.Success(league.Status);
+        // If not found, default to DraftMode? Or handle error? 
+        // Original code returned DraftMode on null.
+        if (status == 0 && !await _context.Leagues.AnyAsync(l => l.Id == request.LeagueId, cancellationToken)) 
+        {
+             return Result<LeagueState>.Success(LeagueState.DraftMode);
+        }
+        
+        return Result<LeagueState>.Success(status);
     }
 }
