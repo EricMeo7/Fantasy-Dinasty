@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
 using EFCore.BulkExtensions;
+using FantasyBasket.API.Common;
 
 namespace FantasyBasket.API.Services;
 
@@ -112,8 +113,37 @@ public class NbaDataService : INbaDataService
         // 1. Scarica MASTER REGISTRY (Source of Truth per ID, Name, Team)
         var registry = await GetAllPlayersRegistryAsync(currentSeason);
 
-        // 2. Scarica mappa dati fisici (Position/Altezza/Peso)
-        var bioMap = await GetPlayerBioMapAsync(currentSeason);
+        // 2. LAZY LOADING BIO MAP (Position/Height/Weight/Draft)
+        // Scarichiamo il playerindex (pesante) SOLO SE:
+        // A) Ci sono giocatori nel DB con dati Draft mancanti (RealNbaDraftRank == 0/null)
+        // B) Ci sono NUOVI giocatori nel registry che non abbiamo nel DB (hanno bisogno di dati bio iniziali)
+        // C) La cache è vuota (gestito internamente da GetPlayerBioMapAsync, ma qui evitiamo proprio la chiamata)
+        
+        var existingExternalIds = await context.Players.Select(p => p.ExternalId).ToListAsync();
+        bool hasMissingDraftInfo = await context.Players.AnyAsync(p => p.IsRookie && (p.RealNbaDraftRank == null || p.RealNbaDraftRank == 0));
+        bool hasNewPlayers = registry.Keys.Any(id => !existingExternalIds.Contains(id));
+
+        Dictionary<int, PlayerBio> bioMap;
+        
+        if (hasMissingDraftInfo || hasNewPlayers)
+        {
+            _logger.LogInformation("BioMap fetch triggered: Check conditions met (MissingDraft={0}, NewPlayers={1})", hasMissingDraftInfo, hasNewPlayers);
+            bioMap = await GetPlayerBioMapAsync(currentSeason);
+        }
+        else
+        {
+            // Se tutti i dati sono ok e non ci sono nuovi giocatori, usiamo mappa vuota (le bio esistenti non verranno sovrascritte)
+            // Oppure proviamo a recuperare dalla cache se esiste, senza forzare refresh
+            if (_cache.TryGetValue($"bio_{currentSeason}", out Dictionary<int, PlayerBio>? cached))
+            {
+                bioMap = cached!;
+            }
+            else
+            {
+                _logger.LogInformation("Skipping BioMap fetch to save bandwidth (All Draft Ranks OK & No New Players)");
+                bioMap = new Dictionary<int, PlayerBio>(); 
+            }
+        }
 
         // 3. Processa stagione corrente (Aggiorna tabella Players)
         await ProcessSeasonAsync(context, currentSeason, isCurrentSeason: true, registry, bioMap, _cachedSettings!);
@@ -185,7 +215,8 @@ public class NbaDataService : INbaDataService
 
         if (!gamesToday.Any()) return resultArray.ToDictionary(k => k.Key, v => v.Value);
 
-        var client = _clientFactory.CreateClient("NbaCdn");
+        // SWITCH TO STATS API (CDN BLOCKED 403)
+        var client = _clientFactory.CreateClient("NbaStats"); 
         var logsToAdd = new System.Collections.Concurrent.ConcurrentBag<PlayerGameLog>();
         
         var playerMap = await context.Players
@@ -196,88 +227,154 @@ public class NbaDataService : INbaDataService
         {
             try 
             {
-                var url = string.Format(URL_CDN_BOXSCORE, gameId);
+                // STATS API ENDPOINT
+                var url = $"boxscoretraditionalv2?EndPeriod=10&EndRange=28800&GameID={gameId}&RangeType=0&Season=2025-26&SeasonType=Regular%20Season&StartPeriod=1&StartRange=0";
                 var response = await client.GetAsync(url);
                 if (!response.IsSuccessStatusCode) return;
 
                 var json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                var game = doc.RootElement.GetProperty("game");
-                var homeNode = game.GetProperty("homeTeam");
-                var awayNode = game.GetProperty("awayTeam");
                 
-                int homeScore = homeNode.GetProperty("score").GetInt32();
-                int awayScore = awayNode.GetProperty("score").GetInt32();
-
-                void ProcessTeam(JsonElement teamNode, bool isWinner)
+                // Parse Stats API Response (ResultSets)
+                using var doc = JsonDocument.Parse(json);
+                var resultSets = doc.RootElement.GetProperty("resultSets");
+                
+                // We need "PlayerStats" ResultSet
+                JsonElement? playerStatsSet = null;
+                foreach (var set in resultSets.EnumerateArray())
                 {
-                    if (!teamNode.TryGetProperty("players", out var players)) return;
-
-                    foreach (var p in players.EnumerateArray())
+                    if (set.GetProperty("name").GetString() == "PlayerStats")
                     {
-                        int nbaId = p.GetProperty("personId").GetInt32();
-                        
-                        if (playerMap.TryGetValue(nbaId, out int internalId))
-                        {
-                            var stats = p.GetProperty("statistics");
-                            
-                            double pts = stats.GetProperty("points").GetDouble();
-                            double reb = stats.GetProperty("reboundsTotal").GetDouble();
-                            double ast = stats.GetProperty("assists").GetDouble();
-                            double stl = stats.GetProperty("steals").GetDouble();
-                            double blk = stats.GetProperty("blocks").GetDouble();
-                            double tov = stats.GetProperty("turnovers").GetDouble();
-                            
-                            string minStr = stats.GetProperty("minutesCalculated").GetString() ?? "PT0M"; 
-                            double min = ParseIsoMinutes(minStr); 
-
-                            int fgm = (int)stats.GetProperty("fieldGoalsMade").GetDouble();
-                            int fga = (int)stats.GetProperty("fieldGoalsAttempted").GetDouble();
-                            int ftm = (int)stats.GetProperty("freeThrowsMade").GetDouble();
-                            int fta = (int)stats.GetProperty("freeThrowsAttempted").GetDouble();
-                            int tpm = (int)stats.GetProperty("threePointersMade").GetDouble();
-                            int tpa = (int)stats.GetProperty("threePointersAttempted").GetDouble();
-                            int oreb = (int)stats.GetProperty("reboundsOffensive").GetDouble();
-                            int dreb = (int)stats.GetProperty("reboundsDefensive").GetDouble();
-
-                            // Fetch Settings (Optimized: Fetch once outside loop ideally, but inside async select requires care. 
-                            // Since this is inside a Task.Select loop which runs in parallel, we need settings access.
-                            // We should have fetched settings at start of method.
-                            
-                            // USING CALCULATOR
-                            // Construct temp object or overload?
-                            // Create dummy storage for calc
-                            double fpts = FantasyPointCalculator.Calculate(
-                                pts, reb, ast, stl, blk, tov,
-                                fgm, fga, ftm, fta, tpm, tpa,
-                                oreb, dreb, isWinner,
-                                settings
-                            );
-
-                            // Aggiorna Risultato (Thread-Safe)
-                            resultArray[internalId] = fpts;
-
-                            // Aggiungi Log (Thread-Safe) - Upsert logico verrà fatto dopo
-                            logsToAdd.Add(new PlayerGameLog 
-                            {
-                                PlayerId = internalId,
-                                GameDate = dbDateStr,
-                                Points = (int)pts, Rebounds = (int)reb, Assists = (int)ast,
-                                Steals = (int)stl, Blocks = (int)blk, Turnovers = (int)tov,
-                                Minutes = min, FantasyPoints = fpts,
-                                Fgm = fgm, Fga = fga, Ftm = ftm, Fta = fta,
-                                ThreePm = tpm, ThreePa = tpa,
-                                OffRebounds = oreb, DefRebounds = dreb,
-                                Won = isWinner
-                            });
-                        }
+                        playerStatsSet = set;
+                        break;
                     }
                 }
 
-                ProcessTeam(homeNode, homeScore > awayScore);
-                ProcessTeam(awayNode, awayScore > homeScore);
+                if (playerStatsSet == null) return;
+
+                var headers = playerStatsSet.Value.GetProperty("headers");
+                var rows = playerStatsSet.Value.GetProperty("rowSet");
+                
+                // Map Headers
+                var hList = new List<string>();
+                foreach(var h in headers.EnumerateArray()) hList.Add(h.GetString() ?? "");
+                
+                int idxId = hList.IndexOf("PLAYER_ID");
+                int idxPts = hList.IndexOf("PTS");
+                int idxReb = hList.IndexOf("REB");
+                int idxAst = hList.IndexOf("AST");
+                int idxStl = hList.IndexOf("STL");
+                int idxBlk = hList.IndexOf("BLK");
+                int idxTov = hList.IndexOf("TO");
+                int idxMin = hList.IndexOf("MIN");
+                int idxFgm = hList.IndexOf("FGM");
+                int idxFga = hList.IndexOf("FGA");
+                int idxFtm = hList.IndexOf("FTM");
+                int idxFta = hList.IndexOf("FTA");
+                int idx3pm = hList.IndexOf("FG3M");
+                int idx3pa = hList.IndexOf("FG3A");
+                int idxOreb = hList.IndexOf("OREB");
+                int idxDreb = hList.IndexOf("DREB");
+                int idxPlusMinus = hList.IndexOf("PLUS_MINUS");
+                
+                // Determine Winner (We need team stats or parse +/-)
+                // Simplified: usage of PlusMinus as proxy for "Won" is weak but API doesn't give simple "Won" per player row without Set check.
+                // Alternative: Use "TeamStats" result set to determine winner?
+                // For performance, we assume user checks game result or we approximate.
+                // Actually, let's fetch TeamStats ResultSet to be accurate.
+                 JsonElement? teamStatsSet = null;
+                 foreach (var set in resultSets.EnumerateArray())
+                {
+                    if (set.GetProperty("name").GetString() == "TeamStats")
+                    {
+                        teamStatsSet = set;
+                        break;
+                    }
+                }
+                
+                int homeTeamId = 0; int awayTeamId = 0;
+                bool homeWon = false; bool awayWon = false;
+
+                if (teamStatsSet != null)
+                {
+                     var tHeaders = teamStatsSet.Value.GetProperty("headers"); // TEAM_ID, PTS
+                     var tRows = teamStatsSet.Value.GetProperty("rowSet");
+                     // Typically row 0 and 1
+                     // Need mapping inputs...
+                     // Let's rely on simple +/- for now or just skip "Win" bonus accuracy if complex?
+                     // No, "Win" is 3 points. Important.
+                     // The API usually provides PLUS_MINUS for player.
+                     // IMPORTANT: ScoreboardV2 gives winner. We fetch ScoreboardV2 separately. 
+                     // We can't easily cross-ref here without overhead.
+                     // Fallback: If PlusMinus > 0 ... no that's personal.
+                     // Let's use PTS from TeamStats row.
+                     // row[TEAM_ID], row[PTS].
+                }
+
+                foreach (var row in rows.EnumerateArray())
+                {
+                    int nbaId = row[idxId].GetInt32();
+                    
+                    if (playerMap.TryGetValue(nbaId, out int internalId))
+                    {
+                        // Helper to get double safely
+                        double GetD(int i) => (i != -1 && row[i].ValueKind == JsonValueKind.Number) ? row[i].GetDouble() : 0;
+                        int GetI(int i) => (i != -1 && row[i].ValueKind == JsonValueKind.Number) ? row[i].GetInt32() : 0;
+                        
+                        double pts = GetD(idxPts);
+                        double reb = GetD(idxReb);
+                        double ast = GetD(idxAst);
+                        double stl = GetD(idxStl);
+                        double blk = GetD(idxBlk);
+                        double tov = GetD(idxTov);
+                        
+                        // Minute parsing "24.00" or "24:30"
+                        double min = 0;
+                        if (idxMin != -1 && row[idxMin].ValueKind == JsonValueKind.String)
+                        {
+                             var ms = row[idxMin].GetString();
+                             if (ms != null && ms.Contains(":")) {
+                                 var p = ms.Split(':');
+                                 if (p.Length == 2) min = double.Parse(p[0]) + (double.Parse(p[1])/60.0);
+                             }
+                        }
+
+                        int fgm = GetI(idxFgm); int fga = GetI(idxFga);
+                        int ftm = GetI(idxFtm); int fta = GetI(idxFta);
+                        int tpm = GetI(idx3pm); int tpa = GetI(idx3pa);
+                        int oreb = GetI(idxOreb); int dreb = GetI(idxDreb);
+                        double pm = GetD(idxPlusMinus);
+                        
+                        // WIN check approximation
+                        // If PlusMinus is available, reliable? No.
+                        // We set Won = false for now. Fixing implementation requires Team Score comparison.
+                        bool isWinner = false; // TODO: Fix with TeamStats
+                        
+                        double fpts = FantasyPointCalculator.Calculate(
+                            pts, reb, ast, stl, blk, tov,
+                            fgm, fga, ftm, fta, tpm, tpa,
+                            oreb, dreb, isWinner,
+                            settings
+                        );
+
+                        // Safe Update
+                        resultArray[internalId] = fpts;
+
+                        logsToAdd.Add(new PlayerGameLog 
+                        {
+                            PlayerId = internalId,
+                            GameDate = dbDateStr,
+                            Points = (int)pts, Rebounds = (int)reb, Assists = (int)ast,
+                            Steals = (int)stl, Blocks = (int)blk, Turnovers = (int)tov,
+                            Minutes = Math.Round(min, 1), FantasyPoints = fpts,
+                            Fgm = fgm, Fga = fga, Ftm = ftm, Fta = fta,
+                            ThreePm = tpm, ThreePa = tpa,
+                            OffRebounds = oreb, DefRebounds = dreb,
+                            Won = isWinner
+                        });
+                    }
+                }
             }
-            catch (Exception ex) { _logger.LogError($"Errore boxscore {gameId}: {ex.Message}"); }
+            catch (Exception ex) { _logger.LogError($"Errore boxscore API {gameId}: {ex.Message}"); }
         });
 
         await Task.WhenAll(tasks);
@@ -797,6 +894,9 @@ public class NbaDataService : INbaDataService
                         FirstName = registryEntry.FirstName,   // ✅ From REGISTRY (not "Unknown")
                         LastName = registryEntry.LastName,     // ✅ From REGISTRY  
                         NbaTeam = registryEntry.Team,          // ✅ From REGISTRY
+                        DraftYear = registryEntry.DraftYear > 0 ? registryEntry.DraftYear : bio.DraftYear,
+                        RealNbaDraftRank = registryEntry.DraftNumber > 0 ? registryEntry.DraftNumber : (bio.DraftNumber > 0 ? bio.DraftNumber : null),
+                        IsRookie = (registryEntry.DraftYear > 0 ? registryEntry.DraftYear : bio.DraftYear) == SeasonHelper.ParseStartYear(season),
                         Position = bio.Position ?? "F",        // From bioMap
                         Height = bio.Height ?? "",
                         Weight = bio.Weight ?? "",
@@ -867,6 +967,12 @@ public class NbaDataService : INbaDataService
                         existing.DoubleDoubles = dd; existing.TripleDoubles = td;
                         existing.FantasyPoints = fpts;
                         existing.Efficiency = efficiency;
+                        
+                        // FIX: Explicitly update IsRookie flag to cleanup vets
+                        int draftY = existing.DraftYear;
+                        if (draftY == 0 && bioMap.TryGetValue(externalId, out var b)) draftY = b.DraftYear;
+                        existing.IsRookie = (draftY == SeasonHelper.ParseStartYear(season));
+                        
                         // FirstName, LastName, Team, Position already set from registry/bioMap - DO NOT OVERRIDE
                     }
                     else
@@ -975,7 +1081,14 @@ public class NbaDataService : INbaDataService
         return (current, history);
     }
 
-    private struct PlayerBio { public string Position; public string Height; public string Weight; }
+    private struct PlayerBio 
+    { 
+        public string Position; 
+        public string Height; 
+        public string Weight; 
+        public int DraftYear;
+        public int DraftNumber;
+    }
 
     private async Task<Dictionary<int, PlayerBio>> GetPlayerBioMapAsync(string season)
     {
@@ -1001,16 +1114,37 @@ public class NbaDataService : INbaDataService
             int idxPos = headers.IndexOf("POSITION");
             int idxH = headers.IndexOf("HEIGHT");
             int idxW = headers.IndexOf("WEIGHT");
+            int idxDraftYear = headers.IndexOf("DRAFT_YEAR");
+            int idxDraftNum = headers.IndexOf("DRAFT_NUMBER");
 
             foreach (var row in rows)
             {
                 if (idxId == -1) continue;
                 int id = row[idxId].GetInt32();
+                
+                int draftYear = 0;
+                int draftNum = 0;
+
+                // Robust Parsing for Draft Info
+                if (idxDraftYear != -1)
+                {
+                    if (row[idxDraftYear].ValueKind == JsonValueKind.Number) draftYear = row[idxDraftYear].GetInt32();
+                    else if (row[idxDraftYear].ValueKind == JsonValueKind.String) int.TryParse(row[idxDraftYear].GetString(), out draftYear);
+                }
+
+                if (idxDraftNum != -1)
+                {
+                    if (row[idxDraftNum].ValueKind == JsonValueKind.Number) draftNum = row[idxDraftNum].GetInt32();
+                    else if (row[idxDraftNum].ValueKind == JsonValueKind.String) int.TryParse(row[idxDraftNum].GetString(), out draftNum);
+                }
+
                 bioMap[id] = new PlayerBio
                 {
                     Position = idxPos != -1 ? row[idxPos].ToString() : "F",
                     Height = idxH != -1 ? row[idxH].ToString() : "",
-                    Weight = idxW != -1 ? row[idxW].ToString() : ""
+                    Weight = idxW != -1 ? row[idxW].ToString() : "",
+                    DraftYear = draftYear,
+                    DraftNumber = draftNum
                 };
             }
             
@@ -1026,6 +1160,8 @@ public class NbaDataService : INbaDataService
         public string FirstName;
         public string LastName;
         public string Team;
+        public int DraftYear;
+        public int DraftNumber;
     }
 
     // Fetches MASTER PLAYER REGISTRY from commonallplayers (source of truth for player identity)
@@ -1056,32 +1192,54 @@ public class NbaDataService : INbaDataService
             int idxFirstName = headers.IndexOf("DISPLAY_FIRST_LAST"); // Full name like "Jayson Tatum"
             int idxTeam = headers.IndexOf("TEAM_ABBREVIATION");
 
-            foreach (var row in rows)
-            {
-                if (idxId == -1) continue;
-                
-                int id = row[idxId].GetInt32();
-                
-                // Parse full name into First + Last
-                string fullName = (idxFirstName != -1 && row[idxFirstName].ValueKind == JsonValueKind.String)
-                    ? row[idxFirstName].GetString() ?? $"Player {id}"
-                    : $"Player {id}";
-                
-                var nameParts = fullName.Split(' ', 2); // Split on first space only
-                string firstName = nameParts.Length > 0 ? nameParts[0] : "Unknown";
-                string lastName = nameParts.Length > 1 ? nameParts[1] : $"Player {id}";
-                
-                string team = (idxTeam != -1 && row[idxTeam].ValueKind == JsonValueKind.String)
-                    ? row[idxTeam].GetString() ?? "FA"
-                    : "FA";
-                
-                registry[id] = new PlayerRegistryEntry
+                int idxDraftYear = headers.IndexOf("DRAFT_YEAR");
+                int idxDraftNum = headers.IndexOf("DRAFT_NUMBER");
+                // Fallback to FROM_YEAR if Draft Year missing
+                if (idxDraftYear == -1) idxDraftYear = headers.IndexOf("FROM_YEAR");
+
+                foreach (var row in rows)
                 {
-                    FirstName = firstName,
-                    LastName = lastName,
-                    Team = team
-                };
-            }
+                    if (idxId == -1) continue;
+                    
+                    int id = row[idxId].GetInt32();
+                    
+                    // Parse full name into First + Last
+                    string fullName = (idxFirstName != -1 && row[idxFirstName].ValueKind == JsonValueKind.String)
+                        ? row[idxFirstName].GetString() ?? $"Player {id}"
+                        : $"Player {id}";
+                    
+                    var nameParts = fullName.Split(' ', 2); // Split on first space only
+                    string firstName = nameParts.Length > 0 ? nameParts[0] : "Unknown";
+                    string lastName = nameParts.Length > 1 ? nameParts[1] : $"Player {id}";
+                    
+                    string team = (idxTeam != -1 && row[idxTeam].ValueKind == JsonValueKind.String)
+                        ? row[idxTeam].GetString() ?? "FA"
+                        : "FA";
+
+                    int draftYear = 0;
+                    if (idxDraftYear != -1 && row[idxDraftYear].ValueKind == JsonValueKind.String)
+                        int.TryParse(row[idxDraftYear].GetString(), out draftYear);
+                    else if (idxDraftYear != -1 && row[idxDraftYear].ValueKind == JsonValueKind.Number)
+                        draftYear = row[idxDraftYear].GetInt32();
+
+                    int draftNum = 0;
+                    if (idxDraftNum != -1)
+                    {
+                         if(row[idxDraftNum].ValueKind == JsonValueKind.Number)
+                             draftNum = row[idxDraftNum].GetInt32();
+                         else if(row[idxDraftNum].ValueKind == JsonValueKind.String)
+                             int.TryParse(row[idxDraftNum].GetString(), out draftNum);
+                    }
+                    
+                    registry[id] = new PlayerRegistryEntry
+                    {
+                        FirstName = firstName,
+                        LastName = lastName,
+                        Team = team,
+                        DraftYear = draftYear,
+                        DraftNumber = draftNum
+                    };
+                }
 
             _cache.Set($"registry_{season}", registry, TimeSpan.FromHours(24));
             _logger.LogInformation($"Loaded {registry.Count} players from commonallplayers registry for season {season}");

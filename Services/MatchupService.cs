@@ -1,6 +1,7 @@
 ﻿using FantasyBasket.API.Data;
 using FantasyBasket.API.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq; // Ensure Linq availability
 
 namespace FantasyBasket.API.Services;
 
@@ -80,9 +81,9 @@ public class MatchupService
         await BulkEnsureLineupsExistAsync(teamIntIds, minDate, maxDate);
 
         // 2b. CARICAMENTO BULK LINEUP (Usa int IDs)
+        // OPTIMIZATION: Removed .Include(d => d.Player) as we only need PlayerId and Slot for scoring.
         var allLineups = await _context.DailyLineups
             .Where(d => teamIntIds.Contains(d.TeamId) && d.Date >= minDate && d.Date < maxDate)
-            .Include(d => d.Player)
             .AsNoTracking()
             .ToListAsync();
 
@@ -183,7 +184,7 @@ public class MatchupService
                     // Lineups
                     var lineups = await _context.DailyLineups
                         .Where(d => (d.TeamId == homeTeam.Id || d.TeamId == awayTeam.Id) && d.Date >= matchStart && d.Date < matchEnd)
-                        .Include(d => d.Player)
+                        // .Include(d => d.Player) // Optimization: Not needed for scoring
                         .AsNoTracking()
                         .ToListAsync(cancellationToken);
 
@@ -312,67 +313,60 @@ public class MatchupService
         await BulkEnsureLineupsExistAsync(new List<int> { teamId }, start, end);
     }
 
-    // Refactored to Best Score of the Week (Best Ball) Logic
-    private double CalculateWeeklyScoreInMemory(int teamUserId, DateTime start, DateTime end, LeagueSettings settings, List<DailyLineup> allLineups, List<PlayerGameLog> allLogs)
+    // Refactored to Best Score of the Week (Best Ball) Logic matching GetMatchDetailsHandler
+    private double CalculateWeeklyScoreInMemory(int teamId, DateTime start, DateTime end, LeagueSettings settings, List<DailyLineup> allLineups, List<PlayerGameLog> allLogs)
     {
-         // 1. Determine the Active Lineup for the Week.
-         // Requirement: "Best score of the week for each role deployed."
-         // Implies a single lineup governs the week (Weekly Lock).
-         // We use the lineup from the Start Date of the matchup range.
-         
-         var activeLineup = allLineups
-            .Where(d => d.TeamId == teamUserId && d.Date.Date == start.Date)
+        // 1. Get ALL DailyLineups for the week where the player was a STARTER
+        // We need to look at the whole week because players might change or slots might change daily?
+        // Even if they don't change, we need to know who was in the slot on the day of the game.
+        
+        var weekStarters = allLineups
+            .Where(d => d.TeamId == teamId && d.Date >= start && d.Date < end && d.IsStarter)
             .ToList();
 
-         // If empty (e.g. week starts today but lineup not generated?), try to find any lineup in range
-         if (!activeLineup.Any())
-         {
-             activeLineup = allLineups
-                .Where(d => d.TeamId == teamUserId && d.Date >= start && d.Date < end)
-                .OrderBy(d => d.Date)
-                .GroupBy(d => d.Date)
-                .FirstOrDefault()?.ToList() ?? new List<DailyLineup>();
-         }
+        if (!weekStarters.Any()) return 0;
 
-         // Se ancora vuota, fallback aggressivo: prendi l'ultima lineup disponibile PRIMA della settimana (Carry-over logico)
-         if (!activeLineup.Any())
-         {
-             // TODO: Questo è pesante, ma necessario se non ci sono lineup nella settimana.
-             // Per ora ritorniamo 0 per evitare errori, ma è qui il problema del "0-0" se non si è loggato.
-             // _logger.LogWarning($"Nessuna lineup trovata per Team {teamUserId} nella settimana {start.ToShortDateString()} - {end.ToShortDateString()}");
-             return 0;
-         }
+        // Map: (PlayerId, DateStr) -> Slot
+        // This tells us: "On Date X, Player Y was active in Slot Z"
+        var starterSlots = weekStarters
+            .GroupBy(x => new { x.PlayerId, DateStr = x.Date.ToString("yyyy-MM-dd") })
+            .ToDictionary(g => g.Key, g => g.First().Slot);
 
-         if (!activeLineup.Any()) return 0;
+        // 2. Filter Valid Logs (Must be in lineup on that day)
+        string sDateStr = start.ToString("yyyy-MM-dd");
+        string eDateStr = end.ToString("yyyy-MM-dd");
 
-         double weeklyTotal = 0;
-         var starters = activeLineup.Where(d => d.IsStarter).ToList();
+        // Optimization: Filter logs for players involved first
+        var involvedPlayerIds = new HashSet<int>(weekStarters.Select(x => x.PlayerId).Distinct());
 
-         // 2. For each Starter => Find MAX score in the week
-         foreach (var starter in starters)
-         {
-             // Get all logs for this player in the week range
-             // Date string format comparison
-             string sDateStr = start.ToString("yyyy-MM-dd");
-             string eDateStr = end.ToString("yyyy-MM-dd");
+        var validLogs = allLogs
+            .Where(l => l.GameDate.CompareTo(sDateStr) >= 0 && 
+                        l.GameDate.CompareTo(eDateStr) < 0 && 
+                        involvedPlayerIds.Contains(l.PlayerId))
+            .ToList();
 
-             var playerLogs = allLogs
-                 .Where(l => l.PlayerId == starter.PlayerId && 
-                             l.GameDate.CompareTo(sDateStr) >= 0 && 
-                             l.GameDate.CompareTo(eDateStr) < 0)
-                 .ToList();
+        // 3. Transform logs to "Slot Performances"
+        var slotPerformances = new List<(string Slot, double Points)>();
 
-            if (playerLogs.Any())
+        foreach (var log in validLogs)
+        {
+            var key = new { log.PlayerId, DateStr = log.GameDate };
+            if (starterSlots.TryGetValue(key, out string slot))
             {
-                // Calculate FP for each log and take MAX
-                double maxScore = playerLogs.Max(l => CalculateFantasyPoints(l, settings));
-                weeklyTotal += maxScore;
+                double points = CalculateFantasyPoints(log, settings);
+                slotPerformances.Add((slot, points));
             }
-             
-             // No Bench Substitution (Explicit Requirement)
-         }
+        }
 
-         return weeklyTotal;
+        if (!slotPerformances.Any()) return 0;
+
+        // 4. Group by Slot -> Take Max -> Sum
+        // This is the core Best Ball logic: "Best score of the week for each role deployed"
+        var weeklyTotal = slotPerformances
+            .GroupBy(x => x.Slot)
+            .Sum(g => g.Max(x => x.Points));
+
+        return Math.Round(weeklyTotal, 1);
     }
 
     // Helper removed as logic is now inline or simple

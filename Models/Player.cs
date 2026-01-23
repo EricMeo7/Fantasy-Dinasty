@@ -66,4 +66,9 @@ public class Player
 
     // NOTA: Rimossi OwnerUserId, Salary, ContractYears, IsStarter.
     // Quei dati ora si trovano nella tabella "Contracts".
+
+    // --- ROOKIE DRAFT FIELDS ---
+    public bool IsRookie { get; set; } = false;
+    public int DraftYear { get; set; }
+    public int? RealNbaDraftRank { get; set; } // 1 = First Overall Pick, etc.
 }

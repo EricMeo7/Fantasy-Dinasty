@@ -217,4 +217,17 @@ public class LeagueController : ControllerBase
         
         return Ok(new { message = "Team removed from league" });
     }
+
+    [HttpGet("{id}/wage-scale")]
+    public async Task<IActionResult> GetWageScale(int id)
+    {
+        // Simple read, validation that league exists (optional or implicit by empty list)
+        var scales = await _context.RookieWageScales
+            .Where(w => w.LeagueId == id)
+            .OrderBy(w => w.PickNumber)
+            .AsNoTracking()
+            .ToListAsync();
+
+        return Ok(scales);
+    }
 }

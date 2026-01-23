@@ -1,3 +1,4 @@
+using FantasyBasket.API.Common;
 using FantasyBasket.API.Data;
 using FantasyBasket.API.Models;
 using Microsoft.EntityFrameworkCore;
@@ -29,41 +30,44 @@ public class DraftService : IDraftService
 
     public async Task GeneratePicksForSeasonAsync(int season, int leagueId)
     {
-        // Get league settings to determine number of teams
-        var leagueSettings = await _context.LeagueSettings
-            .FirstOrDefaultAsync(s => s.LeagueId == leagueId);
+        // Get league settings (optimized projection)
+        var settings = await _context.LeagueSettings
+            .Where(s => s.LeagueId == leagueId)
+            .Select(s => new { s.NumberOfTeams })
+            .FirstOrDefaultAsync();
 
-        if (leagueSettings == null)
+        if (settings == null)
         {
             _logger.LogWarning("League settings not found for league {LeagueId}", leagueId);
             return;
         }
 
-        int numberOfTeams = leagueSettings.NumberOfTeams;
-
-        // Get all teams in this league
-        var teams = await _context.Teams
+        // Get all team IDs (optimized projection)
+        var teamIds = await _context.Teams
             .Where(t => t.LeagueId == leagueId)
-            .OrderBy(t => t.Id)
+            .Select(t => t.Id)
             .ToListAsync();
 
-        if (teams.Count == 0)
+        if (!teamIds.Any())
         {
             _logger.LogWarning("No teams found for league {LeagueId}", leagueId);
             return;
         }
 
+        // Fetch existing picks for this season at once to avoid N+1 duplication checks
+        var existingPicks = await _context.DraftPicks
+            .Where(p => p.LeagueId == leagueId && p.Season == season)
+            .Select(p => new { p.Round, p.OriginalOwnerTeamId })
+            .AsNoTracking()
+            .ToListAsync();
+
         // Generate picks for Round 1 and Round 2
         for (int round = 1; round <= 2; round++)
         {
-            foreach (var team in teams)
+            foreach (var teamId in teamIds)
             {
-                // Check if pick already exists (prevent duplicates)
-                bool pickExists = await _context.DraftPicks
-                    .AnyAsync(p => p.LeagueId == leagueId &&
-                                   p.Season == season &&
-                                   p.Round == round &&
-                                   p.OriginalOwnerTeamId == team.Id);
+                // check memory instead of DB
+                bool pickExists = existingPicks.Any(p => p.Round == round && p.OriginalOwnerTeamId == teamId);
 
                 if (!pickExists)
                 {
@@ -71,8 +75,8 @@ public class DraftService : IDraftService
                     {
                         Season = season,
                         Round = round,
-                        OriginalOwnerTeamId = team.Id,
-                        CurrentOwnerTeamId = team.Id, // Initially owned by original team
+                        OriginalOwnerTeamId = teamId,
+                        CurrentOwnerTeamId = teamId, // Initially owned by original team
                         LeagueId = leagueId,
                         SlotNumber = null, // Will be assigned after lottery
                         PlayerId = null // Will be assigned during draft
@@ -85,23 +89,24 @@ public class DraftService : IDraftService
 
         await _context.SaveChangesAsync();
         _logger.LogInformation("Generated {Count} draft picks for season {Season} in league {LeagueId}",
-            teams.Count * 2, season, leagueId);
+            teamIds.Count * 2, season, leagueId);
     }
 
     public async Task EnsurePicksFor3SeasonsAsync(int leagueId)
     {
-        // Get current season from league settings
-        var leagueSettings = await _context.LeagueSettings
-            .FirstOrDefaultAsync(s => s.LeagueId == leagueId);
+        // Get current season (optimized projection)
+        var currentSeasonStr = await _context.LeagueSettings
+            .Where(s => s.LeagueId == leagueId)
+            .Select(s => s.CurrentSeason)
+            .FirstOrDefaultAsync();
 
-        if (leagueSettings == null)
+        if (currentSeasonStr == null)
         {
             _logger.LogWarning("League settings not found for league {LeagueId}", leagueId);
             return;
         }
 
-        // Parse current season (e.g., "2025-26" -> 2026)
-        int currentSeasonEndYear = ParseSeasonYear(leagueSettings.CurrentSeason);
+        int currentSeasonEndYear = ParseSeasonYear(currentSeasonStr);
 
         // Ensure picks exist for current season, next season, and the season after
         for (int i = 0; i < 3; i++)
@@ -147,19 +152,35 @@ public class DraftService : IDraftService
         // Assign player to pick
         pick.PlayerId = playerId;
 
-        // Calculate rookie salary based on slot number
-        int maxSlots = pick.League.Settings?.NumberOfTeams ?? 12;
-        maxSlots *= 2; // Total picks = teams * 2 rounds
-        double rookieSalary = _salaryScale.GetSalaryForSlot(pick.SlotNumber.Value, maxSlots);
+        // Calculate rookie salary (Try DB first, then fallback to service)
+        var dbScale = await _context.RookieWageScales
+            .FirstOrDefaultAsync(s => s.LeagueId == pick.LeagueId && s.PickNumber == pick.SlotNumber);
+
+        double salaryY1, salaryY2, salaryY3;
+
+        if (dbScale != null)
+        {
+            salaryY1 = dbScale.Year1Salary;
+            salaryY2 = dbScale.Year2Salary;
+            salaryY3 = Math.Round(salaryY2 * (1 + (dbScale.Year3OptionPercentage / 100.0)), 2);
+        }
+        else
+        {
+            int maxSlots = pick.League.Settings?.NumberOfTeams ?? 12;
+            maxSlots *= 2; // Total picks = teams * 2 rounds
+            salaryY1 = _salaryScale.GetSalaryForSlot(pick.SlotNumber.Value, maxSlots);
+            salaryY2 = salaryY1;
+            salaryY3 = salaryY1;
+        }
 
         // Create rookie contract (2+1 structure)
         var contract = new Contract
         {
             TeamId = pick.CurrentOwnerTeamId,
             PlayerId = playerId,
-            SalaryYear1 = rookieSalary,
-            SalaryYear2 = rookieSalary,
-            SalaryYear3 = rookieSalary,
+            SalaryYear1 = salaryY1,
+            SalaryYear2 = salaryY2,
+            SalaryYear3 = salaryY3,
             ContractYears = 3,
             IsRookieContract = true,
             IsYear3TeamOption = true,
@@ -173,21 +194,13 @@ public class DraftService : IDraftService
 
         _logger.LogInformation(
             "Assigned player {PlayerId} to draft pick {PickId} (Slot {SlotNumber}) with rookie salary {Salary}",
-            playerId, pickId, pick.SlotNumber, rookieSalary);
+            playerId, pickId, pick.SlotNumber, salaryY1);
 
         return pick;
     }
 
     private int ParseSeasonYear(string season)
     {
-        // Parse "2025-26" -> 2026
-        var parts = season.Split('-');
-        if (parts.Length == 2 && int.TryParse("20" + parts[1], out int year))
-        {
-            return year;
-        }
-
-        // Fallback to current year
-        return DateTime.UtcNow.Year;
+        return SeasonHelper.ParseStartYear(season);
     }
 }
