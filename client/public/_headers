@@ -1,5 +1,6 @@
 /*
   Cross-Origin-Opener-Policy: same-origin-allow-popups
   Cross-Origin-Embedder-Policy: unsafe-none
+  X-Robots-Tag: all
 /sitemap.xml
   Content-Type: application/xml
