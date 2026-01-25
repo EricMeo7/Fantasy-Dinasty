@@ -168,9 +168,9 @@ public class ScoreUpdateService : BackgroundService
                             // --- MODALITÀ MANUTENZIONE (Off-hours) ---
                             // Eseguiamo ogni volta che entriamo qui (quindi ogni 5 min circa)
 
-                            // 0. POST-GAME REFRESH (Ogni 10 Minuti)
-                            // Serve per catturare i punteggi "Final" appena finiti e correzioni
-                            if (DateTime.UtcNow > _lastScoreRefresh.AddMinutes(10))
+                            // 0. POST-GAME REFRESH (Reduced to 4 Hours)
+                            // "Aggressive Network Saving": We don't need to check freqeuntly if we are not live
+                            if (DateTime.UtcNow > _lastScoreRefresh.AddHours(4))
                             {
                                 _logger.LogInformation("Performing post-game score refresh (Final Stats / Corrections)...");
 
@@ -199,8 +199,8 @@ public class ScoreUpdateService : BackgroundService
                                 _lastScoreRefresh = DateTime.UtcNow;
                             }
 
-                            // Aggiorniamo calendario e infortuni solo ogni 6 ore
-                            if (DateTime.UtcNow > _lastFullScheduleUpdate.AddHours(6))
+                            // Aggiorniamo calendario e infortuni solo ogni 24 ore (Once a day)
+                            if (DateTime.UtcNow > _lastFullScheduleUpdate.AddHours(24))
                             {
                                 _logger.LogInformation("Esecuzione manutenzione periodica (6h) (Calendario/Infortuni/Giocatori).");
                                 
