@@ -208,10 +208,13 @@ public class NbaDataService : INbaDataService
         await EnsureSettingsLoadedAsync(context);
         var settings = _cachedSettings ?? new LeagueSettings();
         
-        var gamesToday = await context.NbaGames
+        var gamesTodayEntities = await context.NbaGames
             .Where(g => g.GameDate == nbaDate.Date)
-            .Select(g => g.NbaGameId)
+            .Select(g => new { g.NbaGameId, g.Status })
             .ToListAsync();
+
+        var gamesToday = gamesTodayEntities.Select(g => g.NbaGameId).ToList();
+        bool areAllFinal = gamesTodayEntities.Count > 0 && gamesTodayEntities.All(g => g.Status == "Final");
 
         if (!gamesToday.Any()) return resultArray.ToDictionary(k => k.Key, v => v.Value);
 
@@ -417,8 +420,16 @@ public class NbaDataService : INbaDataService
         }
 
         var finalDict = resultArray.ToDictionary(k => k.Key, v => v.Value);
-        if (isPast) _cache.Set(cacheKey, finalDict, TimeSpan.FromMinutes(30)); 
-        else _cache.Set(cacheKey, finalDict, TimeSpan.FromSeconds(60));
+        
+        // AGGRESSIVE CACHING: If past date OR all games are Final -> Cache for 24 Hours
+        if (isPast || areAllFinal) 
+        {
+             _cache.Set(cacheKey, finalDict, TimeSpan.FromHours(24)); 
+        }
+        else 
+        {
+             _cache.Set(cacheKey, finalDict, TimeSpan.FromSeconds(60));
+        }
 
         return finalDict;
     }
